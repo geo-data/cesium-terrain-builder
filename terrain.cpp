@@ -1,5 +1,11 @@
 #include <stdio.h>
+#include <iostream>
+#include <vector>
 #include "src/TerrainTile.hpp"
+
+/*void terrain2tiff(TerrainTile &terrain, double minx, double miny, double maxx, double maxy) {
+  double resolution = (maxx - minx) / 65;
+  }*/
 
 int main() {
   TerrainTile terrain;
@@ -37,12 +43,28 @@ int main() {
   if (terrain.hasChildNE()) {
     printf("Has a NE child\n");
   }
-  
-  terrain.print();
+
+  std::vector<short int> heights = terrain.heights();
+  std::vector<short int>::iterator heightsIterator;
+  for(heightsIterator = heights.begin();
+      heightsIterator != heights.end();
+      heightsIterator++)
+    {
+      std::cout << "height: " << *heightsIterator << std::endl;
+    }
+
+  std::vector<bool> mask = terrain.mask();
+  std::vector<bool>::iterator maskIterator;
+  for(maskIterator = mask.begin();
+      maskIterator != mask.end();
+      maskIterator++)
+    {
+      std::cout << "mask: " << *maskIterator << std::endl;
+    }
 
   FILE *terrainOut = fopen("out.terrain","wb");
   terrain.writeFile(terrainOut);
   fclose(terrainOut);
-  
+
   return 0;
 }

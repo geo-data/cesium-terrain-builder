@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <vector>
 
 #define TILE_SIZE 65 * 65
 #define MASK_SIZE 256 * 256
@@ -21,10 +22,10 @@ public:
     while ( count < TILE_SIZE && fread(bytes, 2, 1, fp) != 0) {
       /* adapted from
          <http://stackoverflow.com/questions/13001183/how-to-read-little-endian-integers-from-file-in-c> */
-    
+
       mHeights[count++] = bytes[0] | (bytes[1]<<8);
     }
-  
+
     if ( fread(&(mChildren), 1, 1, fp) != 1) {
       throw 1;
     }
@@ -34,21 +35,22 @@ public:
     }
   }
 
-  void print() {
-    int count;
-    for (count = 0; count < TILE_SIZE; count++) {
-      printf("height: %d\n", mHeights[count]);
-    }
-
-    for (count = 0; count < MASK_SIZE; count++) {
-      printf("mask: %d\n", mMask[count] & 0xFF);
-    }
-  }
-
   void writeFile(FILE *fp) {
       fwrite(&mHeights, TILE_SIZE * 2, 1, fp);
       fwrite(&mChildren, 1, 1, fp);
       fwrite(mMask, MASK_SIZE, 1, fp);
+  }
+
+  std::vector<short int> heights() {
+    std::vector<short int> heights;
+    heights.assign(mHeights, mHeights + TILE_SIZE);
+    return heights;
+  }
+
+  std::vector<bool> mask() {
+    std::vector<bool> mask;
+    mask.assign(mMask, mMask + MASK_SIZE);
+    return mask;
   }
 
   /* for a discussion on bitflags see
@@ -65,7 +67,7 @@ public:
   inline bool hasChildNE() {
     return ((mChildren & TC_NE) == TC_NE);
   }
-  
+
 private:
   short int mHeights[TILE_SIZE];
   char mChildren;
