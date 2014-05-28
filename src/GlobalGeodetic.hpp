@@ -7,16 +7,16 @@
 class GlobalGeodetic {
 public:
   GlobalGeodetic(int tileSize = 65):
-    tileSize(tileSize),
-    initialResolution(180.0 / tileSize)
+    mTileSize(tileSize),
+    mInitialResolution(180.0 / tileSize)
   { }
 
   inline double const resolution(short int zoom) {
-    return initialResolution / pow(2, zoom);
+    return mInitialResolution / pow(2, zoom);
   }
 
   inline short int const zoomForResolution(double resolution) {
-    return (short int) ceil(log2(initialResolution) - log2(resolution));
+    return (short int) ceil(log2(mInitialResolution) - log2(resolution));
   }
 
   inline void const latLonToPixels(double lat, double lon, short int zoom,
@@ -29,8 +29,8 @@ public:
 
   inline void const pixelsToTile(int px, int py,
                                  int& tx, int& ty) {
-    tx = (int) ceil(px / tileSize);
-    ty = (int) ceil(py / tileSize);
+    tx = (int) ceil(px / mTileSize);
+    ty = (int) ceil(py / mTileSize);
     return;
   }
 
@@ -45,14 +45,18 @@ public:
   inline void const tileBounds(int tx, int ty, short int zoom, double& minx,
                                double& miny, double& maxx, double& maxy) {
     double res = resolution(zoom);
-    minx = tx * tileSize * res - 180;
-    miny = ty * tileSize * res - 90;
-    maxx = (tx + 1) * tileSize * res - 180;
-    maxy = (ty + 1) * tileSize * res - 90;
+    minx = tx * mTileSize * res - 180;
+    miny = ty * mTileSize * res - 90;
+    maxx = (tx + 1) * mTileSize * res - 180;
+    maxy = (ty + 1) * mTileSize * res - 90;
+  }
+
+  inline int tileSize() {
+    return mTileSize;
   }
   
 private:
-  int tileSize;
-  double initialResolution;
+  int mTileSize;
+  double mInitialResolution;
 };
 

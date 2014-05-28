@@ -1,9 +1,9 @@
 #include <iostream>             // for cout and cin
-#include <fstream>
-#include <sstream>
 #include "src/GlobalGeodetic.hpp"
 
 #include "gdal_priv.h"
+#include "ogr_spatialref.h"
+#include "gdalwarper.h"
 
 using namespace std;
 
@@ -12,14 +12,38 @@ public:
   GDALTiler(GDALDataset *poDataset);
   ~GDALTiler();
 
-  //private:
+  inline double const minx() {
+    return mBounds[0];
+  }
+
+  inline double const miny() {
+    return mBounds[1];
+  }
+
+  inline double const maxx() {
+    return mBounds[2];
+  }
+
+  inline double const maxy() {
+    return mBounds[3];
+  }
+
+  inline double resolution() {
+    return mResolution;
+  }
+
+  inline GDALDataset * dataset() {
+    return poDataset;
+  }
+
+private:
   GDALDataset *poDataset;
-  double bounds[4];             // minx, miny, maxx, maxy
-  double resolution;
+  double mBounds[4];            // minx, miny, maxx, maxy
+  double mResolution;
 };
 
 GDALTiler::GDALTiler(GDALDataset *poDataset):
-  poDataset(poDataset)  
+  poDataset(poDataset)
 {
   // Need to catch NULL dataset here
 
@@ -27,21 +51,17 @@ GDALTiler::GDALTiler(GDALDataset *poDataset):
   double adfGeoTransform[6];
 
   if( poDataset->GetGeoTransform( adfGeoTransform ) == CE_None ) {
-    bounds[0] = adfGeoTransform[0];
-    bounds[1] = adfGeoTransform[3] + (poDataset->GetRasterYSize() * adfGeoTransform[5]);
-    bounds[2] = adfGeoTransform[0] + (poDataset->GetRasterXSize() * adfGeoTransform[1]);
-    bounds[3] = adfGeoTransform[3];
+    mBounds[0] = adfGeoTransform[0];
+    mBounds[1] = adfGeoTransform[3] + (poDataset->GetRasterYSize() * adfGeoTransform[5]);
+    mBounds[2] = adfGeoTransform[0] + (poDataset->GetRasterXSize() * adfGeoTransform[1]);
+    mBounds[3] = adfGeoTransform[3];
 
-    resolution = abs(adfGeoTransform[1]);
+    mResolution = abs(adfGeoTransform[1]);
   }
 }
-  
+
 GDALTiler::~GDALTiler() {
   GDALClose(poDataset);
-}
-
-static void printCoord(ofstream& stream, double x, double y) {
-  stream << "[" << x << ", " << y << "]";
 }
 
 int main() {
@@ -51,11 +71,74 @@ int main() {
     cout << "zoom level: " << i << " resolution: " << Profile.resolution(i) << endl;
   }
   cout << "zoom level for " << resolution << " is " << Profile.zoomForResolution(resolution) << endl;*/
-  
+
   GDALAllRegister();
   GDALDataset  *poDataset = (GDALDataset *) GDALOpen("./lidar-2007-filled-cut.tif", GA_ReadOnly);
   GDALTiler tiler(poDataset);
 
+  int tx = 8145, ty = 6408;
+  //int tx = 8147, ty = 6407;
+  //int tx = 8146, ty = 6408;
+  short int zoom = 13;
+  double minLon, minLat, maxLon, maxLat;
+  Profile.tileBounds(tx, ty, zoom, minLon, minLat, maxLon, maxLat);
+
+  double adfGeoTransform[6];
+  double resolution = Profile.resolution(zoom);
+  adfGeoTransform[0] = minLon;
+  adfGeoTransform[1] = resolution;
+  adfGeoTransform[2] = 0;
+  adfGeoTransform[3] = maxLat;
+  adfGeoTransform[4] = 0;
+  adfGeoTransform[5] = -resolution;
+
+  OGRSpatialReference oSRS;
+  oSRS.importFromEPSG(4326);
+
+  GDALDataType eDT = GDT_Int16;
+  GDALDriverH hDriver = GDALGetDriverByName( "GTiff" );
+  GDALDatasetH hSrcDS = (GDALDatasetH) tiler.dataset();
+  GDALDatasetH hDstDS;
+
+  char *pszDstWKT = NULL;
+  oSRS.exportToWkt( &pszDstWKT );
+
+  hDstDS = GDALCreate(hDriver, "out.tif", Profile.tileSize(), Profile.tileSize(), 1, eDT, NULL );
+  GDALSetProjection( hDstDS, pszDstWKT );
+  GDALSetGeoTransform( hDstDS, adfGeoTransform );
+
+  GDALWarpOptions *psWarpOptions = GDALCreateWarpOptions();
+  psWarpOptions->hSrcDS = hSrcDS;
+  psWarpOptions->hDstDS = hDstDS;
+  psWarpOptions->nBandCount = 1;
+  psWarpOptions->panSrcBands =
+    (int *) CPLMalloc(sizeof(int) * psWarpOptions->nBandCount );
+  psWarpOptions->panSrcBands[0] = 1;
+  psWarpOptions->panDstBands =
+    (int *) CPLMalloc(sizeof(int) * psWarpOptions->nBandCount );
+  psWarpOptions->panDstBands[0] = 1;
+
+  psWarpOptions->pfnProgress = GDALTermProgress;
+  psWarpOptions->pTransformerArg =
+    GDALCreateGenImgProjTransformer( hSrcDS,
+                                     GDALGetProjectionRef(hSrcDS),
+                                     hDstDS,
+                                     GDALGetProjectionRef(hDstDS),
+                                     FALSE, 0.0, 1 );
+  psWarpOptions->pfnTransformer = GDALGenImgProjTransform;
+
+  GDALWarpOperation oOperation;
+
+  oOperation.Initialize( psWarpOptions );
+  oOperation.ChunkAndWarpImage( 0, 0,
+                                GDALGetRasterXSize( hDstDS ),
+                                GDALGetRasterYSize( hDstDS ) );
+
+  GDALDestroyGenImgProjTransformer( psWarpOptions->pTransformerArg );
+  GDALDestroyWarpOptions( psWarpOptions );
+
+  GDALClose( hDstDS );
+  /*
   ofstream geojson;
   for (short int zoom = Profile.zoomForResolution(tiler.resolution); zoom >= 0; zoom--) {
     int minx, miny, maxx, maxy;
@@ -65,7 +148,7 @@ int main() {
 
     string filename = static_cast<ostringstream*>( &(ostringstream() << zoom << ".geojson") )->str();
     geojson.open(filename.c_str());
-    
+
     geojson << "{ \"type\": \"FeatureCollection\", \"features\": [" << endl;
 
     int tx, ty;
@@ -96,6 +179,7 @@ int main() {
     geojson << "]}" << endl;
     geojson.close();
   }
+  */
 
   return 0;
 }
