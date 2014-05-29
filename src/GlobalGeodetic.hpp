@@ -42,13 +42,26 @@ public:
     return;
   }
 
-  inline void const tileBounds(int tx, int ty, short int zoom, double& minx,
-                               double& miny, double& maxx, double& maxy) {
+  inline void const tileBounds(int tx, int ty, short int zoom,
+                               double& minx, double& miny, double& maxx, double& maxy) {
     double res = resolution(zoom);
     minx = tx * mTileSize * res - 180;
     miny = ty * mTileSize * res - 90;
     maxx = (tx + 1) * mTileSize * res - 180;
     maxy = (ty + 1) * mTileSize * res - 90;
+  }
+
+  inline void const terrainTileBounds(int tx, int ty, short int zoom,
+                                      double& resolution,
+                                      double& minx, double& miny, double& maxx, double& maxy) {
+    int lTileSize = tileSize() - 1;
+
+    tileBounds(tx, ty, zoom, minx, miny, maxx, maxy);
+    resolution = (maxx - minx) / lTileSize;
+    minx = minx - resolution;
+    //maxx = maxx + resolution;
+    //miny = miny - resolution;
+    maxy = maxy + resolution;
   }
 
   inline int tileSize() {
