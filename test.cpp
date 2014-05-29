@@ -12,6 +12,8 @@ public:
   GDALTiler(GDALDataset *poDataset);
   ~GDALTiler();
 
+  GDALDatasetH createTile(short int zoom, int tx, int ty);
+
   inline double const minx() {
     return mBounds[0];
   }
@@ -37,6 +39,7 @@ public:
   }
 
 private:
+  GlobalGeodetic mProfile;
   GDALDataset *poDataset;
   double mBounds[4];            // minx, miny, maxx, maxy
   double mResolution;
@@ -64,25 +67,9 @@ GDALTiler::~GDALTiler() {
   GDALClose(poDataset);
 }
 
-int main() {
-  GlobalGeodetic Profile;
-  /*double resolution = 0.000014677763277;
-  for (i = 0; i < 19; i++) {
-    cout << "zoom level: " << i << " resolution: " << Profile.resolution(i) << endl;
-  }
-  cout << "zoom level for " << resolution << " is " << Profile.zoomForResolution(resolution) << endl;*/
-
-  GDALAllRegister();
-  GDALDataset  *poDataset = (GDALDataset *) GDALOpen("./lidar-2007-filled-cut.tif", GA_ReadOnly);
-  GDALTiler tiler(poDataset);
-
-  //int tx = 8145, ty = 6408;
-  //int tx = 8146, ty = 6408;
-  //int tx = 8145, ty = 6409;
-  int tx = 8146, ty = 6409;
-  short int zoom = 13;
+GDALDatasetH GDALTiler::createTile(short int zoom, int tx, int ty) {
   double resolution, minLon, minLat, maxLon, maxLat;
-  Profile.terrainTileBounds(tx, ty, zoom, resolution, minLon, minLat, maxLon, maxLat);
+  mProfile.terrainTileBounds(tx, ty, zoom, resolution, minLon, minLat, maxLon, maxLat);
 
   double adfGeoTransform[6];
   adfGeoTransform[0] = minLon;
@@ -96,14 +83,14 @@ int main() {
   oSRS.importFromEPSG(4326);
 
   GDALDataType eDT = GDT_Int16;
-  GDALDriverH hDriver = GDALGetDriverByName( "GTiff" );
-  GDALDatasetH hSrcDS = (GDALDatasetH) tiler.dataset();
+  GDALDriverH hDriver = GDALGetDriverByName( "MEM" );
+  GDALDatasetH hSrcDS = (GDALDatasetH) dataset();
   GDALDatasetH hDstDS;
 
   char *pszDstWKT = NULL;
   oSRS.exportToWkt( &pszDstWKT );
 
-  hDstDS = GDALCreate(hDriver, "13-8146-6409.gdal.tif", Profile.tileSize(), Profile.tileSize(), 1, eDT, NULL );
+  hDstDS = GDALCreate(hDriver, "", mProfile.tileSize(), mProfile.tileSize(), 1, eDT, NULL );
   GDALSetProjection( hDstDS, pszDstWKT );
   GDALSetGeoTransform( hDstDS, adfGeoTransform );
 
@@ -137,8 +124,8 @@ int main() {
   GDALDestroyGenImgProjTransformer( psWarpOptions->pTransformerArg );
   GDALDestroyWarpOptions( psWarpOptions );
 
-  Profile.tileBounds(tx, ty, zoom, minLon, minLat, maxLon, maxLat);
-  resolution = Profile.resolution(zoom);
+  mProfile.tileBounds(tx, ty, zoom, minLon, minLat, maxLon, maxLat);
+  resolution = mProfile.resolution(zoom);
   adfGeoTransform[0] = minLon;
   adfGeoTransform[1] = resolution;
   adfGeoTransform[2] = 0;
@@ -147,7 +134,30 @@ int main() {
   adfGeoTransform[5] = -resolution;
   GDALSetGeoTransform( hDstDS, adfGeoTransform );
 
-  GDALClose( hDstDS );
+  return hDstDS;
+}
+
+int main() {
+  GDALAllRegister();
+
+  GDALDataset  *poDataset = (GDALDataset *) GDALOpen("./lidar-2007-filled-cut.tif", GA_ReadOnly);
+  GDALTiler tiler(poDataset);
+
+  int tx = 8146, ty = 6409;
+  short int zoom = 13;
+
+  GDALDatasetH hTileDS = tiler.createTile(zoom, tx, ty);
+  GDALDatasetH hDstDS;
+  GDALDriverH hDriver = GDALGetDriverByName("GTiff");
+
+  hDstDS = GDALCreateCopy( hDriver, "13-8146-6409.gdal.tif", hTileDS, FALSE,
+                           NULL, NULL, NULL );
+
+  /* Once we're done, close properly the dataset */
+  if( hDstDS != NULL )
+    GDALClose( hDstDS );
+  GDALClose( hTileDS );
+
   /*
   ofstream geojson;
   for (short int zoom = Profile.zoomForResolution(tiler.resolution); zoom >= 0; zoom--) {
