@@ -30,7 +30,13 @@ public:
       throw 1;
     }
 
-    if ( fread(mMask, 1, MASK_SIZE, fp) != MASK_SIZE ) {
+    mMaskLength = fread(mMask, 1, MASK_SIZE, fp);
+    switch (mMaskLength) {
+    case MASK_SIZE:
+      break;
+    case 1:
+      break;
+    default:
       throw 2;
     }
   }
@@ -38,7 +44,7 @@ public:
   void writeFile(FILE *fp) {
       fwrite(&mHeights, TILE_SIZE * 2, 1, fp);
       fwrite(&mChildren, 1, 1, fp);
-      fwrite(mMask, MASK_SIZE, 1, fp);
+      fwrite(mMask, mMaskLength, 1, fp);
   }
 
   std::vector<short int> heights() {
@@ -49,7 +55,7 @@ public:
 
   std::vector<bool> mask() {
     std::vector<bool> mask;
-    mask.assign(mMask, mMask + MASK_SIZE);
+    mask.assign(mMask, mMask + mMaskLength);
     return mask;
   }
 
@@ -68,8 +74,19 @@ public:
     return ((mChildren & TC_NE) == TC_NE);
   }
 
-private:
+  inline bool isWater() {
+    return mMaskLength == 1 && (bool) mMask[0];
+  }
+  inline bool isLand() {
+    return mMaskLength == 1 && ! (bool) mMask[0];
+  }
+  inline bool isMixed() {
+    return mMaskLength > 1;
+  }
+
   short int mHeights[TILE_SIZE];
+private:
   char mChildren;
   char mMask[MASK_SIZE];
+  size_t mMaskLength;
 };
