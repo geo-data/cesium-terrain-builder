@@ -1,5 +1,7 @@
-#include <stdio.h>
 #include <vector>
+
+#include "gdal_priv.h"
+#include "ogr_spatialref.h"
 
 #define TILE_SIZE 65 * 65
 #define MASK_SIZE 256 * 256
@@ -14,23 +16,25 @@ enum TerrainChildren {
 class TerrainTile {
 public:
   TerrainTile():
+    mHeights(TILE_SIZE),
     mChildren(0)
   {
     setIsLand();
   };
 
-  TerrainTile(FILE *fp) {
+  TerrainTile(FILE *fp):
+    mHeights(TILE_SIZE)
+  {
     unsigned char bytes[2];
     int count = 0;
 
     while ( count < TILE_SIZE && fread(bytes, 2, 1, fp) != 0) {
       /* adapted from
          <http://stackoverflow.com/questions/13001183/how-to-read-little-endian-integers-from-file-in-c> */
-
       mHeights[count++] = bytes[0] | (bytes[1]<<8);
     }
 
-    if ( fread(&(mChildren), 1, 1, fp) != 1) {
+    if ( fread(&(mChildren), 1, 1, fp) != 1 ) {
       throw 1;
     }
 
@@ -46,15 +50,10 @@ public:
   }
 
   void writeFile(FILE *fp) {
-      fwrite(&mHeights, TILE_SIZE * 2, 1, fp);
-      fwrite(&mChildren, 1, 1, fp);
-      fwrite(mMask, mMaskLength, 1, fp);
-  }
+    fwrite(mHeights.data(), TILE_SIZE * 2, 1, fp);
 
-  std::vector<short int> heights() {
-    std::vector<short int> heights;
-    heights.assign(mHeights, mHeights + TILE_SIZE);
-    return heights;
+    fwrite(&mChildren, 1, 1, fp);
+    fwrite(mMask, mMaskLength, 1, fp);
   }
 
   std::vector<bool> mask() {
@@ -104,9 +103,39 @@ public:
     return mMaskLength > 1;
   }
 
-  short int mHeights[TILE_SIZE];
+  GDALDatasetH heightsToRaster(double minx, double miny, double maxx, double maxy);
+
+  std::vector<short int> mHeights;
+
 private:
   char mChildren;
   char mMask[MASK_SIZE];
   size_t mMaskLength;
 };
+
+
+GDALDatasetH TerrainTile::heightsToRaster(double minx, double miny, double maxx, double maxy) {
+  double resolution = (maxx - minx) / 65;
+  double adfGeoTransform[6] = { minx, resolution, 0, maxy, 0, -resolution };
+
+  OGRSpatialReference oSRS;
+  oSRS.importFromEPSG(4326);
+
+  GDALDriverH hDriver = GDALGetDriverByName( "MEM" );
+  GDALDatasetH hDstDS;
+  GDALRasterBandH hBand;
+
+  char *pszDstWKT = NULL;
+  oSRS.exportToWkt( &pszDstWKT );
+
+  hDstDS = GDALCreate(hDriver, "", 65, 65, 1, GDT_Int16, NULL );
+  GDALSetProjection( hDstDS, pszDstWKT );
+  CPLFree( pszDstWKT );
+  GDALSetGeoTransform( hDstDS, adfGeoTransform );
+
+  hBand = GDALGetRasterBand( hDstDS, 1 );
+  GDALRasterIO( hBand, GF_Write, 0, 0, 65, 65,
+                mHeights.data(), 65, 65, GDT_Int16, 0, 0 );
+
+  return hDstDS;
+}

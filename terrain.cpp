@@ -5,33 +5,17 @@
 #include "src/GlobalGeodetic.hpp"
 
 #include "gdal_priv.h"
-#include "ogr_spatialref.h"
 
 void terrain2tiff(TerrainTile &terrain, double minx, double miny, double maxx, double maxy) {
-  double resolution = (maxx - minx) / 65;
-  double adfGeoTransform[6] = { minx, resolution, 0, maxy, 0, -resolution };
-
-  OGRSpatialReference oSRS;
-  oSRS.importFromEPSG(4326);
-
-  GDALDriverH hDriver = GDALGetDriverByName( "GTiff" );
+  GDALDatasetH hTileDS = terrain.heightsToRaster(minx, miny, maxx, maxy);
   GDALDatasetH hDstDS;
-  GDALRasterBandH hBand;
+  GDALDriverH hDriver = GDALGetDriverByName("GTiff");
 
-  char *pszDstWKT = NULL;
-  oSRS.exportToWkt( &pszDstWKT );
-
-  hDstDS = GDALCreate(hDriver, "9-509-399.terrain.tif", 65, 65, 1, GDT_Int16, NULL );
-  GDALSetProjection( hDstDS, pszDstWKT );
-  CPLFree( pszDstWKT );
-  GDALSetGeoTransform( hDstDS, adfGeoTransform );
-
-  hBand = GDALGetRasterBand( hDstDS, 1 );
-  GDALRasterIO( hBand, GF_Write, 0, 0, 65, 65,
-                terrain.mHeights, 65, 65, GDT_Int16, 0, 0 );
-
-  // Once we're done, close properly the dataset
-  GDALClose( hDstDS );
+  hDstDS = GDALCreateCopy( hDriver, "9-509-399.terrain.tif", hTileDS, FALSE,
+                           NULL, NULL, NULL );
+  if( hDstDS != NULL )
+    GDALClose( hDstDS );
+  GDALClose( hTileDS );
 }
 
 int main() {
@@ -83,8 +67,6 @@ int main() {
     // should not get here!!
     printf("Unknown tile type!!\n");
   }
-
-
 
   /*std::vector<short int> heights = terrain.heights();
   std::vector<short int>::iterator heightsIterator;

@@ -1,4 +1,4 @@
-#include <iostream>             // for cout and cin
+#include <stdio.h>
 #include "src/GlobalGeodetic.hpp"
 #include "src/TerrainTile.hpp"
 
