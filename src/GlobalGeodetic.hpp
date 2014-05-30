@@ -59,8 +59,6 @@ public:
     tileBounds(tx, ty, zoom, minx, miny, maxx, maxy);
     resolution = (maxx - minx) / lTileSize;
     minx = minx - resolution;
-    //maxx = maxx + resolution;
-    //miny = miny - resolution;
     maxy = maxy + resolution;
   }
 

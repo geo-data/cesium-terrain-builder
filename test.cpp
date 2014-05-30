@@ -1,5 +1,6 @@
 #include <iostream>             // for cout and cin
 #include "src/GlobalGeodetic.hpp"
+#include "src/TerrainTile.hpp"
 
 #include "gdal_priv.h"
 #include "ogr_spatialref.h"
@@ -12,7 +13,8 @@ public:
   GDALTiler(GDALDataset *poDataset);
   ~GDALTiler();
 
-  GDALDatasetH createTile(short int zoom, int tx, int ty);
+  GDALDatasetH createRasterTile(short int zoom, int tx, int ty);
+  TerrainTile *createTerrainTile(short int zoom, int tx, int ty);
 
   inline double const minx() {
     return mBounds[0];
@@ -67,7 +69,20 @@ GDALTiler::~GDALTiler() {
   GDALClose(poDataset);
 }
 
-GDALDatasetH GDALTiler::createTile(short int zoom, int tx, int ty) {
+TerrainTile *GDALTiler::createTerrainTile(short int zoom, int tx, int ty) {
+  TerrainTile *terrainTile = new TerrainTile();
+  GDALDataset *rasterTile = (GDALDataset *) createRasterTile(zoom, tx, ty);
+  GDALRasterBand *heightsBand = rasterTile->GetRasterBand(1);
+
+  heightsBand->RasterIO(GF_Write, 0, 0, 65, 1,
+                        (void *) &(terrainTile->mHeights), 65, 1, GDT_Int16,
+                        0, 0);
+  GDALClose((GDALDatasetH) rasterTile);
+
+  return terrainTile;
+}
+
+GDALDatasetH GDALTiler::createRasterTile(short int zoom, int tx, int ty) {
   double resolution, minLon, minLat, maxLon, maxLat;
   mProfile.terrainTileBounds(tx, ty, zoom, resolution, minLon, minLat, maxLon, maxLat);
 
@@ -146,7 +161,7 @@ int main() {
   int tx = 8146, ty = 6409;
   short int zoom = 13;
 
-  GDALDatasetH hTileDS = tiler.createTile(zoom, tx, ty);
+  GDALDatasetH hTileDS = tiler.createRasterTile(zoom, tx, ty);
   GDALDatasetH hDstDS;
   GDALDriverH hDriver = GDALGetDriverByName("GTiff");
 
@@ -157,6 +172,12 @@ int main() {
   if( hDstDS != NULL )
     GDALClose( hDstDS );
   GDALClose( hTileDS );
+
+  TerrainTile *terrainTile = tiler.createTerrainTile(zoom, tx, ty);
+  FILE *terrainOut = fopen("13-8146-6409.terrain", "wb");
+  terrainTile->writeFile(terrainOut);
+  delete terrainTile;
+  fclose(terrainOut);
 
   /*
   ofstream geojson;

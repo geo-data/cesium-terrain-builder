@@ -13,7 +13,11 @@ enum TerrainChildren {
 
 class TerrainTile {
 public:
-  TerrainTile() {};
+  TerrainTile():
+    mChildren(0)
+  {
+    setIsLand();
+  };
 
   TerrainTile(FILE *fp) {
     unsigned char bytes[2];
@@ -73,9 +77,25 @@ public:
   inline bool hasChildNE() {
     return ((mChildren & TC_NE) == TC_NE);
   }
+  inline void setAllChildren(bool on = true) {
+    if (on) {
+      mChildren = TC_SW | TC_SE | TC_NW | TC_NE;
+    } else {
+      mChildren = 0;
+    }
+  }
 
+  inline void setIsWater() {
+    mMask[0] = 1;
+    mMaskLength = 1;
+  }
   inline bool isWater() {
     return mMaskLength == 1 && (bool) mMask[0];
+  }
+
+  inline void setIsLand() {
+    mMask[0] = 0;
+    mMaskLength = 1;
   }
   inline bool isLand() {
     return mMaskLength == 1 && ! (bool) mMask[0];
