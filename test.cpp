@@ -74,9 +74,17 @@ TerrainTile *GDALTiler::createTerrainTile(short int zoom, int tx, int ty) {
   GDALDataset *rasterTile = (GDALDataset *) createRasterTile(zoom, tx, ty);
   GDALRasterBand *heightsBand = rasterTile->GetRasterBand(1);
 
+  float *heights = new float[TILE_SIZE];
+
   heightsBand->RasterIO(GF_Write, 0, 0, 65, 1,
-                        (void *) &(terrainTile->mHeights), 65, 1, GDT_Int16,
+                        (void *) heights, 65, 1, GDT_Float32,
                         0, 0);
+
+  for(int i = 0; i < TILE_SIZE; i++) {
+    terrainTile->mHeights[i] = (short int) ((heights[i] + 1000) * 5);
+  }
+  delete [] heights;
+
   GDALClose((GDALDatasetH) rasterTile);
 
   return terrainTile;
@@ -97,9 +105,9 @@ GDALDatasetH GDALTiler::createRasterTile(short int zoom, int tx, int ty) {
   OGRSpatialReference oSRS;
   oSRS.importFromEPSG(4326);
 
-  GDALDataType eDT = GDT_Int16;
   GDALDriverH hDriver = GDALGetDriverByName( "MEM" );
   GDALDatasetH hSrcDS = (GDALDatasetH) dataset();
+  GDALDataType eDT = GDALGetRasterDataType(GDALGetRasterBand(hSrcDS,1));
   GDALDatasetH hDstDS;
 
   char *pszDstWKT = NULL;
@@ -120,7 +128,7 @@ GDALDatasetH GDALTiler::createRasterTile(short int zoom, int tx, int ty) {
     (int *) CPLMalloc(sizeof(int) * psWarpOptions->nBandCount );
   psWarpOptions->panDstBands[0] = 1;
 
-  psWarpOptions->pfnProgress = GDALTermProgress;
+  //psWarpOptions->pfnProgress = GDALTermProgress;
   psWarpOptions->pTransformerArg =
     GDALCreateGenImgProjTransformer( hSrcDS,
                                      GDALGetProjectionRef(hSrcDS),
