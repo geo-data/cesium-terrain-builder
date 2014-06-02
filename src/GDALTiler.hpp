@@ -6,6 +6,7 @@
 
 #include "GlobalGeodetic.hpp"
 #include "TerrainTile.hpp"
+#include "Bounds.hpp"
 
 class GDALTiler {
 public:
@@ -20,27 +21,11 @@ public:
   }
 
   inline void lowerLeftTile(short int zoom, int &tx, int &ty) {
-    mProfile.latLonToTile(minx(), miny(), zoom, tx, ty);
+    mProfile.latLonToTile(mBounds.getMinX(), mBounds.getMinY(), zoom, tx, ty);
   }
 
   inline void upperRightTile(short int zoom, int &tx, int &ty) {
-    mProfile.latLonToTile(maxx(), maxy(), zoom, tx, ty);
-  }
-
-  inline double const minx() {
-    return mBounds[0];
-  }
-
-  inline double const miny() {
-    return mBounds[1];
-  }
-
-  inline double const maxx() {
-    return mBounds[2];
-  }
-
-  inline double const maxy() {
-    return mBounds[3];
+    mProfile.latLonToTile(mBounds.getMaxX(), mBounds.getMaxY(), zoom, tx, ty);
   }
 
   inline double resolution() {
@@ -55,10 +40,14 @@ public:
     return mProfile;
   }
 
+  inline Bounds & bounds() {
+    return mBounds;
+  }
+
 private:
   GlobalGeodetic mProfile;
   GDALDataset *poDataset;
-  double mBounds[4];            // minx, miny, maxx, maxy
+  Bounds mBounds;
   double mResolution;
 };
 
@@ -71,10 +60,10 @@ GDALTiler::GDALTiler(GDALDataset *poDataset):
   double adfGeoTransform[6];
 
   if( poDataset->GetGeoTransform( adfGeoTransform ) == CE_None ) {
-    mBounds[0] = adfGeoTransform[0];
-    mBounds[1] = adfGeoTransform[3] + (poDataset->GetRasterYSize() * adfGeoTransform[5]);
-    mBounds[2] = adfGeoTransform[0] + (poDataset->GetRasterXSize() * adfGeoTransform[1]);
-    mBounds[3] = adfGeoTransform[3];
+    mBounds = Bounds(adfGeoTransform[0],
+                     adfGeoTransform[3] + (poDataset->GetRasterYSize() * adfGeoTransform[5]),
+                     adfGeoTransform[0] + (poDataset->GetRasterXSize() * adfGeoTransform[1]),
+                     adfGeoTransform[3]);
 
     mResolution = std::abs(adfGeoTransform[1]);
   }
@@ -101,6 +90,29 @@ TerrainTile *GDALTiler::createTerrainTile(short int zoom, int tx, int ty) {
   delete [] heights;
 
   GDALClose((GDALDatasetH) rasterTile);
+
+  if (zoom != maxZoomLevel()) {
+    double minLon, minLat, maxLon, maxLat;
+    mProfile.tileBounds(tx, ty, zoom, minLon, minLat, maxLon, maxLat);
+    Bounds *tileBounds = new Bounds(minLon, minLat, maxLon, maxLat);
+
+    if (! (bounds().overlaps(tileBounds))) {
+      terrainTile->setAllChildren(false);
+    } else {
+      if (bounds().overlaps(tileBounds->getSW())) {
+        terrainTile->setChildSW();
+      }
+      if (bounds().overlaps(tileBounds->getNW())) {
+        terrainTile->setChildNW();
+      }
+      if (bounds().overlaps(tileBounds->getNE())) {
+        terrainTile->setChildNE();
+      }
+      if (bounds().overlaps(tileBounds->getSE())) {
+        terrainTile->setChildSE();
+      }
+    }
+  }
 
   return terrainTile;
 }

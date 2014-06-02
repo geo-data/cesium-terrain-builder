@@ -79,6 +79,36 @@ public:
   inline bool hasChildNE() {
     return ((mChildren & TC_NE) == TC_NE);
   }
+
+  inline void setChildSW(bool on = true) {
+    if (on) {
+      mChildren |= TC_SW;
+    } else {
+      mChildren &= ~TC_SW;
+    }
+  }
+  inline void setChildSE(bool on = true) {
+    if (on) {
+      mChildren |= TC_SE;
+    } else {
+      mChildren &= ~TC_SE;
+    }
+  }
+  inline void setChildNW(bool on = true) {
+    if (on) {
+      mChildren |= TC_NW;
+    } else {
+      mChildren &= ~TC_NW;
+    }
+  }
+  inline void setChildNE(bool on = true) {
+    if (on) {
+      mChildren |= TC_NE;
+    } else {
+      mChildren &= ~TC_NE;
+    }
+  }
+
   inline void setAllChildren(bool on = true) {
     if (on) {
       mChildren = TC_SW | TC_SE | TC_NW | TC_NE;
