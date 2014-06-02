@@ -51,6 +51,10 @@ public:
     return poDataset;
   }
 
+  inline const GlobalGeodetic & profile() {
+    return mProfile;
+  }
+
 private:
   GlobalGeodetic mProfile;
   GDALDataset *poDataset;

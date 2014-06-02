@@ -1,1 +1,4 @@
 *.o
+gdal2terrain
+terrain-info
+terrain-tile-bounds
