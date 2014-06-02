@@ -64,6 +64,9 @@ public:
 
   /* for a discussion on bitflags see
      <http://www.dylanleigh.net/notes/c-cpp-tricks.html#Using_"Bitflags"> */
+  inline bool hasChildren() {
+    return mChildren;
+  }
   inline bool hasChildSW() {
     return ((mChildren & TC_SW) == TC_SW);
   }
@@ -99,8 +102,8 @@ public:
   inline bool isLand() {
     return mMaskLength == 1 && ! (bool) mMask[0];
   }
-  inline bool isMixed() {
-    return mMaskLength > 1;
+  inline bool hasWaterMask() {
+    return mMaskLength == MASK_SIZE;
   }
 
   GDALDatasetH heightsToRaster(double minx, double miny, double maxx, double maxy);

@@ -18,9 +18,9 @@ void terrain2tiff(TerrainTile &terrain, double minx, double miny, double maxx, d
   GDALClose( hTileDS );
 }
 
-int main() {
+int main(int argc, char** argv) {
   TerrainTile terrain;
-  FILE *terrainIn = fopen("9-509-399.terrain", "rb");
+  FILE *terrainIn = fopen(argv[1], "rb");
 
   GDALAllRegister();
 
@@ -44,21 +44,25 @@ int main() {
   }
   fclose(terrainIn);
 
-  if (terrain.hasChildSW()) {
-    printf("Has a SW child\n");
-  }
-  if (terrain.hasChildSE()) {
-    printf("Has a SE child\n");
-  }
-  if (terrain.hasChildNW()) {
-    printf("Has a NW child\n");
-  }
-  if (terrain.hasChildNE()) {
-    printf("Has a NE child\n");
+  if (terrain.hasChildren()) {
+    if (terrain.hasChildSW()) {
+      printf("Has a SW child\n");
+    }
+    if (terrain.hasChildSE()) {
+      printf("Has a SE child\n");
+    }
+    if (terrain.hasChildNW()) {
+      printf("Has a NW child\n");
+    }
+    if (terrain.hasChildNE()) {
+      printf("Has a NE child\n");
+    }
+  } else {
+    printf("Doesn't have children\n");
   }
 
-  if (terrain.isMixed()) {
-    printf("The tile is a mixture of land and water\n");
+  if (terrain.hasWaterMask()) {
+    printf("The tile has a water mask\n");
   } else if (terrain.isLand()) {
     printf("The tile is land\n");
   } else if (terrain.isWater()) {
@@ -68,36 +72,17 @@ int main() {
     printf("Unknown tile type!!\n");
   }
 
-  /*std::vector<short int> heights = terrain.heights();
-  std::vector<short int>::iterator heightsIterator;
-  for(heightsIterator = heights.begin();
-      heightsIterator != heights.end();
-      heightsIterator++)
-    {
-      std::cout << "height: " << *heightsIterator << std::endl;
-    }
-
-  std::vector<bool> mask = terrain.mask();
-  std::vector<bool>::iterator maskIterator;
-  for(maskIterator = mask.begin();
-      maskIterator != mask.end();
-      maskIterator++)
-    {
-      std::cout << "mask: " << *maskIterator << std::endl;
-      }*/
-
-  GlobalGeodetic profile;
+  /*GlobalGeodetic profile;
   double minLon, minLat, maxLon, maxLat;
   short int zoom = 9;
   int tx = 509, ty = 399;
   profile.tileBounds(tx, ty, zoom, minLon, minLat, maxLon, maxLat);
 
-  //terrain2tiff(terrain, -180, -90, 0, 90);
-  terrain2tiff(terrain, minLon, minLat, maxLon, maxLat);
+  terrain2tiff(terrain, minLon, minLat, maxLon, maxLat);*/
 
-  FILE *terrainOut = fopen("out.terrain","wb");
+  /*FILE *terrainOut = fopen("out.terrain","wb");
   terrain.writeFile(terrainOut);
-  fclose(terrainOut);
+  fclose(terrainOut);*/
 
   return 0;
 }
