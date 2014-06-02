@@ -1,3 +1,5 @@
+#include <cmath>                // for `abs()`
+
 #include "gdal_priv.h"
 #include "ogr_spatialref.h"
 #include "gdalwarper.h"
@@ -12,6 +14,18 @@ public:
 
   GDALDatasetH createRasterTile(short int zoom, int tx, int ty);
   TerrainTile *createTerrainTile(short int zoom, int tx, int ty);
+
+  inline short int maxZoomLevel() {
+    return mProfile.zoomForResolution(resolution());
+  }
+
+  inline void lowerLeftTile(short int zoom, int &tx, int &ty) {
+    mProfile.latLonToTile(minx(), miny(), zoom, tx, ty);
+  }
+
+  inline void upperRightTile(short int zoom, int &tx, int &ty) {
+    mProfile.latLonToTile(maxx(), maxy(), zoom, tx, ty);
+  }
 
   inline double const minx() {
     return mBounds[0];
@@ -58,7 +72,7 @@ GDALTiler::GDALTiler(GDALDataset *poDataset):
     mBounds[2] = adfGeoTransform[0] + (poDataset->GetRasterXSize() * adfGeoTransform[1]);
     mBounds[3] = adfGeoTransform[3];
 
-    mResolution = abs(adfGeoTransform[1]);
+    mResolution = std::abs(adfGeoTransform[1]);
   }
 }
 
