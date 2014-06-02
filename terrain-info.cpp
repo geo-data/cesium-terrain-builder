@@ -4,6 +4,8 @@
 
 #include "gdal_priv.h"
 
+using namespace std;
+
 int main(int argc, char** argv) {
   TerrainTile terrain;
   FILE *terrainIn = fopen(argv[1], "rb");
@@ -15,13 +17,13 @@ int main(int argc, char** argv) {
   } catch (int e) {
     switch (e) {
     case 1:
-      printf("Failed to read child tiles byte\n");
+      cerr << "Failed to read child tiles byte" << endl;
       return 1;
     case 2:
-      printf("Failed to read water mask\n");
+      cerr << "Failed to read water mask" << endl;
       return 2;
     default:
-      printf("Unknown error: %d\n", e);
+      cerr << "Unknown error: " << e << endl;
       return 3;
     }
 
@@ -32,30 +34,30 @@ int main(int argc, char** argv) {
 
   if (terrain.hasChildren()) {
     if (terrain.hasChildSW()) {
-      printf("Has a SW child\n");
+      cout << "Has a SW child" << endl;
     }
     if (terrain.hasChildSE()) {
-      printf("Has a SE child\n");
+      cout << "Has a SE child" << endl;
     }
     if (terrain.hasChildNW()) {
-      printf("Has a NW child\n");
+      cout << "Has a NW child" << endl;
     }
     if (terrain.hasChildNE()) {
-      printf("Has a NE child\n");
+      cout << "Has a NE child" << endl;
     }
   } else {
-    printf("Doesn't have children\n");
+    cout << "Doesn't have children" << endl;
   }
 
   if (terrain.hasWaterMask()) {
-    printf("The tile has a water mask\n");
+    cout << "The tile has a water mask" << endl;
   } else if (terrain.isLand()) {
-    printf("The tile is land\n");
+    cout << "The tile is land" << endl;
   } else if (terrain.isWater()) {
-    printf("The tile is water\n");
+    cout << "The tile is water" << endl;
   } else {
     // should not get here!!
-    printf("Unknown tile type!!\n");
+    cerr << "Unknown tile type!!" << endl;
   }
 
   return 0;
