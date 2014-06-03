@@ -20,9 +20,27 @@ void writeTiles(GDALTiler &tiler) {
         string filename = "tiles/" + static_cast<ostringstream*>( &(ostringstream() << zoom << "-" << tx << "-" << ty << ".terrain") )->str();
         cout << "creating " << filename << endl;
 
-        FILE *terrainOut = fopen(filename.c_str(),"wb");
-        terrainTile->writeFile(terrainOut);
-        fclose(terrainOut);
+        try {
+          terrainTile->writeFile(filename.c_str());
+        } catch (int e) {
+          switch(e) {
+          case 1:
+            cerr << "Failed to open " << filename << endl;
+            break;
+          case 2:
+            cerr << "Failed to write height data" << endl;
+            break;
+          case 3:
+            cerr << "Failed to write child flags" << endl;
+            break;
+          case 4:
+            cerr << "Failed to write water mask" << endl;
+            break;
+          case 5:
+            cerr << "Failed to close file" << endl;
+            break;
+          }
+        }
         delete terrainTile;
       }
     }

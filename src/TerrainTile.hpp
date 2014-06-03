@@ -102,6 +102,40 @@ public:
     fwrite(mMask, mMaskLength, 1, fp);
   }
 
+  void writeFile(const char *fileName) {
+    gzFile terrainFile = gzopen(fileName, "wb");
+
+    if (terrainFile == NULL) {
+      throw 1;
+    }
+
+    if (gzwrite(terrainFile, mHeights.data(), TILE_SIZE * 2) == 0) {
+      gzclose(terrainFile);
+      throw 2;
+    }
+
+    if (gzputc(terrainFile, mChildren) == -1) {
+      gzclose(terrainFile);
+      throw 3;
+    }
+
+    if (gzwrite(terrainFile, mMask, mMaskLength) == 0) {
+      gzclose(terrainFile);
+      throw 4;
+    }
+
+    switch (gzclose(terrainFile)) {
+    case Z_OK:
+      break;
+    case Z_STREAM_ERROR:
+    case Z_ERRNO:
+    case Z_MEM_ERROR:
+    case Z_BUF_ERROR:
+    default:
+      throw 5;
+    }
+  }
+
   std::vector<bool> mask() {
     std::vector<bool> mask;
     mask.assign(mMask, mMask + mMaskLength);
