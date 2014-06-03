@@ -47,10 +47,12 @@ void writeTiles(GDALTiler &tiler) {
   }
 }
 
-int main() {
+int main(int argc, char** argv) {
+  char *fileName = argv[1];
+
   GDALAllRegister();
 
-  GDALDataset  *poDataset = (GDALDataset *) GDALOpen("./lidar-2007-filled-cut.tif", GA_ReadOnly);
+  GDALDataset  *poDataset = (GDALDataset *) GDALOpen(fileName, GA_ReadOnly);
   GDALTiler tiler(poDataset);
 
   writeTiles(tiler);
