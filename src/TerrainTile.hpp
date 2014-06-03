@@ -1,10 +1,17 @@
 #include <vector>
+#include <string.h>             // for memcpy
+
+#include "zlib.h"
 
 #include "gdal_priv.h"
 #include "ogr_spatialref.h"
 
 #define TILE_SIZE 65 * 65
 #define MASK_SIZE 256 * 256
+
+// The maximum byte size of an uncompressed terrain tile (heights + child flags
+// + water mask)
+#define MAX_TERRAIN_SIZE ( TILE_SIZE * 2 ) + 1 + MASK_SIZE
 
 enum TerrainChildren {
   TC_SW = 1,                    // 2^0, bit 0
@@ -21,6 +28,45 @@ public:
   {
     setIsLand();
   };
+
+  TerrainTile(char *fileName):
+    mHeights(TILE_SIZE)
+  {
+    unsigned char inflateBuffer[MAX_TERRAIN_SIZE];
+    unsigned int inflatedBytes;
+    gzFile terrainFile = gzopen(fileName, "rb");
+
+    if (terrainFile == NULL) {
+      throw 1;
+    }
+
+    inflatedBytes = gzread(terrainFile, inflateBuffer, MAX_TERRAIN_SIZE);
+    if (gzread(terrainFile, inflateBuffer, 1) != 0) {
+      gzclose(terrainFile);
+      throw 2;
+    }
+    gzclose(terrainFile);
+
+    switch(inflatedBytes) {
+    case MAX_TERRAIN_SIZE:      // a water mask is present
+      mMaskLength = MASK_SIZE;
+      break;
+    case (TILE_SIZE * 2) + 2:   // there is no water mask
+      mMaskLength = 1;
+      break;
+    default:                    // it can't be a terrain file
+      throw 3;
+    }
+
+    short int byteCount = 0;
+    for (short int i = 0; i < TILE_SIZE; i++, byteCount = i * 2) {
+      mHeights[i] = inflateBuffer[byteCount] | (inflateBuffer[byteCount + 1]<<8);
+    }
+
+    mChildren = inflateBuffer[byteCount]; // byte 8451
+
+    memcpy(mMask, &(inflateBuffer[++byteCount]), mMaskLength);
+  }
 
   TerrainTile(FILE *fp):
     mHeights(TILE_SIZE)

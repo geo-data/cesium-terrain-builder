@@ -8,29 +8,30 @@ using namespace std;
 
 int main(int argc, char** argv) {
   TerrainTile terrain;
-  FILE *terrainIn = fopen(argv[1], "rb");
+  char *fileName = argv[1];
 
   GDALAllRegister();
 
   try {
-    terrain = TerrainTile(terrainIn);
+    terrain = TerrainTile(fileName);
   } catch (int e) {
     switch (e) {
     case 1:
-      cerr << "Failed to read child tiles byte" << endl;
+      cerr << "Failed to open " << fileName << endl;
       return 1;
     case 2:
-      cerr << "Failed to read water mask" << endl;
+      cerr << "The file has too many bytes" << endl;
       return 2;
+    case 3:
+      cerr << "The file does not appear to be a terrain tile" << endl;
+      return 3;
     default:
       cerr << "Unknown error: " << e << endl;
-      return 3;
+      return 4;
     }
 
-    fclose(terrainIn);
     return e;
   }
-  fclose(terrainIn);
 
   if (terrain.hasChildren()) {
     if (terrain.hasChildSW()) {
