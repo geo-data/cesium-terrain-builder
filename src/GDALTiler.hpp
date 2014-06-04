@@ -80,11 +80,18 @@ TerrainTile *GDALTiler::createTerrainTile(short int zoom, int tx, int ty) {
 
   float *heights = new float[TILE_SIZE];
 
-  heightsBand->RasterIO(GF_Write, 0, 0, 65, 1,
-                        (void *) heights, 65, 1, GDT_Float32,
-                        0, 0);
+  if (heightsBand->RasterIO(GF_Read, 0, 0, 65, 65,
+                            (void *) heights, 65, 65, GDT_Float32,
+                            0, 0) != CE_None) {
+    GDALClose((GDALDatasetH) rasterTile);
+    delete terrainTile;
+    delete [] heights;
+    return NULL;
+  }
 
-  for(int i = 0; i < TILE_SIZE; i++) {
+  // TODO: try doing this using a VRT derived band:
+  // (http://www.gdal.org/gdal_vrttut.html)
+  for (int i = 0; i < TILE_SIZE; i++) {
     terrainTile->mHeights[i] = (short int) ((heights[i] + 1000) * 5);
   }
   delete [] heights;
@@ -132,21 +139,16 @@ GDALDatasetH GDALTiler::createRasterTile(short int zoom, int tx, int ty) {
   OGRSpatialReference oSRS;
   oSRS.importFromEPSG(4326);
 
-  GDALDriverH hDriver = GDALGetDriverByName( "MEM" );
   GDALDatasetH hSrcDS = (GDALDatasetH) dataset();
-  GDALDataType eDT = GDALGetRasterDataType(GDALGetRasterBand(hSrcDS,1));
   GDALDatasetH hDstDS;
 
   char *pszDstWKT = NULL;
   oSRS.exportToWkt( &pszDstWKT );
 
-  hDstDS = GDALCreate(hDriver, "", mProfile.tileSize(), mProfile.tileSize(), 1, eDT, NULL );
-  GDALSetProjection( hDstDS, pszDstWKT );
-  GDALSetGeoTransform( hDstDS, adfGeoTransform );
-
+  // set the warp options
   GDALWarpOptions *psWarpOptions = GDALCreateWarpOptions();
+  //psWarpOptions->eResampleAlg = eResampleAlg;
   psWarpOptions->hSrcDS = hSrcDS;
-  psWarpOptions->hDstDS = hDstDS;
   psWarpOptions->nBandCount = 1;
   psWarpOptions->panSrcBands =
     (int *) CPLMalloc(sizeof(int) * psWarpOptions->nBandCount );
@@ -155,24 +157,26 @@ GDALDatasetH GDALTiler::createRasterTile(short int zoom, int tx, int ty) {
     (int *) CPLMalloc(sizeof(int) * psWarpOptions->nBandCount );
   psWarpOptions->panDstBands[0] = 1;
 
-  //psWarpOptions->pfnProgress = GDALTermProgress;
-  psWarpOptions->pTransformerArg =
-    GDALCreateGenImgProjTransformer( hSrcDS,
-                                     GDALGetProjectionRef(hSrcDS),
-                                     hDstDS,
-                                     GDALGetProjectionRef(hDstDS),
-                                     FALSE, 0.0, 1 );
+  // create the transformer
+  // TODO: if src.srs == dst.srs then try setting both srs WKT to NULL
   psWarpOptions->pfnTransformer = GDALGenImgProjTransform;
+  psWarpOptions->pTransformerArg =
+        GDALCreateGenImgProjTransformer( hSrcDS, GDALGetProjectionRef(hSrcDS),
+                                         NULL, pszDstWKT,
+                                         FALSE, 0.0, 1 );
 
-  GDALWarpOperation oOperation;
+  if( psWarpOptions->pTransformerArg == NULL ) {
+    GDALDestroyWarpOptions( psWarpOptions );
+    return NULL;
+  }
 
-  oOperation.Initialize( psWarpOptions );
-  oOperation.ChunkAndWarpImage( 0, 0,
-                                GDALGetRasterXSize( hDstDS ),
-                                GDALGetRasterYSize( hDstDS ) );
+  GDALSetGenImgProjTransformerDstGeoTransform( psWarpOptions->pTransformerArg, adfGeoTransform );
 
-  GDALDestroyGenImgProjTransformer( psWarpOptions->pTransformerArg );
+  hDstDS = GDALCreateWarpedVRT(hSrcDS, mProfile.tileSize(), mProfile.tileSize(), adfGeoTransform, psWarpOptions);
+
   GDALDestroyWarpOptions( psWarpOptions );
+
+  GDALSetProjection( hDstDS, pszDstWKT );
 
   mProfile.tileBounds(tx, ty, zoom, minLon, minLat, maxLon, maxLat);
   resolution = mProfile.resolution(zoom);
@@ -183,6 +187,9 @@ GDALDatasetH GDALTiler::createRasterTile(short int zoom, int tx, int ty) {
   adfGeoTransform[4] = 0;
   adfGeoTransform[5] = -resolution;
   GDALSetGeoTransform( hDstDS, adfGeoTransform );
+
+  // If uncommenting the following line for debug purposes, you must also `#include "vrtdataset.h"`
+  //std::cout << "VRT: " << CPLSerializeXMLTree(((VRTWarpedDataset *) hDstDS)->SerializeToXML(NULL)) << std::endl;
 
   return hDstDS;
 }
