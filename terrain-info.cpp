@@ -33,6 +33,13 @@ int main(int argc, char** argv) {
     return e;
   }
 
+  cout << "Heights:";
+  for (short int i = 0; i < TILE_SIZE; i++) {
+    if (i % 65 == 0) cout << endl;
+    cout << terrain.mHeights[i] << " ";
+  }
+  cout << endl;
+
   if (terrain.hasChildren()) {
     if (terrain.hasChildSW()) {
       cout << "Has a SW child" << endl;
