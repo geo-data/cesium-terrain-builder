@@ -5,5 +5,5 @@ terrain-info: terrain-info.cpp src/TerrainTile.hpp
 	g++ -Wall --pedantic -lgdal -lz terrain-info.cpp -o terrain-info
 terrain-tile-bounds: terrain-tile-bounds.cpp src/GDALTiler.hpp src/Bounds.hpp
 	g++ -Wall --pedantic -lgdal -lz terrain-tile-bounds.cpp -o terrain-tile-bounds
-terrain2tiff: terrain-tile-bounds.cpp src/GDALTiler.hpp src/Bounds.hpp
+terrain2tiff: terrain-tile-bounds.cpp src/TerrainTile.hpp src/Bounds.hpp
 	g++ -Wall --pedantic -lgdal -lz terrain2tiff.cpp -o terrain2tiff
