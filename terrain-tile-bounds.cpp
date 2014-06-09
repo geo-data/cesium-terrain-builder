@@ -1,10 +1,42 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+
 #include "gdal_priv.h"
+#include "commander.hpp"
+
 #include "src/GDALTiler.hpp"
 
 using namespace std;
+
+class TerrainTileBounds : public Command {
+public:
+  TerrainTileBounds(const char *name, const char *version) :
+    Command(name, version),
+    inputFilename(NULL)
+  {}
+
+  void check() const {
+    switch(command->argc) {
+    case 1:
+      return;
+    case 0:
+      cerr << "  Error: The GDAL dataset must be specified" << endl;
+      break;
+    default:
+      cerr << "  Error: Only one command line argument must be specified" << endl;
+      break;
+    }
+
+    help();                   // print help and exit
+  }
+
+  const char * getInputFilename() const {
+    return  (command->argc == 1) ? command->argv[0] : NULL;
+  }
+
+  const char *inputFilename;
+};
 
 static void printCoord(ofstream& stream, double x, double y) {
   stream << "[" << x << ", " << y << "]";
@@ -56,13 +88,20 @@ static void writeBounds(GDALTiler &tiler) {
   }
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char *argv[]) {
+  TerrainTileBounds command = TerrainTileBounds(argv[0], "0.0.1");
+  command.setUsage("GDAL_DATASET");
+
+  // Parse and check the arguments
+  command.parse(argc, argv);
+  command.check();
+
   GDALAllRegister();
 
-  GDALDataset  *poDataset = (GDALDataset *) GDALOpen(argv[1], GA_ReadOnly);
+  GDALDataset  *poDataset = (GDALDataset *) GDALOpen(command.getInputFilename(), GA_ReadOnly);
   GDALTiler tiler(poDataset);
 
   writeBounds(tiler);
-  
+
   return 0;
 }
