@@ -29,7 +29,7 @@ public:
     setIsLand();
   };
 
-  TerrainTile(char *fileName):
+  TerrainTile(const char *fileName):
     mHeights(TILE_SIZE)
   {
     unsigned char inflateBuffer[MAX_TERRAIN_SIZE];
