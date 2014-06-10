@@ -1,7 +1,7 @@
 all: gdal2terrain terrain-info terrain-tile-bounds terrain2tiff
-gdal2terrain: gdal2terrain.cpp src/GlobalGeodetic.hpp src/TerrainTile.hpp src/GDALTiler.hpp src/Bounds.hpp
-	g++ -Wall -Wextra --pedantic -lgdal -lz gdal2terrain.cpp -o gdal2terrain
-terrain-info: terrain-info.cpp src/TerrainTile.hpp deps/commander.o
+gdal2terrain: gdal2terrain.cpp src/GlobalGeodetic.hpp src/TerrainTile.hpp src/GDALTiler.hpp src/Bounds.hpp deps/commander.o deps/commander.hpp
+	g++ -Wall -Wextra --pedantic -lgdal -lz -I./deps -o gdal2terrain deps/commander.o gdal2terrain.cpp
+terrain-info: terrain-info.cpp src/TerrainTile.hpp deps/commander.o deps/commander.hpp
 	g++ -Wall -Wextra --pedantic -lgdal -lz -I./deps -o terrain-info deps/commander.o terrain-info.cpp
 terrain-tile-bounds: terrain-tile-bounds.cpp src/GDALTiler.hpp src/Bounds.hpp deps/commander.o deps/commander.hpp
 	g++ -Wall -Wextra --pedantic -lgdal -lz -I./deps -o terrain-tile-bounds deps/commander.o terrain-tile-bounds.cpp

@@ -1,15 +1,59 @@
-#include <stdio.h>
 #include <iostream>
 #include <sstream>
 
 #include "gdal_priv.h"
+#include "commander.hpp"
+
 #include "src/GDALTiler.hpp"
 
 using namespace std;
 
-void writeTiles(GDALTiler &tiler) {
+#ifdef _WIN32
+static const char *osDirSep = "\\";
+#else
+static const char *osDirSep = "/";
+#endif
+
+class GDAL2Terrain : public Command {
+public:
+  GDAL2Terrain(const char *name, const char *version) :
+    Command(name, version),
+    outputDir(".")
+  {}
+
+  void
+  check() const {
+    switch(command->argc) {
+    case 1:
+      return;
+    case 0:
+      cerr << "  Error: The gdal datasource must be specified" << endl;
+      break;
+    default:
+      cerr << "  Error: Only one command line argument must be specified" << endl;
+      break;
+    }
+
+    help();                   // print help and exit
+  }
+
+  static void
+  setOutputDir(command_t *command) {
+    static_cast<GDAL2Terrain *>(Command::self(command))->outputDir = command->arg;
+  }
+
+  const char *
+  getInputFilename() const {
+    return  (command->argc == 1) ? command->argv[0] : NULL;
+  }
+
+  const char *outputDir;
+};
+
+void writeTiles(GDALTiler &tiler, const char *outputDir) {
   int tminx, tminy, tmaxx, tmaxy;
   short int maxZoom = tiler.maxZoomLevel();
+  const string dirname = string(outputDir) + osDirSep;
 
   for (short int zoom = maxZoom; zoom >= 0; zoom--) {
     tiler.lowerLeftTile(zoom, tminx, tminy);
@@ -18,7 +62,17 @@ void writeTiles(GDALTiler &tiler) {
     for (int tx = tminx; tx <= tmaxx; tx++) {
       for (int ty = tminy; ty <= tmaxy; ty++) {
         TerrainTile *terrainTile = tiler.createTerrainTile(zoom, tx, ty);
-        string filename = "tiles/" + static_cast<ostringstream*>( &(ostringstream() << zoom << "-" << tx << "-" << ty << ".terrain") )->str();
+        const string filename = dirname + static_cast<ostringstream*>
+          (
+           &(ostringstream()
+              << zoom
+              << "-"
+              << tx
+              << "-"
+              << ty
+              << ".terrain")
+           )->str();
+
         cout << "creating " << filename << endl;
 
         try {
@@ -48,15 +102,21 @@ void writeTiles(GDALTiler &tiler) {
   }
 }
 
-int main(int argc, char** argv) {
-  char *fileName = argv[1];
+int main(int argc, char *argv[]) {
+  GDAL2Terrain command = GDAL2Terrain(argv[0], "0.0.1");
+  command.setUsage("[options] GDAL_DATASOURCE");
+  command.option("-o", "--output-dir <dir>", "specify the output directory for the tiles (defaults to working directory)", GDAL2Terrain::setOutputDir);
+
+    // Parse and check the arguments
+  command.parse(argc, argv);
+  command.check();
 
   GDALAllRegister();
 
-  GDALDataset  *poDataset = (GDALDataset *) GDALOpen(fileName, GA_ReadOnly);
+  GDALDataset  *poDataset = (GDALDataset *) GDALOpen(command.getInputFilename(), GA_ReadOnly);
   GDALTiler tiler(poDataset);
 
-  writeTiles(tiler);
+  writeTiles(tiler, command.outputDir);
 
   return 0;
 }
