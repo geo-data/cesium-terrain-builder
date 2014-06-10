@@ -1,23 +1,82 @@
-#include <stdio.h>
 #include <iostream>
-#include "src/TerrainTile.hpp"
 
 #include "gdal_priv.h"
+#include "commander.hpp"
+
+#include "src/TerrainTile.hpp"
 
 using namespace std;
 
-int main(int argc, char** argv) {
+class TerrainInfo : public Command {
+public:
+  TerrainInfo(const char *name, const char *version) :
+    Command(name, version),
+    mShowHeights(false),
+    mShowChildren(true),
+    mShowType(true)
+  {}
+
+  void
+  check() const {
+    switch(command->argc) {
+    case 1:
+      return;
+    case 0:
+      cerr << "  Error: The terrain file must be specified" << endl;
+      break;
+    default:
+      cerr << "  Error: Only one command line argument must be specified" << endl;
+      break;
+    }
+
+    help();                   // print help and exit
+  }
+
+  static void
+  showHeights(command_t *command) {
+    static_cast<TerrainInfo *>(Command::self(command))->mShowHeights = true;
+  }
+
+  static void
+  hideChildInfo(command_t *command) {
+    static_cast<TerrainInfo *>(Command::self(command))->mShowChildren = false;
+  }
+
+  static void
+  hideType(command_t *command) {
+    static_cast<TerrainInfo *>(Command::self(command))->mShowType = false;
+  }
+
+  const char *
+  getInputFilename() const {
+    return  (command->argc == 1) ? command->argv[0] : NULL;
+  }
+
+  bool mShowHeights;
+  bool mShowChildren;
+  bool mShowType;
+};
+
+int main(int argc, char *argv[]) {
   TerrainTile terrain;
-  char *fileName = argv[1];
+  TerrainInfo command = TerrainInfo(argv[0], "0.0.1");
+  command.setUsage("[options] TERRAIN_FILE");
+  command.option("-e", "--show-heights", "show the height information as an ASCII raster", TerrainInfo::showHeights);
+  command.option("-c", "--no-child", "hide information about child tiles", TerrainInfo::hideChildInfo);
+  command.option("-t", "--no-type", "hide information about the tile type (i.e. water/land)", TerrainInfo::hideType);
+
+  // Parse and check the arguments
+  command.parse(argc, argv);
+  command.check();
 
   GDALAllRegister();
 
   try {
-    terrain = TerrainTile(fileName);
+    terrain = TerrainTile(command.getInputFilename());
   } catch (int e) {
     switch (e) {
     case 1:
-      cerr << "Failed to open " << fileName << endl;
+      cerr << "Failed to open " << command.getInputFilename() << endl;
       return 1;
     case 2:
       cerr << "The file has too many bytes" << endl;
@@ -33,39 +92,45 @@ int main(int argc, char** argv) {
     return e;
   }
 
-  cout << "Heights:";
-  for (short int i = 0; i < TILE_SIZE; i++) {
-    if (i % 65 == 0) cout << endl;
-    cout << terrain.mHeights[i] << " ";
-  }
-  cout << endl;
-
-  if (terrain.hasChildren()) {
-    if (terrain.hasChildSW()) {
-      cout << "Has a SW child" << endl;
+  if (command.mShowHeights) {
+    cout << "Heights:";
+    for (short int i = 0; i < TILE_SIZE; i++) {
+      if (i % 65 == 0) cout << endl;
+      cout << terrain.mHeights[i] << " ";
     }
-    if (terrain.hasChildSE()) {
-      cout << "Has a SE child" << endl;
-    }
-    if (terrain.hasChildNW()) {
-      cout << "Has a NW child" << endl;
-    }
-    if (terrain.hasChildNE()) {
-      cout << "Has a NE child" << endl;
-    }
-  } else {
-    cout << "Doesn't have children" << endl;
+    cout << endl;
   }
 
-  if (terrain.hasWaterMask()) {
-    cout << "The tile has a water mask" << endl;
-  } else if (terrain.isLand()) {
-    cout << "The tile is land" << endl;
-  } else if (terrain.isWater()) {
-    cout << "The tile is water" << endl;
-  } else {
-    // should not get here!!
-    cerr << "Unknown tile type!!" << endl;
+  if (command.mShowChildren) {
+    if (terrain.hasChildren()) {
+      if (terrain.hasChildSW()) {
+        cout << "Has a SW child" << endl;
+      }
+      if (terrain.hasChildSE()) {
+        cout << "Has a SE child" << endl;
+      }
+      if (terrain.hasChildNW()) {
+        cout << "Has a NW child" << endl;
+      }
+      if (terrain.hasChildNE()) {
+        cout << "Has a NE child" << endl;
+      }
+    } else {
+      cout << "Doesn't have children" << endl;
+    }
+  }
+
+  if (command.mShowType) {
+    if (terrain.hasWaterMask()) {
+      cout << "The tile has a water mask" << endl;
+    } else if (terrain.isLand()) {
+      cout << "The tile is land" << endl;
+    } else if (terrain.isWater()) {
+      cout << "The tile is water" << endl;
+    } else {
+      // should not get here!!
+      cerr << "Unknown tile type!!" << endl;
+    }
   }
 
   return 0;
