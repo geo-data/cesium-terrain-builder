@@ -12,8 +12,7 @@ using namespace std;
 class TerrainTileBounds : public Command {
 public:
   TerrainTileBounds(const char *name, const char *version) :
-    Command(name, version),
-    inputFilename(NULL)
+    Command(name, version)
   {}
 
   void check() const {
@@ -34,8 +33,6 @@ public:
   const char * getInputFilename() const {
     return  (command->argc == 1) ? command->argv[0] : NULL;
   }
-
-  const char *inputFilename;
 };
 
 static void printCoord(ofstream& stream, double x, double y) {
