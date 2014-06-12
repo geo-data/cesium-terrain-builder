@@ -104,7 +104,7 @@ TerrainTile GDALTiler::createTerrainTile(const TileCoordinate &coord) const {
 
 GDALDatasetH GDALTiler::createRasterTile(const TileCoordinate &coord) const {
   double resolution;
-  Bounds tileBounds = mProfile.terrainTileBounds(coord, resolution);
+  Bounds tileBounds = terrainTileBounds(coord, resolution);
 
   double adfGeoTransform[6];
   adfGeoTransform[0] = tileBounds.getMinX(); // min longitude

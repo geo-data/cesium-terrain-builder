@@ -19,7 +19,7 @@ public:
   GDALTiler(const GDALTiler &other);
   GDALTiler(GDALTiler &other);
   GDALTiler &operator=(const GDALTiler &other);
-  
+
   ~GDALTiler();
 
   GDALDatasetH createRasterTile(const TileCoordinate &coord) const;
@@ -57,6 +57,18 @@ public:
 
 protected:
   void closeDataset();
+
+  inline Bounds
+  terrainTileBounds(const TileCoordinate &coord,
+                    double& resolution) const {
+    unsigned int lTileSize = mProfile.tileSize() - 1;
+    Bounds tile = mProfile.tileBounds(coord);
+    resolution = (tile.getMaxX() - tile.getMinX()) / lTileSize;
+    tile.setMinX(tile.getMinX() - resolution);
+    tile.setMaxY(tile.getMaxY() + resolution);
+
+    return tile;
+  }
 
 private:
   GlobalGeodetic mProfile;

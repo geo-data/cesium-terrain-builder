@@ -61,18 +61,6 @@ public:
     return Bounds(minx, miny, maxx, maxy);
   }
 
-  inline Bounds
-  terrainTileBounds(const TileCoordinate &coord,
-                    double& resolution) const {
-    unsigned int lTileSize = tileSize() - 1;
-    Bounds tile = tileBounds(coord);
-    resolution = (tile.getMaxX() - tile.getMinX()) / lTileSize;
-    tile.setMinX(tile.getMinX() - resolution);
-    tile.setMaxY(tile.getMaxY() + resolution);
-
-    return tile;
-  }
-
   inline unsigned int tileSize() const {
     return mTileSize;
   }
