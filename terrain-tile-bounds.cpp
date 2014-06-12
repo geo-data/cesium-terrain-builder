@@ -51,8 +51,8 @@ public:
   const char *outputDir;
 };
 
-static void printCoord(ofstream& stream, double x, double y) {
-  stream << "[" << x << ", " << y << "]";
+static void printCoord(ofstream& stream, const Coordinate &coord) {
+  stream << "[" << coord.x << ", " << coord.y << "]";
 }
 
 static void writeBounds(GDALTiler &tiler, const char *outputDir) {
@@ -78,20 +78,18 @@ static void writeBounds(GDALTiler &tiler, const char *outputDir) {
 
     for (/* currentTile.x = tminx */; currentTile.x <= tmaxx; currentTile.x++) {
       for (currentTile.y = tminy; currentTile.y <= tmaxy; currentTile.y++) {
-        double minLon, minLat, maxLon, maxLat;
-
-        profile.tileBounds(currentTile, minLon, minLat, maxLon, maxLat);
+        Bounds tileBounds = profile.tileBounds(currentTile);
 
         geojson << "{ \"type\": \"Feature\", \"geometry\": { \"type\": \"Polygon\", \"coordinates\": [[";
-        printCoord(geojson, minLon, minLat);
+        printCoord(geojson, tileBounds.getLowerLeft());
         geojson << ", ";
-        printCoord(geojson, maxLon, minLat);
+        printCoord(geojson, tileBounds.getLowerRight());
         geojson << ", ";
-        printCoord(geojson, maxLon, maxLat);
+        printCoord(geojson, tileBounds.getUpperRight());
         geojson << ", ";
-        printCoord(geojson, minLon, maxLat);
+        printCoord(geojson, tileBounds.getUpperLeft());
         geojson << ", ";
-        printCoord(geojson, minLon, minLat);
+        printCoord(geojson, tileBounds.getLowerLeft());
         geojson << "]]}, \"properties\": {\"tx\": " << currentTile.x << ", \"ty\": " << currentTile.y << "}}";
         if (currentTile.y != tmaxy)
           geojson << "," << endl;

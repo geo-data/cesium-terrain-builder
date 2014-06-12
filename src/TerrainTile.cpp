@@ -4,6 +4,8 @@
 #include "ogr_spatialref.h"
 
 #include "TerrainTile.hpp"
+#include "GlobalGeodetic.hpp"
+#include "Bounds.hpp"
 
 Terrain::Terrain():
   mHeights(TILE_SIZE),
@@ -134,23 +136,23 @@ std::vector<bool> Terrain::mask() {
 
 /* for a discussion on bitflags see
    <http://www.dylanleigh.net/notes/c-cpp-tricks.html#Using_"Bitflags"> */
-bool Terrain::hasChildren() {
+bool Terrain::hasChildren() const {
   return mChildren;
 }
 
-bool Terrain::hasChildSW() {
+bool Terrain::hasChildSW() const {
   return ((mChildren & TC_SW) == TC_SW);
 }
 
-bool Terrain::hasChildSE() {
+bool Terrain::hasChildSE() const {
   return ((mChildren & TC_SE) == TC_SE);
 }
 
-bool Terrain::hasChildNW() {
+bool Terrain::hasChildNW() const {
   return ((mChildren & TC_NW) == TC_NW);
 }
 
-bool Terrain::hasChildNE() {
+bool Terrain::hasChildNE() const {
   return ((mChildren & TC_NE) == TC_NE);
 }
 
@@ -199,7 +201,7 @@ void Terrain::setIsWater() {
   mMaskLength = 1;
 }
 
-bool Terrain::isWater() {
+bool Terrain::isWater() const {
   return mMaskLength == 1 && (bool) mMask[0];
 }
 
@@ -208,38 +210,12 @@ void Terrain::setIsLand() {
   mMaskLength = 1;
 }
 
-bool Terrain::isLand() {
+bool Terrain::isLand() const {
   return mMaskLength == 1 && ! (bool) mMask[0];
 }
 
-bool Terrain::hasWaterMask() {
+bool Terrain::hasWaterMask() const {
   return mMaskLength == MASK_SIZE;
-}
-
-GDALDatasetH Terrain::heightsToRaster(double minx, double miny, double maxx, double maxy) {
-  double resolution = (maxx - minx) / 65;
-  double adfGeoTransform[6] = { minx, resolution, 0, maxy, 0, -resolution };
-
-  OGRSpatialReference oSRS;
-  oSRS.importFromEPSG(4326);
-
-  GDALDriverH hDriver = GDALGetDriverByName( "MEM" );
-  GDALDatasetH hDstDS;
-  GDALRasterBandH hBand;
-
-  char *pszDstWKT = NULL;
-  oSRS.exportToWkt( &pszDstWKT );
-
-  hDstDS = GDALCreate(hDriver, "", 65, 65, 1, GDT_Int16, NULL );
-  GDALSetProjection( hDstDS, pszDstWKT );
-  CPLFree( pszDstWKT );
-  GDALSetGeoTransform( hDstDS, adfGeoTransform );
-
-  hBand = GDALGetRasterBand( hDstDS, 1 );
-  GDALRasterIO( hBand, GF_Write, 0, 0, 65, 65,
-                mHeights.data(), 65, 65, GDT_Int16, 0, 0 );
-
-  return hDstDS;
 }
 
 TerrainTile::TerrainTile(TileCoordinate coord):
@@ -255,3 +231,33 @@ TerrainTile::TerrainTile(const Terrain &terrain, TileCoordinate coord):
   Terrain(terrain),
   coord(coord)
 {}
+
+GDALDatasetH TerrainTile::heightsToRaster() const {
+  const GlobalGeodetic profile;
+  const Bounds tileBounds = profile.tileBounds(coord);
+  const unsigned int tileSize = profile.tileSize();
+  
+  const double resolution = tileBounds.getWidth() / tileSize;
+  double adfGeoTransform[6] = { tileBounds.getMinX(), resolution, 0, tileBounds.getMaxY(), 0, -resolution };
+
+  OGRSpatialReference oSRS;
+  oSRS.importFromEPSG(4326);
+
+  GDALDriverH hDriver = GDALGetDriverByName( "MEM" );
+  GDALDatasetH hDstDS;
+  GDALRasterBandH hBand;
+
+  char *pszDstWKT = NULL;
+  oSRS.exportToWkt( &pszDstWKT );
+
+  hDstDS = GDALCreate(hDriver, "", tileSize, tileSize, 1, GDT_Int16, NULL );
+  GDALSetProjection( hDstDS, pszDstWKT );
+  CPLFree( pszDstWKT );
+  GDALSetGeoTransform( hDstDS, adfGeoTransform );
+
+  hBand = GDALGetRasterBand( hDstDS, 1 );
+  GDALRasterIO( hBand, GF_Write, 0, 0, tileSize, tileSize,
+                (void *) mHeights.data(), tileSize, tileSize, GDT_Int16, 0, 0 );
+
+  return hDstDS;
+}

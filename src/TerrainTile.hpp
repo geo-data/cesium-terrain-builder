@@ -33,11 +33,11 @@ public:
   void writeFile(const char *fileName) const;
   std::vector<bool> mask();
 
-  bool hasChildren();
-  bool hasChildSW();
-  bool hasChildSE();
-  bool hasChildNW();
-  bool hasChildNE();
+  bool hasChildren() const;
+  bool hasChildSW() const;
+  bool hasChildSE() const;
+  bool hasChildNW() const;
+  bool hasChildNE() const;
 
   void setChildSW(bool on = true);
   void setChildSE(bool on = true);
@@ -47,13 +47,11 @@ public:
   void setAllChildren(bool on = true);
 
   void setIsWater();
-  bool isWater();
+  bool isWater() const;
 
   void setIsLand();
-  bool isLand();
-  bool hasWaterMask();
-
-  GDALDatasetH heightsToRaster(double minx, double miny, double maxx, double maxy);
+  bool isLand() const;
+  bool hasWaterMask() const;
 
   std::vector<short int> mHeights;
 
@@ -70,6 +68,8 @@ public:
   TerrainTile(TileCoordinate coord);
   TerrainTile(const char *fileName, TileCoordinate coord);
   TerrainTile(const Terrain &terrain, TileCoordinate coord);
+
+  GDALDatasetH heightsToRaster() const;
   
   TileCoordinate & getCoordinate() {
     return coord;

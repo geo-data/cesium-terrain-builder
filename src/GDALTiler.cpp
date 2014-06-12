@@ -79,23 +79,21 @@ TerrainTile GDALTiler::createTerrainTile(const TileCoordinate &coord) const {
   GDALClose((GDALDatasetH) rasterTile);
 
   if (coord.zoom != maxZoomLevel()) {
-    double minLon, minLat, maxLon, maxLat;
-    mProfile.tileBounds(coord, minLon, minLat, maxLon, maxLat);
-    Bounds *tileBounds = new Bounds(minLon, minLat, maxLon, maxLat);
+    Bounds tileBounds = mProfile.tileBounds(coord);
 
     if (! (bounds().overlaps(tileBounds))) {
       terrainTile.setAllChildren(false);
     } else {
-      if (bounds().overlaps(tileBounds->getSW())) {
+      if (bounds().overlaps(tileBounds.getSW())) {
         terrainTile.setChildSW();
       }
-      if (bounds().overlaps(tileBounds->getNW())) {
+      if (bounds().overlaps(tileBounds.getNW())) {
         terrainTile.setChildNW();
       }
-      if (bounds().overlaps(tileBounds->getNE())) {
+      if (bounds().overlaps(tileBounds.getNE())) {
         terrainTile.setChildNE();
       }
-      if (bounds().overlaps(tileBounds->getSE())) {
+      if (bounds().overlaps(tileBounds.getSE())) {
         terrainTile.setChildSE();
       }
     }
@@ -105,14 +103,14 @@ TerrainTile GDALTiler::createTerrainTile(const TileCoordinate &coord) const {
 }
 
 GDALDatasetH GDALTiler::createRasterTile(const TileCoordinate &coord) const {
-  double resolution, minLon, minLat, maxLon, maxLat;
-  mProfile.terrainTileBounds(coord, resolution, minLon, minLat, maxLon, maxLat);
+  double resolution;
+  Bounds tileBounds = mProfile.terrainTileBounds(coord, resolution);
 
   double adfGeoTransform[6];
-  adfGeoTransform[0] = minLon;
+  adfGeoTransform[0] = tileBounds.getMinX(); // min longitude
   adfGeoTransform[1] = resolution;
   adfGeoTransform[2] = 0;
-  adfGeoTransform[3] = maxLat;
+  adfGeoTransform[3] = tileBounds.getMaxY(); // max latitude
   adfGeoTransform[4] = 0;
   adfGeoTransform[5] = -resolution;
 
@@ -158,12 +156,12 @@ GDALDatasetH GDALTiler::createRasterTile(const TileCoordinate &coord) const {
 
   GDALSetProjection( hDstDS, pszDstWKT );
 
-  mProfile.tileBounds(coord, minLon, minLat, maxLon, maxLat);
+  tileBounds = mProfile.tileBounds(coord);
   resolution = mProfile.resolution(coord.zoom);
-  adfGeoTransform[0] = minLon;
+  adfGeoTransform[0] = tileBounds.getMinX(); // min longitude
   adfGeoTransform[1] = resolution;
   adfGeoTransform[2] = 0;
-  adfGeoTransform[3] = maxLat;
+  adfGeoTransform[3] = tileBounds.getMaxY(); // max latitude
   adfGeoTransform[4] = 0;
   adfGeoTransform[5] = -resolution;
   GDALSetGeoTransform( hDstDS, adfGeoTransform );

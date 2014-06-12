@@ -1,6 +1,8 @@
 #ifndef BOUNDS_HPP
 #define BOUNDS_HPP
 
+#include "Coordinate.hpp"
+
 class Bounds {
 public:
   Bounds() {
@@ -29,6 +31,36 @@ public:
   }
   inline double getMaxY() const {
     return bounds[3];
+  }
+
+  inline void setMinX(double newValue) {
+    bounds[0] = newValue;
+  }
+  inline void setMinY(double newValue) {
+    bounds[1] = newValue;
+  }
+  inline void setMaxX(double newValue) {
+    bounds[2] = newValue;
+  }
+  inline void setMaxY(double newValue) {
+    bounds[3] = newValue;
+  }
+
+  inline Coordinate
+  getLowerLeft() const {
+    return Coordinate(getMinX(), getMinY());
+  }
+  inline Coordinate
+  getLowerRight() const {
+    return Coordinate(getMaxX(), getMinY());
+  }
+  inline Coordinate
+  getUpperRight() const {
+    return Coordinate(getMaxX(), getMaxY());
+  }
+  inline Coordinate
+  getUpperLeft() const {
+    return Coordinate(getMinX(), getMaxY());
   }
 
   inline double getWidth() const {
@@ -64,11 +96,15 @@ public:
                       getMinY() + (getHeight() / 2));
   }
   
-  inline bool overlaps(Bounds *other) const {
+  inline bool overlaps(const Bounds *other) const {
+    return overlaps(*other);
+  }
+
+  inline bool overlaps(const Bounds &other) const {
     // see
     // <http://stackoverflow.com/questions/306316/determine-if-two-rectangles-overlap-each-other>
-    return getMinX() < other->getMaxX() && other->getMinX() < getMaxX() &&
-           getMinY() < other->getMaxY() && other->getMinX() < getMaxY();
+    return getMinX() < other.getMaxX() && other.getMinX() < getMaxX() &&
+           getMinY() < other.getMaxY() && other.getMinX() < getMaxY();
   }
   
 private:

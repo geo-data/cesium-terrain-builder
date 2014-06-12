@@ -104,8 +104,8 @@ private:
 };
 
 
-void terrain2tiff(TerrainTile &terrain, const char *filename, double minx, double miny, double maxx, double maxy) {
-  GDALDatasetH hTileDS = terrain.heightsToRaster(minx, miny, maxx, maxy);
+void terrain2tiff(TerrainTile &terrain, const char *filename) {
+  GDALDatasetH hTileDS = terrain.heightsToRaster();
   GDALDatasetH hDstDS;
   GDALDriverH hDriver = GDALGetDriverByName("GTiff");
 
@@ -156,11 +156,7 @@ int main(int argc, char *argv[]) {
 
   cout << "Creating " << command.outputFilename << " using zoom " << command.zoom << " from tile " << command.tx << "," << command.ty << endl;
 
-  GlobalGeodetic profile;
-  double minLon, minLat, maxLon, maxLat;
-  profile.tileBounds(coord, minLon, minLat, maxLon, maxLat);
-
-  terrain2tiff(terrain, command.outputFilename, minLon, minLat, maxLon, maxLat);
+  terrain2tiff(terrain, command.outputFilename);
 
   return 0;
 }

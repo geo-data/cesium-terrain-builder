@@ -8,6 +8,7 @@
 #include <cmath>
 
 #include "TileCoordinate.hpp"
+#include "Bounds.hpp"
 
 class GlobalGeodetic {
 public:
@@ -49,24 +50,27 @@ public:
     return TileCoordinate(zoom, tile);
   }
 
-  inline void tileBounds(const TileCoordinate &coord,
-                         double& minx, double& miny, double& maxx, double& maxy) const {
+  inline Bounds
+  tileBounds(const TileCoordinate &coord) const {
     double res = resolution(coord.zoom);
-    minx = coord.x * mTileSize * res - 180;
-    miny = coord.y * mTileSize * res - 90;
-    maxx = (coord.x + 1) * mTileSize * res - 180;
-    maxy = (coord.y + 1) * mTileSize * res - 90;
+    double minx = coord.x * mTileSize * res - 180,
+      miny = coord.y * mTileSize * res - 90,
+      maxx = (coord.x + 1) * mTileSize * res - 180,
+      maxy = (coord.y + 1) * mTileSize * res - 90;
+
+    return Bounds(minx, miny, maxx, maxy);
   }
 
-  inline void terrainTileBounds(const TileCoordinate &coord,
-                                double& resolution,
-                                double& minx, double& miny, double& maxx, double& maxy) const {
+  inline Bounds
+  terrainTileBounds(const TileCoordinate &coord,
+                    double& resolution) const {
     unsigned int lTileSize = tileSize() - 1;
+    Bounds tile = tileBounds(coord);
+    resolution = (tile.getMaxX() - tile.getMinX()) / lTileSize;
+    tile.setMinX(tile.getMinX() - resolution);
+    tile.setMaxY(tile.getMaxY() + resolution);
 
-    tileBounds(coord, minx, miny, maxx, maxy);
-    resolution = (maxx - minx) / lTileSize;
-    minx = minx - resolution;
-    maxy = maxy + resolution;
+    return tile;
   }
 
   inline unsigned int tileSize() const {
