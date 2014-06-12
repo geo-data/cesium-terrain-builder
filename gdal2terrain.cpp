@@ -50,7 +50,7 @@ public:
   const char *outputDir;
 };
 
-void writeTiles(GDALTiler &tiler, const char *outputDir) {
+void writeTiles(const GDALTiler &tiler, const char *outputDir) {
   int tminx, tminy, tmaxx, tmaxy;
   short int maxZoom = tiler.maxZoomLevel();
   const string dirname = string(outputDir) + osDirSep;
@@ -65,12 +65,12 @@ void writeTiles(GDALTiler &tiler, const char *outputDir) {
         const string filename = dirname + static_cast<ostringstream*>
           (
            &(ostringstream()
-              << zoom
-              << "-"
-              << tx
-              << "-"
-              << ty
-              << ".terrain")
+             << zoom
+             << "-"
+             << tx
+             << "-"
+             << ty
+             << ".terrain")
            )->str();
 
         cout << "creating " << filename << endl;
@@ -107,16 +107,18 @@ int main(int argc, char *argv[]) {
   command.setUsage("[options] GDAL_DATASOURCE");
   command.option("-o", "--output-dir <dir>", "specify the output directory for the tiles (defaults to working directory)", GDAL2Terrain::setOutputDir);
 
-    // Parse and check the arguments
+  // Parse and check the arguments
   command.parse(argc, argv);
   command.check();
 
   GDALAllRegister();
 
   GDALDataset  *poDataset = (GDALDataset *) GDALOpen(command.getInputFilename(), GA_ReadOnly);
-  GDALTiler tiler(poDataset);
+  const GDALTiler tiler(poDataset);
 
   writeTiles(tiler, command.outputDir);
+
+  GDALClose(poDataset);
 
   return 0;
 }

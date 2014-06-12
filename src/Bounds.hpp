@@ -1,3 +1,5 @@
+#ifndef BOUNDS_HPP
+#define BOUNDS_HPP
 
 class Bounds {
 public:
@@ -16,53 +18,53 @@ public:
     bounds[3] = maxy;
   }
 
-  inline double getMinX() {
+  inline double getMinX() const {
     return bounds[0];
   }
-  inline double getMinY() {
+  inline double getMinY() const {
     return bounds[1];
   }
-  inline double getMaxX() {
+  inline double getMaxX() const {
     return bounds[2];
   }
-  inline double getMaxY() {
+  inline double getMaxY() const {
     return bounds[3];
   }
 
-  inline double getWidth() {
+  inline double getWidth() const {
     return getMaxX() - getMinX();
   }
 
-  inline double getHeight() {
+  inline double getHeight() const {
     return getMaxY() - getMinY();
   }
 
-  inline Bounds * getSW() {
+  inline Bounds * getSW() const {
     return new Bounds(getMinX(),
                       getMinY(),
                       getMinX() + (getWidth() / 2),
                       getMinY() + (getHeight() / 2));
   }
-  inline Bounds * getNW() {
+  inline Bounds * getNW() const {
     return new Bounds(getMinX(),
                       getMaxY() - (getHeight() / 2),
                       getMinX() + (getWidth() / 2),
                       getMaxY());
   }
-  inline Bounds * getNE() {
+  inline Bounds * getNE() const {
     return new Bounds(getMaxX() - (getWidth() / 2),
                       getMaxY() - (getHeight() / 2),
                       getMaxX(),
                       getMaxY());
   }
-  inline Bounds * getSE() {
+  inline Bounds * getSE() const {
     return new Bounds(getMaxX() - (getWidth() / 2),
                       getMinY(),
                       getMaxX(),
                       getMinY() + (getHeight() / 2));
   }
   
-  inline bool overlaps(Bounds *other) {
+  inline bool overlaps(Bounds *other) const {
     // see
     // <http://stackoverflow.com/questions/306316/determine-if-two-rectangles-overlap-each-other>
     return getMinX() < other->getMaxX() && other->getMinX() < getMaxX() &&
@@ -72,3 +74,5 @@ public:
 private:
   double bounds[4];
 };
+
+#endif /* BOUNDS_HPP */

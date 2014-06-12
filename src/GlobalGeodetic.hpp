@@ -1,3 +1,6 @@
+#ifndef GLOBALGEODETIC_HPP
+#define GLOBALGEODETIC_HPP
+
 /* 
    Based on gdal2tiles.py
 */
@@ -71,3 +74,4 @@ private:
   double mInitialResolution;
 };
 
+#endif /* GLOBALGEODETIC_HPP */
