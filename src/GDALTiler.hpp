@@ -23,7 +23,7 @@ public:
   ~GDALTiler();
 
   GDALDatasetH createRasterTile(const TileCoordinate &coord) const;
-  TerrainTile *createTerrainTile(const TileCoordinate &coord) const;
+  TerrainTile createTerrainTile(const TileCoordinate &coord) const;
 
   inline unsigned short int maxZoomLevel() const {
     return mProfile.zoomForResolution(resolution());

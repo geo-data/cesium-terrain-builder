@@ -56,28 +56,25 @@ GDALTiler::~GDALTiler() {
   closeDataset();
 }
 
-TerrainTile *GDALTiler::createTerrainTile(const TileCoordinate &coord) const {
-  TerrainTile *terrainTile = new TerrainTile(coord);
+TerrainTile GDALTiler::createTerrainTile(const TileCoordinate &coord) const {
+  TerrainTile terrainTile(coord);
   GDALDataset *rasterTile = (GDALDataset *) createRasterTile(coord);
   GDALRasterBand *heightsBand = rasterTile->GetRasterBand(1);
 
-  float *heights = new float[TILE_SIZE];
+  float heights[TILE_SIZE];
 
   if (heightsBand->RasterIO(GF_Read, 0, 0, 65, 65,
                             (void *) heights, 65, 65, GDT_Float32,
                             0, 0) != CE_None) {
     GDALClose((GDALDatasetH) rasterTile);
-    delete terrainTile;
-    delete [] heights;
-    return NULL;
+    throw 1;
   }
 
   // TODO: try doing this using a VRT derived band:
   // (http://www.gdal.org/gdal_vrttut.html)
   for (unsigned short int i = 0; i < TILE_SIZE; i++) {
-    terrainTile->mHeights[i] = (short int) ((heights[i] + 1000) * 5);
+    terrainTile.mHeights[i] = (short int) ((heights[i] + 1000) * 5);
   }
-  delete [] heights;
 
   GDALClose((GDALDatasetH) rasterTile);
 
@@ -87,19 +84,19 @@ TerrainTile *GDALTiler::createTerrainTile(const TileCoordinate &coord) const {
     Bounds *tileBounds = new Bounds(minLon, minLat, maxLon, maxLat);
 
     if (! (bounds().overlaps(tileBounds))) {
-      terrainTile->setAllChildren(false);
+      terrainTile.setAllChildren(false);
     } else {
       if (bounds().overlaps(tileBounds->getSW())) {
-        terrainTile->setChildSW();
+        terrainTile.setChildSW();
       }
       if (bounds().overlaps(tileBounds->getNW())) {
-        terrainTile->setChildNW();
+        terrainTile.setChildNW();
       }
       if (bounds().overlaps(tileBounds->getNE())) {
-        terrainTile->setChildNE();
+        terrainTile.setChildNE();
       }
       if (bounds().overlaps(tileBounds->getSE())) {
-        terrainTile->setChildSE();
+        terrainTile.setChildSE();
       }
     }
   }

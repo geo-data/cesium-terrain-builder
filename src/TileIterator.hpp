@@ -32,7 +32,7 @@ public:
     return !operator==(b);
   }
 
-  const TerrainTile *
+  TerrainTile
   operator*() const;
 
   bool

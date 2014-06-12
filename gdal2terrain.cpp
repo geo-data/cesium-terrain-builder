@@ -105,8 +105,8 @@ void writeTiles(const GDALTiler &tiler, const char *outputDir) {
   const string dirname = string(outputDir) + osDirSep;
   
   for(TileIterator iter(tiler); !iter.exhausted(); ++iter) {
-    const TerrainTile *terrainTile = *iter;
-    const TileCoordinate coord = terrainTile->getCoordinate();
+    const TerrainTile terrainTile = *iter;
+    const TileCoordinate coord = terrainTile.getCoordinate();
     const string filename = dirname + static_cast<ostringstream*>
       (
        &(ostringstream()
@@ -121,7 +121,7 @@ void writeTiles(const GDALTiler &tiler, const char *outputDir) {
     cout << "creating " << filename << endl;
 
     try {
-      terrainTile->writeFile(filename.c_str());
+      terrainTile.writeFile(filename.c_str());
     } catch (int e) {
       switch(e) {
       case 1:
@@ -141,7 +141,6 @@ void writeTiles(const GDALTiler &tiler, const char *outputDir) {
         break;
       }
     }
-    delete terrainTile;
   }
 }
 

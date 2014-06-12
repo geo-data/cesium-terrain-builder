@@ -71,7 +71,7 @@ TileIterator::operator==(const TileIterator &other) const {
     && tiler.dataset() == other.tiler.dataset();
 }
 
-const TerrainTile *
+TerrainTile
 TileIterator::operator*() const {
   return tiler.createTerrainTile(coord);
 }
