@@ -4,6 +4,7 @@
 #include "gdal_priv.h"
 #include "commander.hpp"
 
+#include "src/TerrainException.hpp"
 #include "src/GDALTiler.hpp"
 #include "src/TileIterator.hpp"
 
@@ -51,57 +52,7 @@ public:
   const char *outputDir;
 };
 
-void writeTiles(const GDALTiler &tiler, const char *outputDir) {
-  /*int tminx, tminy, tmaxx, tmaxy;
-  short int maxZoom = tiler.maxZoomLevel();
-  const string dirname = string(outputDir) + osDirSep;
-
-  for (short int zoom = maxZoom; zoom >= 0; zoom--) {
-    tiler.lowerLeftTile(zoom, tminx, tminy);
-    tiler.upperRightTile(zoom, tmaxx, tmaxy);
-
-    for (int tx = tminx; tx <= tmaxx; tx++) {
-      for (int ty = tminy; ty <= tmaxy; ty++) {
-        TerrainTile *terrainTile = tiler.createTerrainTile(zoom, tx, ty);
-        const string filename = dirname + static_cast<ostringstream*>
-          (
-           &(ostringstream()
-              << zoom
-              << "-"
-              << tx
-              << "-"
-              << ty
-              << ".terrain")
-           )->str();
-
-        cout << "creating " << filename << endl;
-
-        try {
-          terrainTile->writeFile(filename.c_str());
-        } catch (int e) {
-          switch(e) {
-          case 1:
-            cerr << "Failed to open " << filename << endl;
-            break;
-          case 2:
-            cerr << "Failed to write height data" << endl;
-            break;
-          case 3:
-            cerr << "Failed to write child flags" << endl;
-            break;
-          case 4:
-            cerr << "Failed to write water mask" << endl;
-            break;
-          case 5:
-            cerr << "Failed to close file" << endl;
-            break;
-          }
-        }
-        delete terrainTile;
-      }
-    }
-    }*/
-
+void gdal2terrain(const GDALTiler &tiler, const char *outputDir) {
   const string dirname = string(outputDir) + osDirSep;
   
   for(TileIterator iter(tiler); !iter.exhausted(); ++iter) {
@@ -122,24 +73,8 @@ void writeTiles(const GDALTiler &tiler, const char *outputDir) {
 
     try {
       terrainTile.writeFile(filename.c_str());
-    } catch (int e) {
-      switch(e) {
-      case 1:
-        cerr << "Failed to open " << filename << endl;
-        break;
-      case 2:
-        cerr << "Failed to write height data" << endl;
-        break;
-      case 3:
-        cerr << "Failed to write child flags" << endl;
-        break;
-      case 4:
-        cerr << "Failed to write water mask" << endl;
-        break;
-      case 5:
-        cerr << "Failed to close file" << endl;
-        break;
-      }
+    } catch (TerrainException &e) {
+      cerr << "Error: " << e.what() << endl;
     }
   }
 }
@@ -156,9 +91,13 @@ int main(int argc, char *argv[]) {
   GDALAllRegister();
 
   GDALDataset  *poDataset = (GDALDataset *) GDALOpen(command.getInputFilename(), GA_ReadOnly);
+  if (poDataset == NULL) {
+    cerr << "Error: could not open GDAL dataset" << endl;
+    return 1;
+  }
   const GDALTiler tiler(poDataset);
 
-  writeTiles(tiler, command.outputDir);
+  gdal2terrain(tiler, command.outputDir);
 
   GDALClose(poDataset);
 

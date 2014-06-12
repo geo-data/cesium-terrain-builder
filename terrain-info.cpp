@@ -3,6 +3,7 @@
 #include "gdal_priv.h"
 #include "commander.hpp"
 
+#include "src/TerrainException.hpp"
 #include "src/TerrainTile.hpp"
 
 using namespace std;
@@ -73,23 +74,9 @@ int main(int argc, char *argv[]) {
 
   try {
     terrain = Terrain(command.getInputFilename());
-  } catch (int e) {
-    switch (e) {
-    case 1:
-      cerr << "Failed to open " << command.getInputFilename() << endl;
-      return 1;
-    case 2:
-      cerr << "The file has too many bytes" << endl;
-      return 2;
-    case 3:
-      cerr << "The file does not appear to be a terrain tile" << endl;
-      return 3;
-    default:
-      cerr << "Unknown error: " << e << endl;
-      return 4;
-    }
-
-    return e;
+  } catch (TerrainException &e) {
+    cerr << "Error: " << e.what() << endl;
+    return 1;
   }
 
   if (command.mShowHeights) {

@@ -1,3 +1,4 @@
+#include "TerrainException.hpp"
 #include "GDALTiler.hpp"
 
 GDALTiler::GDALTiler(GDALDataset *poDataset):
@@ -66,8 +67,8 @@ TerrainTile GDALTiler::createTerrainTile(const TileCoordinate &coord) const {
   if (heightsBand->RasterIO(GF_Read, 0, 0, 65, 65,
                             (void *) heights, 65, 65, GDT_Float32,
                             0, 0) != CE_None) {
-    GDALClose((GDALDatasetH) rasterTile);
-    throw 1;
+    GDALClose(rasterTile);
+    throw TerrainException("Could not read heights from raster");
   }
 
   // TODO: try doing this using a VRT derived band:
@@ -76,7 +77,7 @@ TerrainTile GDALTiler::createTerrainTile(const TileCoordinate &coord) const {
     terrainTile.mHeights[i] = (short int) ((heights[i] + 1000) * 5);
   }
 
-  GDALClose((GDALDatasetH) rasterTile);
+  GDALClose(rasterTile);
 
   if (coord.zoom != maxZoomLevel()) {
     Bounds tileBounds = mProfile.tileBounds(coord);
@@ -103,6 +104,10 @@ TerrainTile GDALTiler::createTerrainTile(const TileCoordinate &coord) const {
 }
 
 GDALDatasetH GDALTiler::createRasterTile(const TileCoordinate &coord) const {
+  if (poDataset == NULL) {
+    throw TerrainException("No GDAL dataset is set");
+  }
+
   double resolution;
   Bounds tileBounds = terrainTileBounds(coord, resolution);
 
@@ -115,13 +120,25 @@ GDALDatasetH GDALTiler::createRasterTile(const TileCoordinate &coord) const {
   adfGeoTransform[5] = -resolution;
 
   OGRSpatialReference oSRS;
-  oSRS.importFromEPSG(4326);
+  if (oSRS.importFromEPSG(4326) != OGRERR_NONE) {
+    throw TerrainException("Could not create EPSG:4326 spatial reference");
+  }
 
   GDALDatasetH hSrcDS = (GDALDatasetH) dataset();
   GDALDatasetH hDstDS;
 
   char *pszDstWKT = NULL;
-  oSRS.exportToWkt( &pszDstWKT );
+  const char *pszSrcWKT = GDALGetProjectionRef(hSrcDS);
+  const OGRSpatialReference dstSRS(pszSrcWKT);
+
+  if (!oSRS.IsSame(&dstSRS)) {
+    if (oSRS.exportToWkt( &pszDstWKT ) != OGRERR_NONE) {
+      CPLFree( pszDstWKT );
+      throw TerrainException("Could not create EPSG:4326 WKT string");
+    }
+  } else {
+    pszSrcWKT = NULL;    // we don't need to perform any reprojections
+  }
 
   // set the warp options
   GDALWarpOptions *psWarpOptions = GDALCreateWarpOptions();
@@ -135,26 +152,33 @@ GDALDatasetH GDALTiler::createRasterTile(const TileCoordinate &coord) const {
     (int *) CPLMalloc(sizeof(int) * psWarpOptions->nBandCount );
   psWarpOptions->panDstBands[0] = 1;
 
-  // create the transformer
-  // TODO: if src.srs == dst.srs then try setting both srs WKT to NULL
   psWarpOptions->pfnTransformer = GDALGenImgProjTransform;
   psWarpOptions->pTransformerArg =
-        GDALCreateGenImgProjTransformer( hSrcDS, GDALGetProjectionRef(hSrcDS),
+        GDALCreateGenImgProjTransformer( hSrcDS, pszSrcWKT,
                                          NULL, pszDstWKT,
                                          FALSE, 0.0, 1 );
 
   if( psWarpOptions->pTransformerArg == NULL ) {
     GDALDestroyWarpOptions( psWarpOptions );
-    return NULL;
+    CPLFree( pszDstWKT );
+    throw TerrainException("Could not create image to image transformer");
   }
 
   GDALSetGenImgProjTransformerDstGeoTransform( psWarpOptions->pTransformerArg, adfGeoTransform );
 
   hDstDS = GDALCreateWarpedVRT(hSrcDS, mProfile.tileSize(), mProfile.tileSize(), adfGeoTransform, psWarpOptions);
-
   GDALDestroyWarpOptions( psWarpOptions );
 
-  GDALSetProjection( hDstDS, pszDstWKT );
+  if (hDstDS == NULL) {
+    CPLFree( pszDstWKT );
+    throw TerrainException("Could not create warped VRT");
+  }
+
+  if (GDALSetProjection( hDstDS, pszDstWKT ) != CE_None) {
+    CPLFree( pszDstWKT );
+    throw TerrainException("Could not set projection on VRT");
+  }
+  CPLFree( pszDstWKT );
 
   tileBounds = mProfile.tileBounds(coord);
   resolution = mProfile.resolution(coord.zoom);
@@ -164,7 +188,10 @@ GDALDatasetH GDALTiler::createRasterTile(const TileCoordinate &coord) const {
   adfGeoTransform[3] = tileBounds.getMaxY(); // max latitude
   adfGeoTransform[4] = 0;
   adfGeoTransform[5] = -resolution;
-  GDALSetGeoTransform( hDstDS, adfGeoTransform );
+
+  if (GDALSetGeoTransform( hDstDS, adfGeoTransform ) != CE_None) {
+      throw TerrainException("Could not set projection on VRT");
+  }
 
   // If uncommenting the following line for debug purposes, you must also `#include "vrtdataset.h"`
   //std::cout << "VRT: " << CPLSerializeXMLTree(((VRTWarpedDataset *) hDstDS)->SerializeToXML(NULL)) << std::endl;

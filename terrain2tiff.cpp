@@ -6,6 +6,7 @@
 #include "gdal_priv.h"
 #include "commander.hpp"
 
+#include "src/TerrainException.hpp"
 #include "src/TerrainTile.hpp"
 #include "src/GlobalGeodetic.hpp"
 
@@ -137,21 +138,8 @@ int main(int argc, char *argv[]) {
 
   try {
     terrain.readFile(command.inputFilename);
-  } catch (int e) {
-    switch (e) {
-    case 1:
-      cerr << "Failed to open " << command.inputFilename << endl;
-      return 1;
-    case 2:
-      cerr << "The file has too many bytes" << endl;
-      return 2;
-    case 3:
-      cerr << "The file does not appear to be a terrain tile" << endl;
-      return 3;
-    default:
-      cerr << "Unknown error: " << e << endl;
-      return 4;
-    }
+  } catch (TerrainException &e) {
+    cerr << "Error: " << e.what() << endl;
   }
 
   cout << "Creating " << command.outputFilename << " using zoom " << command.zoom << " from tile " << command.tx << "," << command.ty << endl;

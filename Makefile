@@ -21,13 +21,13 @@ terrain2tiff: terrain2tiff.cpp src/TerrainTile.o src/GlobalGeodetic.hpp deps/com
 # Objects
 #
 
-src/GDALTiler.o: src/GlobalGeodetic.hpp src/TerrainTile.hpp src/GDALTiler.hpp src/GDALTiler.cpp src/TileCoordinate.hpp src/Coordinate.hpp src/Bounds.hpp
+src/GDALTiler.o: src/GlobalGeodetic.hpp src/TerrainTile.hpp src/GDALTiler.hpp src/GDALTiler.cpp src/TileCoordinate.hpp src/Coordinate.hpp src/Bounds.hpp src/TerrainException.hpp
 	g++ -Wall -Wextra --pedantic -c -o src/GDALTiler.o src/GDALTiler.cpp
 
-src/TileIterator.o: src/TerrainTile.hpp src/TileIterator.hpp src/GDALTiler.hpp src/TileIterator.cpp src/TileCoordinate.hpp src/Coordinate.hpp src/Bounds.hpp
+src/TileIterator.o: src/TerrainTile.hpp src/TileIterator.hpp src/GDALTiler.hpp src/TileIterator.cpp src/TileCoordinate.hpp src/Coordinate.hpp src/Bounds.hpp src/TerrainException.hpp
 	g++ -Wall -Wextra --pedantic -c -o src/TileIterator.o src/TileIterator.cpp
 
-src/TerrainTile.o: src/TerrainTile.hpp src/TerrainTile.cpp src/TileCoordinate.hpp src/Coordinate.hpp src/Bounds.hpp
+src/TerrainTile.o: src/TerrainTile.hpp src/TerrainTile.cpp src/TileCoordinate.hpp src/Coordinate.hpp src/Bounds.hpp src/TerrainException.hpp
 	g++ -Wall -Wextra --pedantic -c -o src/TerrainTile.o src/TerrainTile.cpp
 
 deps/commander.o: deps/commander.h deps/commander.c
