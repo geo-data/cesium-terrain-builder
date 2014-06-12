@@ -58,7 +58,7 @@ public:
 };
 
 int main(int argc, char *argv[]) {
-  TerrainTile terrain;
+  Terrain terrain;
   TerrainInfo command = TerrainInfo(argv[0], "0.0.1");
   command.setUsage("[options] TERRAIN_FILE");
   command.option("-e", "--show-heights", "show the height information as an ASCII raster", TerrainInfo::showHeights);
@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
   GDALAllRegister();
 
   try {
-    terrain = TerrainTile(command.getInputFilename());
+    terrain = Terrain(command.getInputFilename());
   } catch (int e) {
     switch (e) {
     case 1:

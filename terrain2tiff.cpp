@@ -117,7 +117,6 @@ void terrain2tiff(TerrainTile &terrain, const char *filename, double minx, doubl
 }
 
 int main(int argc, char *argv[]) {
-  TerrainTile terrain;
   Terrain2Tiff command = Terrain2Tiff(argv[0], "0.0.1");
 
   command.setUsage("-i TERRAIN_FILE -z ZOOM_LEVEL -x TILE_X -y TILE_Y -o OUTPUT_FILE ");
@@ -133,8 +132,11 @@ int main(int argc, char *argv[]) {
 
   GDALAllRegister();
 
+  TileCoordinate coord(command.zoom, command.tx, command.ty);
+  TerrainTile terrain(coord);
+
   try {
-    terrain = TerrainTile(command.inputFilename);
+    terrain.readFile(command.inputFilename);
   } catch (int e) {
     switch (e) {
     case 1:
@@ -156,7 +158,7 @@ int main(int argc, char *argv[]) {
 
   GlobalGeodetic profile;
   double minLon, minLat, maxLon, maxLat;
-  profile.tileBounds(command.tx, command.ty, command.zoom, minLon, minLat, maxLon, maxLat);
+  profile.tileBounds(coord, minLon, minLat, maxLon, maxLat);
 
   terrain2tiff(terrain, command.outputFilename, minLon, minLat, maxLon, maxLat);
 

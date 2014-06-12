@@ -7,6 +7,7 @@
 #include "ogr_spatialref.h"
 #include "gdalwarper.h"
 
+#include "TileCoordinate.hpp"
 #include "GlobalGeodetic.hpp"
 #include "TerrainTile.hpp"
 #include "Bounds.hpp"
@@ -21,19 +22,21 @@ public:
   
   ~GDALTiler();
 
-  GDALDatasetH createRasterTile(short int zoom, int tx, int ty) const;
-  TerrainTile *createTerrainTile(short int zoom, int tx, int ty) const;
+  GDALDatasetH createRasterTile(const TileCoordinate &coord) const;
+  TerrainTile *createTerrainTile(const TileCoordinate &coord) const;
 
-  inline short int maxZoomLevel() const {
+  inline unsigned short int maxZoomLevel() const {
     return mProfile.zoomForResolution(resolution());
   }
 
-  inline void lowerLeftTile(short int zoom, int &tx, int &ty) const {
-    mProfile.latLonToTile(mBounds.getMinX(), mBounds.getMinY(), zoom, tx, ty);
+  inline TileCoordinate
+  lowerLeftTile(unsigned short int zoom) const {
+    return mProfile.latLonToTile(mBounds.getMinX(), mBounds.getMinY(), zoom);
   }
 
-  inline void upperRightTile(short int zoom, int &tx, int &ty) const {
-    mProfile.latLonToTile(mBounds.getMaxX(), mBounds.getMaxY(), zoom, tx, ty);
+  inline TileCoordinate
+  upperRightTile(unsigned short int zoom) const {
+    return mProfile.latLonToTile(mBounds.getMaxX(), mBounds.getMaxY(), zoom);
   }
 
   inline double resolution() const {

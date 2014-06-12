@@ -5,6 +5,7 @@
 #include "commander.hpp"
 
 #include "src/GDALTiler.hpp"
+#include "src/TileIterator.hpp"
 
 using namespace std;
 
@@ -51,7 +52,7 @@ public:
 };
 
 void writeTiles(const GDALTiler &tiler, const char *outputDir) {
-  int tminx, tminy, tmaxx, tmaxy;
+  /*int tminx, tminy, tmaxx, tmaxy;
   short int maxZoom = tiler.maxZoomLevel();
   const string dirname = string(outputDir) + osDirSep;
 
@@ -65,12 +66,12 @@ void writeTiles(const GDALTiler &tiler, const char *outputDir) {
         const string filename = dirname + static_cast<ostringstream*>
           (
            &(ostringstream()
-             << zoom
-             << "-"
-             << tx
-             << "-"
-             << ty
-             << ".terrain")
+              << zoom
+              << "-"
+              << tx
+              << "-"
+              << ty
+              << ".terrain")
            )->str();
 
         cout << "creating " << filename << endl;
@@ -99,6 +100,48 @@ void writeTiles(const GDALTiler &tiler, const char *outputDir) {
         delete terrainTile;
       }
     }
+    }*/
+
+  const string dirname = string(outputDir) + osDirSep;
+  
+  for(TileIterator iter(tiler); !iter.exhausted(); ++iter) {
+    const TerrainTile *terrainTile = *iter;
+    const TileCoordinate coord = terrainTile->getCoordinate();
+    const string filename = dirname + static_cast<ostringstream*>
+      (
+       &(ostringstream()
+         << coord.zoom
+         << "-"
+         << coord.x
+         << "-"
+         << coord.y
+         << ".terrain")
+       )->str();
+
+    cout << "creating " << filename << endl;
+
+    try {
+      terrainTile->writeFile(filename.c_str());
+    } catch (int e) {
+      switch(e) {
+      case 1:
+        cerr << "Failed to open " << filename << endl;
+        break;
+      case 2:
+        cerr << "Failed to write height data" << endl;
+        break;
+      case 3:
+        cerr << "Failed to write child flags" << endl;
+        break;
+      case 4:
+        cerr << "Failed to write water mask" << endl;
+        break;
+      case 5:
+        cerr << "Failed to close file" << endl;
+        break;
+      }
+    }
+    delete terrainTile;
   }
 }
 

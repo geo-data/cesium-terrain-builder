@@ -3,6 +3,7 @@
 
 #include <iterator>
 
+#include "TileCoordinate.hpp"
 #include "TerrainTile.hpp"
 
 class GDALTiler;
@@ -10,9 +11,8 @@ class GDALTiler;
 class TileIterator : 
 public std::iterator<std::input_iterator_tag, TerrainTile *>
 {
-  int tminx, tminy, tmaxx, tmaxy;
-  unsigned short int zoom;
-  int tx, ty;
+  unsigned int tminx, tminy, tmaxx, tmaxy;
+  TileCoordinate coord;
   const GDALTiler &tiler;
 
 public:

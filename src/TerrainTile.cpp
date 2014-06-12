@@ -5,16 +5,48 @@
 
 #include "TerrainTile.hpp"
 
-TerrainTile::TerrainTile():
+Terrain::Terrain():
   mHeights(TILE_SIZE),
   mChildren(0)
 {
   setIsLand();
 }
 
-TerrainTile::TerrainTile(const char *fileName):
+Terrain::Terrain(const char *fileName):
   mHeights(TILE_SIZE)
 {
+  readFile(fileName);
+}
+
+Terrain::Terrain(FILE *fp):
+  mHeights(TILE_SIZE)
+{
+  unsigned char bytes[2];
+  int count = 0;
+
+  while ( count < TILE_SIZE && fread(bytes, 2, 1, fp) != 0) {
+    /* adapted from
+       <http://stackoverflow.com/questions/13001183/how-to-read-little-endian-integers-from-file-in-c> */
+    mHeights[count++] = bytes[0] | (bytes[1]<<8);
+  }
+
+  if ( fread(&(mChildren), 1, 1, fp) != 1 ) {
+    throw 1;
+  }
+
+  mMaskLength = fread(mMask, 1, MASK_SIZE, fp);
+  switch (mMaskLength) {
+  case MASK_SIZE:
+    break;
+  case 1:
+    break;
+  default:
+    throw 2;
+  }
+}
+
+void
+Terrain::readFile(const char *fileName) {
   unsigned char inflateBuffer[MAX_TERRAIN_SIZE];
   unsigned int inflatedBytes;
   gzFile terrainFile = gzopen(fileName, "rb");
@@ -51,35 +83,8 @@ TerrainTile::TerrainTile(const char *fileName):
   memcpy(mMask, &(inflateBuffer[++byteCount]), mMaskLength);
 }
 
-TerrainTile::TerrainTile(FILE *fp):
-  mHeights(TILE_SIZE)
-{
-  unsigned char bytes[2];
-  int count = 0;
-
-  while ( count < TILE_SIZE && fread(bytes, 2, 1, fp) != 0) {
-    /* adapted from
-       <http://stackoverflow.com/questions/13001183/how-to-read-little-endian-integers-from-file-in-c> */
-    mHeights[count++] = bytes[0] | (bytes[1]<<8);
-  }
-
-  if ( fread(&(mChildren), 1, 1, fp) != 1 ) {
-    throw 1;
-  }
-
-  mMaskLength = fread(mMask, 1, MASK_SIZE, fp);
-  switch (mMaskLength) {
-  case MASK_SIZE:
-    break;
-  case 1:
-    break;
-  default:
-    throw 2;
-  }
-}
-
 void
-TerrainTile::writeFile(FILE *fp) {
+Terrain::writeFile(FILE *fp) const {
   fwrite(mHeights.data(), TILE_SIZE * 2, 1, fp);
 
   fwrite(&mChildren, 1, 1, fp);
@@ -87,7 +92,7 @@ TerrainTile::writeFile(FILE *fp) {
 }
 
 void 
-TerrainTile::writeFile(const char *fileName) {
+Terrain::writeFile(const char *fileName) const {
   gzFile terrainFile = gzopen(fileName, "wb");
 
   if (terrainFile == NULL) {
@@ -121,7 +126,7 @@ TerrainTile::writeFile(const char *fileName) {
   }
 }
 
-std::vector<bool> TerrainTile::mask() {
+std::vector<bool> Terrain::mask() {
   std::vector<bool> mask;
   mask.assign(mMask, mMask + mMaskLength);
   return mask;
@@ -129,27 +134,27 @@ std::vector<bool> TerrainTile::mask() {
 
 /* for a discussion on bitflags see
    <http://www.dylanleigh.net/notes/c-cpp-tricks.html#Using_"Bitflags"> */
-bool TerrainTile::hasChildren() {
+bool Terrain::hasChildren() {
   return mChildren;
 }
 
-bool TerrainTile::hasChildSW() {
+bool Terrain::hasChildSW() {
   return ((mChildren & TC_SW) == TC_SW);
 }
 
-bool TerrainTile::hasChildSE() {
+bool Terrain::hasChildSE() {
   return ((mChildren & TC_SE) == TC_SE);
 }
 
-bool TerrainTile::hasChildNW() {
+bool Terrain::hasChildNW() {
   return ((mChildren & TC_NW) == TC_NW);
 }
 
-bool TerrainTile::hasChildNE() {
+bool Terrain::hasChildNE() {
   return ((mChildren & TC_NE) == TC_NE);
 }
 
-void TerrainTile::setChildSW(bool on) {
+void Terrain::setChildSW(bool on) {
   if (on) {
     mChildren |= TC_SW;
   } else {
@@ -157,7 +162,7 @@ void TerrainTile::setChildSW(bool on) {
   }
 }
 
-void TerrainTile::setChildSE(bool on) {
+void Terrain::setChildSE(bool on) {
   if (on) {
     mChildren |= TC_SE;
   } else {
@@ -165,7 +170,7 @@ void TerrainTile::setChildSE(bool on) {
   }
 }
 
-void TerrainTile::setChildNW(bool on) {
+void Terrain::setChildNW(bool on) {
   if (on) {
     mChildren |= TC_NW;
   } else {
@@ -173,7 +178,7 @@ void TerrainTile::setChildNW(bool on) {
   }
 }
 
-void TerrainTile::setChildNE(bool on) {
+void Terrain::setChildNE(bool on) {
   if (on) {
     mChildren |= TC_NE;
   } else {
@@ -181,7 +186,7 @@ void TerrainTile::setChildNE(bool on) {
   }
 }
 
-void TerrainTile::setAllChildren(bool on) {
+void Terrain::setAllChildren(bool on) {
   if (on) {
     mChildren = TC_SW | TC_SE | TC_NW | TC_NE;
   } else {
@@ -189,29 +194,29 @@ void TerrainTile::setAllChildren(bool on) {
   }
 }
 
-void TerrainTile::setIsWater() {
+void Terrain::setIsWater() {
   mMask[0] = 1;
   mMaskLength = 1;
 }
 
-bool TerrainTile::isWater() {
+bool Terrain::isWater() {
   return mMaskLength == 1 && (bool) mMask[0];
 }
 
-void TerrainTile::setIsLand() {
+void Terrain::setIsLand() {
   mMask[0] = 0;
   mMaskLength = 1;
 }
 
-bool TerrainTile::isLand() {
+bool Terrain::isLand() {
   return mMaskLength == 1 && ! (bool) mMask[0];
 }
 
-bool TerrainTile::hasWaterMask() {
+bool Terrain::hasWaterMask() {
   return mMaskLength == MASK_SIZE;
 }
 
-GDALDatasetH TerrainTile::heightsToRaster(double minx, double miny, double maxx, double maxy) {
+GDALDatasetH Terrain::heightsToRaster(double minx, double miny, double maxx, double maxy) {
   double resolution = (maxx - minx) / 65;
   double adfGeoTransform[6] = { minx, resolution, 0, maxy, 0, -resolution };
 
@@ -236,3 +241,17 @@ GDALDatasetH TerrainTile::heightsToRaster(double minx, double miny, double maxx,
 
   return hDstDS;
 }
+
+TerrainTile::TerrainTile(TileCoordinate coord):
+  coord(coord) 
+{}
+
+TerrainTile::TerrainTile(const char *fileName, TileCoordinate coord):
+  Terrain(fileName),
+  coord(coord)
+{}
+
+TerrainTile::TerrainTile(const Terrain &terrain, TileCoordinate coord):
+  Terrain(terrain),
+  coord(coord)
+{}

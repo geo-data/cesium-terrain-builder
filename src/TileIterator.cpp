@@ -4,11 +4,15 @@
 TileIterator::TileIterator(const GDALTiler &tiler) :
   tiler(tiler)
 {
-  zoom = tiler.maxZoomLevel();
-  tiler.lowerLeftTile(zoom, tminx, tminy);
-  tiler.upperRightTile(zoom, tmaxx, tmaxy);
-  tx = tminx;
-  ty = tminy;
+  unsigned short int zoom = tiler.maxZoomLevel();
+  TileCoordinate lowerLeft = tiler.lowerLeftTile(zoom);
+  TileCoordinate upperRight = tiler.upperRightTile(zoom);
+  tminx = lowerLeft.x;
+  tminy = lowerLeft.y;
+  tmaxx = upperRight.x;
+  tmaxy = upperRight.y;
+
+  coord = TileCoordinate(zoom, tminx, tminy); // the initial tile coordinate
 }
 
 TileIterator &
@@ -31,19 +35,23 @@ TileIterator::operator++() {                // prefix ++
      - }
   */
 
-  if (++ty > tmaxy) {
-    if (++tx > tmaxx) {
-      if (zoom > 0) {
-        zoom--;
+  if (++(coord.y) > tmaxy) {
+    if (++(coord.x) > tmaxx) {
+      if (coord.zoom > 0) {
+        (coord.zoom)--;
 
-        tiler.lowerLeftTile(zoom, tminx, tminy);
-        tiler.upperRightTile(zoom, tmaxx, tmaxy);
+        TileCoordinate lowerLeft = tiler.lowerLeftTile(coord.zoom);
+        TileCoordinate upperRight = tiler.upperRightTile(coord.zoom);
+        tminx = lowerLeft.x;
+        tminy = lowerLeft.y;
+        tmaxx = upperRight.x;
+        tmaxy = upperRight.y;
 
-        tx = tminx;
-        ty = tminy;
+        coord.x = tminx;
+        coord.y = tminy;
       }
     } else {
-      ty = tminy;
+      coord.y = tminy;
     }
   }
     
@@ -58,19 +66,17 @@ TileIterator::operator++(int) {             // postfix ++
 }
 
 bool
-TileIterator::operator==(const TileIterator &b) const {
-  return zoom == b.zoom
-    && tx == b.tx
-    && ty == b.ty
-    && tiler.dataset() == b.tiler.dataset();
+TileIterator::operator==(const TileIterator &other) const {
+  return coord == other.coord
+    && tiler.dataset() == other.tiler.dataset();
 }
 
 const TerrainTile *
 TileIterator::operator*() const {
-  return tiler.createTerrainTile(zoom, tx, ty);
+  return tiler.createTerrainTile(coord);
 }
 
 bool
 TileIterator::exhausted() const {
-  return zoom == 0 && tx > tmaxx && ty > tmaxy;
+  return coord.zoom == 0 && coord.x > tmaxx && coord.y > tmaxy;
 }

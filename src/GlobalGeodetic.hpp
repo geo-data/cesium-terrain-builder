@@ -7,70 +7,74 @@
 
 #include <cmath>
 
+#include "TileCoordinate.hpp"
+
 class GlobalGeodetic {
 public:
-  GlobalGeodetic(int tileSize = 65):
+  GlobalGeodetic(unsigned int tileSize = 65):
     mTileSize(tileSize),
     mInitialResolution(180.0 / tileSize)
   { }
 
-  inline double resolution(short int zoom) const {
+  inline double resolution(unsigned short int zoom) const {
     return mInitialResolution / pow(2, zoom);
   }
 
-  inline short int zoomForResolution(double resolution) const {
-    return (short int) ceil(log2(mInitialResolution) - log2(resolution));
+  inline unsigned short int zoomForResolution(double resolution) const {
+    return (unsigned short int) ceil(log2(mInitialResolution) - log2(resolution));
   }
 
-  inline void latLonToPixels(double lat, double lon, short int zoom,
-                             int& px, int& py) const {
+  inline Coordinate
+  latLonToPixels(double lat, double lon, unsigned short int zoom) const {
     double res = resolution(zoom);
-    px = (180 + lat) / res;
-    py = (90 + lon) / res;
-    return;
+    unsigned int px = (180 + lat) / res,
+      py = (90 + lon) / res;
+
+    return Coordinate(px, py);
   }
 
-  inline void pixelsToTile(int px, int py,
-                           int& tx, int& ty) const {
-    tx = (int) ceil(px / mTileSize);
-    ty = (int) ceil(py / mTileSize);
-    return;
+  inline Coordinate
+  pixelsToTile(Coordinate &pixel) const {
+    unsigned int tx = (unsigned int) ceil(pixel.x / mTileSize),
+      ty = (unsigned int) ceil(pixel.y / mTileSize);
+
+    return Coordinate(tx, ty);
   }
 
-  inline void latLonToTile(double lat, double lon, short int zoom,
-                           int& tx, int& ty) const {
-    int px, py;
-    latLonToPixels(lat, lon, zoom, px, py);
-    pixelsToTile(px, py, tx, ty);
-    return;
+  inline TileCoordinate
+  latLonToTile(double lat, double lon, unsigned short int zoom) const {
+    Coordinate pixel = latLonToPixels(lat, lon, zoom);
+    Coordinate tile = pixelsToTile(pixel);
+
+    return TileCoordinate(zoom, tile);
   }
 
-  inline void tileBounds(int tx, int ty, short int zoom,
+  inline void tileBounds(const TileCoordinate &coord,
                          double& minx, double& miny, double& maxx, double& maxy) const {
-    double res = resolution(zoom);
-    minx = tx * mTileSize * res - 180;
-    miny = ty * mTileSize * res - 90;
-    maxx = (tx + 1) * mTileSize * res - 180;
-    maxy = (ty + 1) * mTileSize * res - 90;
+    double res = resolution(coord.zoom);
+    minx = coord.x * mTileSize * res - 180;
+    miny = coord.y * mTileSize * res - 90;
+    maxx = (coord.x + 1) * mTileSize * res - 180;
+    maxy = (coord.y + 1) * mTileSize * res - 90;
   }
 
-  inline void terrainTileBounds(int tx, int ty, short int zoom,
+  inline void terrainTileBounds(const TileCoordinate &coord,
                                 double& resolution,
                                 double& minx, double& miny, double& maxx, double& maxy) const {
-    int lTileSize = tileSize() - 1;
+    unsigned int lTileSize = tileSize() - 1;
 
-    tileBounds(tx, ty, zoom, minx, miny, maxx, maxy);
+    tileBounds(coord, minx, miny, maxx, maxy);
     resolution = (maxx - minx) / lTileSize;
     minx = minx - resolution;
     maxy = maxy + resolution;
   }
 
-  inline int tileSize() const {
+  inline unsigned int tileSize() const {
     return mTileSize;
   }
   
 private:
-  int mTileSize;
+  unsigned int mTileSize;
   double mInitialResolution;
 };
 

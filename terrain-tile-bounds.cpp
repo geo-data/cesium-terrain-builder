@@ -56,15 +56,19 @@ static void printCoord(ofstream& stream, double x, double y) {
 }
 
 static void writeBounds(GDALTiler &tiler, const char *outputDir) {
-  int tminx, tminy, tmaxx, tmaxy;
+  unsigned int tminy, tmaxx, tmaxy;
   ofstream geojson;
-  short int maxZoom = tiler.maxZoomLevel();
+  unsigned short int maxZoom = tiler.maxZoomLevel();
   GlobalGeodetic profile = tiler.profile();
   const string dirname = string(outputDir) + osDirSep;
 
   for (short int zoom = maxZoom; zoom >= 0; zoom--) {
-    tiler.lowerLeftTile(zoom, tminx, tminy);
-    tiler.upperRightTile(zoom, tmaxx, tmaxy);
+    TileCoordinate lowerLeft = tiler.lowerLeftTile(zoom);
+    TileCoordinate upperRight = tiler.upperRightTile(zoom);
+    TileCoordinate currentTile = lowerLeft;
+    tminy = lowerLeft.y;
+    tmaxx = upperRight.x;
+    tmaxy = upperRight.y;
 
     const string filename = dirname + static_cast<ostringstream*>( &(ostringstream() << zoom << ".geojson") )->str();
     cout << "creating " << filename << endl;
@@ -72,11 +76,11 @@ static void writeBounds(GDALTiler &tiler, const char *outputDir) {
     geojson.open(filename.c_str());
     geojson << "{ \"type\": \"FeatureCollection\", \"features\": [" << endl;
 
-    for (int tx = tminx; tx <= tmaxx; tx++) {
-      for (int ty = tminy; ty <= tmaxy; ty++) {
+    for (/* currentTile.x = tminx */; currentTile.x <= tmaxx; currentTile.x++) {
+      for (currentTile.y = tminy; currentTile.y <= tmaxy; currentTile.y++) {
         double minLon, minLat, maxLon, maxLat;
 
-        profile.tileBounds(tx, ty, zoom, minLon, minLat, maxLon, maxLat);
+        profile.tileBounds(currentTile, minLon, minLat, maxLon, maxLat);
 
         geojson << "{ \"type\": \"Feature\", \"geometry\": { \"type\": \"Polygon\", \"coordinates\": [[";
         printCoord(geojson, minLon, minLat);
@@ -88,11 +92,11 @@ static void writeBounds(GDALTiler &tiler, const char *outputDir) {
         printCoord(geojson, minLon, maxLat);
         geojson << ", ";
         printCoord(geojson, minLon, minLat);
-        geojson << "]]}, \"properties\": {\"tx\": " << tx << ", \"ty\": " << ty << "}}";
-        if (ty != tmaxy)
+        geojson << "]]}, \"properties\": {\"tx\": " << currentTile.x << ", \"ty\": " << currentTile.y << "}}";
+        if (currentTile.y != tmaxy)
           geojson << "," << endl;
       }
-      if (tx != tmaxx)
+      if (currentTile.x != tmaxx)
         geojson << "," << endl;
 
     }

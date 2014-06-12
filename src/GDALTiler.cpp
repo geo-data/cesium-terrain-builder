@@ -56,9 +56,9 @@ GDALTiler::~GDALTiler() {
   closeDataset();
 }
 
-TerrainTile *GDALTiler::createTerrainTile(short int zoom, int tx, int ty) const {
-  TerrainTile *terrainTile = new TerrainTile();
-  GDALDataset *rasterTile = (GDALDataset *) createRasterTile(zoom, tx, ty);
+TerrainTile *GDALTiler::createTerrainTile(const TileCoordinate &coord) const {
+  TerrainTile *terrainTile = new TerrainTile(coord);
+  GDALDataset *rasterTile = (GDALDataset *) createRasterTile(coord);
   GDALRasterBand *heightsBand = rasterTile->GetRasterBand(1);
 
   float *heights = new float[TILE_SIZE];
@@ -74,16 +74,16 @@ TerrainTile *GDALTiler::createTerrainTile(short int zoom, int tx, int ty) const 
 
   // TODO: try doing this using a VRT derived band:
   // (http://www.gdal.org/gdal_vrttut.html)
-  for (int i = 0; i < TILE_SIZE; i++) {
+  for (unsigned short int i = 0; i < TILE_SIZE; i++) {
     terrainTile->mHeights[i] = (short int) ((heights[i] + 1000) * 5);
   }
   delete [] heights;
 
   GDALClose((GDALDatasetH) rasterTile);
 
-  if (zoom != maxZoomLevel()) {
+  if (coord.zoom != maxZoomLevel()) {
     double minLon, minLat, maxLon, maxLat;
-    mProfile.tileBounds(tx, ty, zoom, minLon, minLat, maxLon, maxLat);
+    mProfile.tileBounds(coord, minLon, minLat, maxLon, maxLat);
     Bounds *tileBounds = new Bounds(minLon, minLat, maxLon, maxLat);
 
     if (! (bounds().overlaps(tileBounds))) {
@@ -107,9 +107,9 @@ TerrainTile *GDALTiler::createTerrainTile(short int zoom, int tx, int ty) const 
   return terrainTile;
 }
 
-GDALDatasetH GDALTiler::createRasterTile(short int zoom, int tx, int ty) const {
+GDALDatasetH GDALTiler::createRasterTile(const TileCoordinate &coord) const {
   double resolution, minLon, minLat, maxLon, maxLat;
-  mProfile.terrainTileBounds(tx, ty, zoom, resolution, minLon, minLat, maxLon, maxLat);
+  mProfile.terrainTileBounds(coord, resolution, minLon, minLat, maxLon, maxLat);
 
   double adfGeoTransform[6];
   adfGeoTransform[0] = minLon;
@@ -161,8 +161,8 @@ GDALDatasetH GDALTiler::createRasterTile(short int zoom, int tx, int ty) const {
 
   GDALSetProjection( hDstDS, pszDstWKT );
 
-  mProfile.tileBounds(tx, ty, zoom, minLon, minLat, maxLon, maxLat);
-  resolution = mProfile.resolution(zoom);
+  mProfile.tileBounds(coord, minLon, minLat, maxLon, maxLat);
+  resolution = mProfile.resolution(coord.zoom);
   adfGeoTransform[0] = minLon;
   adfGeoTransform[1] = resolution;
   adfGeoTransform[2] = 0;

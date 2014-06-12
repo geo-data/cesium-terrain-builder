@@ -5,6 +5,8 @@
 
 #include "gdal_priv.h"
 
+#include "TileCoordinate.hpp"
+
 #define TILE_SIZE 65 * 65
 #define MASK_SIZE 256 * 256
 
@@ -19,14 +21,16 @@ enum TerrainChildren {
   TC_NE = 8                     // 2^3, bit 3
 };
 
-class TerrainTile {
+class Terrain {
 public:
-  TerrainTile();
-  TerrainTile(const char *fileName);
-  TerrainTile(FILE *fp);
+  Terrain();
+  Terrain(const char *fileName);
+  Terrain(FILE *fp);
 
-  void writeFile(FILE *fp);
-  void writeFile(const char *fileName);
+  void readFile(const char *fileName);
+  
+  void writeFile(FILE *fp) const;
+  void writeFile(const char *fileName) const;
   std::vector<bool> mask();
 
   bool hasChildren();
@@ -57,6 +61,27 @@ private:
   char mChildren;
   char mMask[MASK_SIZE];
   size_t mMaskLength;
+};
+
+class TerrainTile :
+  public Terrain
+{
+public:
+  TerrainTile(TileCoordinate coord);
+  TerrainTile(const char *fileName, TileCoordinate coord);
+  TerrainTile(const Terrain &terrain, TileCoordinate coord);
+  
+  TileCoordinate & getCoordinate() {
+    return coord;
+  }
+
+  const TileCoordinate & getCoordinate() const {
+    return const_cast<const TileCoordinate &>(coord);
+  }
+
+
+private:
+  TileCoordinate coord;
 };
 
 #endif /* TERRAINTILE_HPP */
