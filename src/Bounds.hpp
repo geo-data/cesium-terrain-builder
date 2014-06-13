@@ -87,29 +87,29 @@ public:
     return getMaxY() - getMinY();
   }
 
-  inline terrain::Bounds<T> * getSW() const {
-    return new terrain::Bounds<T>(getMinX(),
-                      getMinY(),
-                      getMinX() + (getWidth() / 2),
-                      getMinY() + (getHeight() / 2));
+  inline terrain::Bounds<T> getSW() const {
+    return terrain::Bounds<T>(getMinX(),
+                              getMinY(),
+                              getMinX() + (getWidth() / 2),
+                              getMinY() + (getHeight() / 2));
   }
-  inline terrain::Bounds<T> * getNW() const {
-    return new terrain::Bounds<T>(getMinX(),
-                      getMaxY() - (getHeight() / 2),
-                      getMinX() + (getWidth() / 2),
-                      getMaxY());
+  inline terrain::Bounds<T> getNW() const {
+    return terrain::Bounds<T>(getMinX(),
+                              getMaxY() - (getHeight() / 2),
+                              getMinX() + (getWidth() / 2),
+                              getMaxY());
   }
-  inline terrain::Bounds<T> * getNE() const {
-    return new terrain::Bounds<T>(getMaxX() - (getWidth() / 2),
-                      getMaxY() - (getHeight() / 2),
-                      getMaxX(),
-                      getMaxY());
+  inline terrain::Bounds<T> getNE() const {
+    return terrain::Bounds<T>(getMaxX() - (getWidth() / 2),
+                              getMaxY() - (getHeight() / 2),
+                              getMaxX(),
+                              getMaxY());
   }
-  inline terrain::Bounds<T> * getSE() const {
-    return new terrain::Bounds<T>(getMaxX() - (getWidth() / 2),
-                      getMinY(),
-                      getMaxX(),
-                      getMinY() + (getHeight() / 2));
+  inline terrain::Bounds<T> getSE() const {
+    return terrain::Bounds<T>(getMaxX() - (getWidth() / 2),
+                              getMinY(),
+                              getMaxX(),
+                              getMinY() + (getHeight() / 2));
   }
   
   inline bool overlaps(const terrain::Bounds<T> *other) const {
