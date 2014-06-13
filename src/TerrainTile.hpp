@@ -14,13 +14,6 @@
 // + water mask)
 #define MAX_TERRAIN_SIZE ( TILE_SIZE * 2 ) + 1 + MASK_SIZE
 
-enum TerrainChildren {
-  TC_SW = 1,                    // 2^0, bit 0
-  TC_SE = 2,                    // 2^1, bit 1
-  TC_NW = 4,                    // 2^2, bit 2
-  TC_NE = 8                     // 2^3, bit 3
-};
-
 class Terrain {
 public:
   Terrain();
@@ -59,6 +52,13 @@ private:
   char mChildren;
   char mMask[MASK_SIZE];
   size_t mMaskLength;
+
+  enum Children {
+    TERRAIN_CHILD_SW = 1,       // 2^0, bit 0
+    TERRAIN_CHILD_SE = 2,       // 2^1, bit 1
+    TERRAIN_CHILD_NW = 4,       // 2^2, bit 2
+    TERRAIN_CHILD_NE = 8        // 2^3, bit 3
+  };
 };
 
 class TerrainTile :

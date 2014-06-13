@@ -146,56 +146,56 @@ bool Terrain::hasChildren() const {
 }
 
 bool Terrain::hasChildSW() const {
-  return ((mChildren & TC_SW) == TC_SW);
+  return ((mChildren & TERRAIN_CHILD_SW) == TERRAIN_CHILD_SW);
 }
 
 bool Terrain::hasChildSE() const {
-  return ((mChildren & TC_SE) == TC_SE);
+  return ((mChildren & TERRAIN_CHILD_SE) == TERRAIN_CHILD_SE);
 }
 
 bool Terrain::hasChildNW() const {
-  return ((mChildren & TC_NW) == TC_NW);
+  return ((mChildren & TERRAIN_CHILD_NW) == TERRAIN_CHILD_NW);
 }
 
 bool Terrain::hasChildNE() const {
-  return ((mChildren & TC_NE) == TC_NE);
+  return ((mChildren & TERRAIN_CHILD_NE) == TERRAIN_CHILD_NE);
 }
 
 void Terrain::setChildSW(bool on) {
   if (on) {
-    mChildren |= TC_SW;
+    mChildren |= TERRAIN_CHILD_SW;
   } else {
-    mChildren &= ~TC_SW;
+    mChildren &= ~TERRAIN_CHILD_SW;
   }
 }
 
 void Terrain::setChildSE(bool on) {
   if (on) {
-    mChildren |= TC_SE;
+    mChildren |= TERRAIN_CHILD_SE;
   } else {
-    mChildren &= ~TC_SE;
+    mChildren &= ~TERRAIN_CHILD_SE;
   }
 }
 
 void Terrain::setChildNW(bool on) {
   if (on) {
-    mChildren |= TC_NW;
+    mChildren |= TERRAIN_CHILD_NW;
   } else {
-    mChildren &= ~TC_NW;
+    mChildren &= ~TERRAIN_CHILD_NW;
   }
 }
 
 void Terrain::setChildNE(bool on) {
   if (on) {
-    mChildren |= TC_NE;
+    mChildren |= TERRAIN_CHILD_NE;
   } else {
-    mChildren &= ~TC_NE;
+    mChildren &= ~TERRAIN_CHILD_NE;
   }
 }
 
 void Terrain::setAllChildren(bool on) {
   if (on) {
-    mChildren = TC_SW | TC_SE | TC_NW | TC_NE;
+    mChildren = TERRAIN_CHILD_SW | TERRAIN_CHILD_SE | TERRAIN_CHILD_NW | TERRAIN_CHILD_NE;
   } else {
     mChildren = 0;
   }
