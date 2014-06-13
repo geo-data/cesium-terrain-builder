@@ -1,5 +1,1 @@
-*.o
-gdal2terrain
-terrain-info
-terrain-tile-bounds
-terrain2tiff
+build/

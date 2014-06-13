@@ -4,9 +4,9 @@
 #include "gdal_priv.h"
 #include "commander.hpp"
 
-#include "src/TerrainException.hpp"
-#include "src/GDALTiler.hpp"
-#include "src/TileIterator.hpp"
+#include "TerrainException.hpp"
+#include "GDALTiler.hpp"
+#include "TileIterator.hpp"
 
 using namespace std;
 using namespace terrain;

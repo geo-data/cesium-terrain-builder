@@ -3,8 +3,8 @@
 #include "gdal_priv.h"
 #include "commander.hpp"
 
-#include "src/TerrainException.hpp"
-#include "src/TerrainTile.hpp"
+#include "TerrainException.hpp"
+#include "TerrainTile.hpp"
 
 using namespace std;
 using namespace terrain;

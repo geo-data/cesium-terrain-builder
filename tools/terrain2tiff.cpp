@@ -6,9 +6,9 @@
 #include "gdal_priv.h"
 #include "commander.hpp"
 
-#include "src/TerrainException.hpp"
-#include "src/TerrainTile.hpp"
-#include "src/GlobalGeodetic.hpp"
+#include "TerrainException.hpp"
+#include "TerrainTile.hpp"
+#include "GlobalGeodetic.hpp"
 
 using namespace std;
 using namespace terrain;

@@ -5,7 +5,7 @@
 #include "gdal_priv.h"
 #include "commander.hpp"
 
-#include "src/GDALTiler.hpp"
+#include "GDALTiler.hpp"
 
 using namespace std;
 using namespace terrain;
