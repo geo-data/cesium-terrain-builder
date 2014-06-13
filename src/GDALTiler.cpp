@@ -180,6 +180,7 @@ terrain::GDALTiler::createRasterTile(const TileCoordinate &coord) const {
   }
 
   if (GDALSetProjection( hDstDS, pszDstWKT ) != CE_None) {
+    GDALClose(hDstDS);
     CPLFree( pszDstWKT );
     throw TerrainException("Could not set projection on VRT");
   }
@@ -195,7 +196,8 @@ terrain::GDALTiler::createRasterTile(const TileCoordinate &coord) const {
   adfGeoTransform[5] = -resolution;
 
   if (GDALSetGeoTransform( hDstDS, adfGeoTransform ) != CE_None) {
-      throw TerrainException("Could not set projection on VRT");
+    GDALClose(hDstDS);
+    throw TerrainException("Could not set projection on VRT");
   }
 
   // If uncommenting the following line for debug purposes, you must also `#include "vrtdataset.h"`
