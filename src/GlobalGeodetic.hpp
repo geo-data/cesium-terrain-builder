@@ -7,11 +7,13 @@
 
 #include <cmath>
 
-#include "geo-types.hpp"
+#include "complex-types.hpp"
 #include "TileCoordinate.hpp"
 #include "Bounds.hpp"
 
 typedef Coordinate<unsigned int> PixelPoint;
+typedef Coordinate<double> LatLon;
+typedef Bounds<double> LatLonBounds;
 
 class GlobalGeodetic {
 public:
@@ -53,7 +55,7 @@ public:
     return TileCoordinate(zoom, tile);
   }
 
-  inline Bounds
+  inline LatLonBounds
   tileBounds(const TileCoordinate &coord) const {
     double res = resolution(coord.zoom);
     double minx = coord.x * mTileSize * res - 180,
@@ -61,7 +63,7 @@ public:
       maxx = (coord.x + 1) * mTileSize * res - 180,
       maxy = (coord.y + 1) * mTileSize * res - 90;
 
-    return Bounds(minx, miny, maxx, maxy);
+    return LatLonBounds(minx, miny, maxx, maxy);
   }
 
   inline unsigned int tileSize() const {

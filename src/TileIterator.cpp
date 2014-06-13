@@ -5,14 +5,8 @@ TileIterator::TileIterator(const GDALTiler &tiler) :
   tiler(tiler)
 {
   unsigned short int zoom = tiler.maxZoomLevel();
-  TileCoordinate lowerLeft = tiler.lowerLeftTile(zoom);
-  TileCoordinate upperRight = tiler.upperRightTile(zoom);
-  tminx = lowerLeft.x;
-  tminy = lowerLeft.y;
-  tmaxx = upperRight.x;
-  tmaxy = upperRight.y;
-
-  coord = TileCoordinate(zoom, tminx, tminy); // the initial tile coordinate
+  bounds = tiler.tileBoundsForZoom(zoom);
+  coord = TileCoordinate(zoom, bounds.getLowerLeft()); // the initial tile coordinate
 }
 
 TileIterator &
@@ -24,34 +18,27 @@ TileIterator::operator++() {                // prefix ++
      `for` loops but broken down for use in the iterator:
 
      - for (short int zoom = maxZoom; zoom >= 0; zoom--) {
-     -   tiler.lowerLeftTile(zoom, tminx, tminy);
-     -   tiler.upperRightTile(zoom, tmaxx, tmaxy);
+     -   tiler.lowerLeftTile(zoom, tminx, bounds.getMinY());
+     -   tiler.upperRightTile(zoom, bounds.getMaxX(), bounds.getMaxY());
      -
-     -   for (int tx = tminx; tx <= tmaxx; tx++) {
-     -     for (int ty = tminy; ty <= tmaxy; ty++) {
+     -   for (int tx = tminx; tx <= bounds.getMaxX(); tx++) {
+     -     for (int ty = bounds.getMinY(); ty <= bounds.getMaxY(); ty++) {
      -       TerrainTile *terrainTile = tiler.createTerrainTile(zoom, tx, ty);
      -     }
      -   }
      - }
   */
 
-  if (++(coord.y) > tmaxy) {
-    if (++(coord.x) > tmaxx) {
+  if (++(coord.y) > bounds.getMaxY()) {
+    if (++(coord.x) > bounds.getMaxX()) {
       if (coord.zoom > 0) {
         (coord.zoom)--;
 
-        TileCoordinate lowerLeft = tiler.lowerLeftTile(coord.zoom);
-        TileCoordinate upperRight = tiler.upperRightTile(coord.zoom);
-        tminx = lowerLeft.x;
-        tminy = lowerLeft.y;
-        tmaxx = upperRight.x;
-        tmaxy = upperRight.y;
-
-        coord.x = tminx;
-        coord.y = tminy;
+        bounds = tiler.tileBoundsForZoom(coord.zoom);
+        coord.setPoint(bounds.getLowerLeft());
       }
     } else {
-      coord.y = tminy;
+      coord.y = bounds.getMinY();
     }
   }
     
@@ -78,5 +65,5 @@ TileIterator::operator*() const {
 
 bool
 TileIterator::exhausted() const {
-  return coord.zoom == 0 && coord.x > tmaxx && coord.y > tmaxy;
+  return coord.zoom == 0 && coord.x > bounds.getMaxX() && coord.y > bounds.getMaxY();
 }

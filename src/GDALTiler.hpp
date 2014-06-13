@@ -39,6 +39,14 @@ public:
     return mProfile.latLonToTile(mBounds.getUpperRight(), zoom);
   }
 
+  inline TileBounds
+  tileBoundsForZoom(unsigned short int zoom) const {
+    TileCoordinate ll = mProfile.latLonToTile(mBounds.getLowerLeft(), zoom),
+      ur = mProfile.latLonToTile(mBounds.getUpperRight(), zoom);
+
+    return TileBounds(ll, ur);
+  }
+
   inline double resolution() const {
     return mResolution;
   }
@@ -51,18 +59,18 @@ public:
     return mProfile;
   }
 
-  inline const Bounds & bounds() const {
-    return const_cast<const Bounds &>(mBounds);
+  inline const LatLonBounds & bounds() const {
+    return const_cast<const LatLonBounds &>(mBounds);
   }
 
 protected:
   void closeDataset();
 
-  inline Bounds
+  inline LatLonBounds
   terrainTileBounds(const TileCoordinate &coord,
                     double& resolution) const {
     unsigned int lTileSize = mProfile.tileSize() - 1;
-    Bounds tile = mProfile.tileBounds(coord);
+    LatLonBounds tile = mProfile.tileBounds(coord);
     resolution = (tile.getMaxX() - tile.getMinX()) / lTileSize;
     tile.setMinX(tile.getMinX() - resolution);
     tile.setMaxY(tile.getMaxY() + resolution);
@@ -73,7 +81,7 @@ protected:
 private:
   GlobalGeodetic mProfile;
   GDALDataset *poDataset;
-  Bounds mBounds;
+  LatLonBounds mBounds;
   double mResolution;
 };
 

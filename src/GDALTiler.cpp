@@ -11,10 +11,10 @@ GDALTiler::GDALTiler(GDALDataset *poDataset):
     double adfGeoTransform[6];
 
     if( poDataset->GetGeoTransform( adfGeoTransform ) == CE_None ) {
-      mBounds = Bounds(adfGeoTransform[0],
-                       adfGeoTransform[3] + (poDataset->GetRasterYSize() * adfGeoTransform[5]),
-                       adfGeoTransform[0] + (poDataset->GetRasterXSize() * adfGeoTransform[1]),
-                       adfGeoTransform[3]);
+      mBounds = LatLonBounds(adfGeoTransform[0],
+                             adfGeoTransform[3] + (poDataset->GetRasterYSize() * adfGeoTransform[5]),
+                             adfGeoTransform[0] + (poDataset->GetRasterXSize() * adfGeoTransform[1]),
+                             adfGeoTransform[3]);
 
       mResolution = std::abs(adfGeoTransform[1]);
     }
@@ -80,7 +80,7 @@ TerrainTile GDALTiler::createTerrainTile(const TileCoordinate &coord) const {
   GDALClose(rasterTile);
 
   if (coord.zoom != maxZoomLevel()) {
-    Bounds tileBounds = mProfile.tileBounds(coord);
+    LatLonBounds tileBounds = mProfile.tileBounds(coord);
 
     if (! (bounds().overlaps(tileBounds))) {
       terrainTile.setAllChildren(false);
@@ -109,7 +109,7 @@ GDALDatasetH GDALTiler::createRasterTile(const TileCoordinate &coord) const {
   }
 
   double resolution;
-  Bounds tileBounds = terrainTileBounds(coord, resolution);
+  LatLonBounds tileBounds = terrainTileBounds(coord, resolution);
 
   double adfGeoTransform[6];
   adfGeoTransform[0] = tileBounds.getMinX(); // min longitude

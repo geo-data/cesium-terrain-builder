@@ -56,19 +56,14 @@ static void printCoord(ofstream& stream, const LatLon &coord) {
 }
 
 static void writeBounds(GDALTiler &tiler, const char *outputDir) {
-  unsigned int tminy, tmaxx, tmaxy;
   ofstream geojson;
   unsigned short int maxZoom = tiler.maxZoomLevel();
   GlobalGeodetic profile = tiler.profile();
   const string dirname = string(outputDir) + osDirSep;
 
   for (short int zoom = maxZoom; zoom >= 0; zoom--) {
-    TileCoordinate lowerLeft = tiler.lowerLeftTile(zoom);
-    TileCoordinate upperRight = tiler.upperRightTile(zoom);
-    TileCoordinate currentTile = lowerLeft;
-    tminy = lowerLeft.y;
-    tmaxx = upperRight.x;
-    tmaxy = upperRight.y;
+    TileBounds tileBounds = tiler.tileBoundsForZoom(zoom);
+    TileCoordinate currentTile(zoom, tileBounds.getLowerLeft());
 
     const string filename = dirname + static_cast<ostringstream*>( &(ostringstream() << zoom << ".geojson") )->str();
     cout << "creating " << filename << endl;
@@ -76,25 +71,25 @@ static void writeBounds(GDALTiler &tiler, const char *outputDir) {
     geojson.open(filename.c_str());
     geojson << "{ \"type\": \"FeatureCollection\", \"features\": [" << endl;
 
-    for (/* currentTile.x = tminx */; currentTile.x <= tmaxx; currentTile.x++) {
-      for (currentTile.y = tminy; currentTile.y <= tmaxy; currentTile.y++) {
-        Bounds tileBounds = profile.tileBounds(currentTile);
+    for (/* currentTile.x = tminx */; currentTile.x <= tileBounds.getMaxX(); currentTile.x++) {
+      for (currentTile.y = tileBounds.getMinY(); currentTile.y <= tileBounds.getMaxY(); currentTile.y++) {
+        LatLonBounds latLonBounds = profile.tileBounds(currentTile);
 
         geojson << "{ \"type\": \"Feature\", \"geometry\": { \"type\": \"Polygon\", \"coordinates\": [[";
-        printCoord(geojson, tileBounds.getLowerLeft());
+        printCoord(geojson, latLonBounds.getLowerLeft());
         geojson << ", ";
-        printCoord(geojson, tileBounds.getLowerRight());
+        printCoord(geojson, latLonBounds.getLowerRight());
         geojson << ", ";
-        printCoord(geojson, tileBounds.getUpperRight());
+        printCoord(geojson, latLonBounds.getUpperRight());
         geojson << ", ";
-        printCoord(geojson, tileBounds.getUpperLeft());
+        printCoord(geojson, latLonBounds.getUpperLeft());
         geojson << ", ";
-        printCoord(geojson, tileBounds.getLowerLeft());
+        printCoord(geojson, latLonBounds.getLowerLeft());
         geojson << "]]}, \"properties\": {\"tx\": " << currentTile.x << ", \"ty\": " << currentTile.y << "}}";
-        if (currentTile.y != tmaxy)
+        if (currentTile.y != tileBounds.getMaxY())
           geojson << "," << endl;
       }
-      if (currentTile.x != tmaxx)
+      if (currentTile.x != tileBounds.getMaxX())
         geojson << "," << endl;
 
     }
