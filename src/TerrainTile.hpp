@@ -46,7 +46,7 @@ public:
   bool isLand() const;
   bool hasWaterMask() const;
 
-  std::vector<short int> mHeights;
+  std::vector<i_terrain_height> mHeights;
 
 private:
   char mChildren;

@@ -57,7 +57,7 @@ static void printCoord(ofstream& stream, const LatLon &coord) {
 
 static void writeBounds(GDALTiler &tiler, const char *outputDir) {
   ofstream geojson;
-  unsigned short int maxZoom = tiler.maxZoomLevel();
+  i_zoom maxZoom = tiler.maxZoomLevel();
   GlobalGeodetic profile = tiler.profile();
   const string dirname = string(outputDir) + osDirSep;
 

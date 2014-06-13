@@ -89,9 +89,8 @@ public:
 
   const char *inputFilename;
   const char *outputFilename;
-  unsigned short int zoom;
-  unsigned int tx;
-  unsigned int ty;
+  i_zoom zoom;
+  i_tile tx, ty;
 
 private:
   char membersSet;

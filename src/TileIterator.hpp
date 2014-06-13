@@ -3,7 +3,6 @@
 
 #include <iterator>
 
-#include "complex-types.hpp"
 #include "TileCoordinate.hpp"
 #include "TerrainTile.hpp"
 

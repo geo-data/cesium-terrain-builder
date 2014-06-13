@@ -25,22 +25,22 @@ public:
   GDALDatasetH createRasterTile(const TileCoordinate &coord) const;
   TerrainTile createTerrainTile(const TileCoordinate &coord) const;
 
-  inline unsigned short int maxZoomLevel() const {
+  inline i_zoom maxZoomLevel() const {
     return mProfile.zoomForResolution(resolution());
   }
 
   inline TileCoordinate
-  lowerLeftTile(unsigned short int zoom) const {
+  lowerLeftTile(i_zoom zoom) const {
     return mProfile.latLonToTile(mBounds.getLowerLeft(), zoom);
   }
 
   inline TileCoordinate
-  upperRightTile(unsigned short int zoom) const {
+  upperRightTile(i_zoom zoom) const {
     return mProfile.latLonToTile(mBounds.getUpperRight(), zoom);
   }
 
   inline TileBounds
-  tileBoundsForZoom(unsigned short int zoom) const {
+  tileBoundsForZoom(i_zoom zoom) const {
     TileCoordinate ll = mProfile.latLonToTile(mBounds.getLowerLeft(), zoom),
       ur = mProfile.latLonToTile(mBounds.getUpperRight(), zoom);
 
@@ -69,7 +69,7 @@ protected:
   inline LatLonBounds
   terrainTileBounds(const TileCoordinate &coord,
                     double& resolution) const {
-    unsigned int lTileSize = mProfile.tileSize() - 1;
+    i_tile lTileSize = mProfile.tileSize() - 1;
     LatLonBounds tile = mProfile.tileBounds(coord);
     resolution = (tile.getMaxX() - tile.getMinX()) / lTileSize;
     tile.setMinX(tile.getMinX() - resolution);

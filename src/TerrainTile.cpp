@@ -240,7 +240,7 @@ TerrainTile::TerrainTile(const Terrain &terrain, TileCoordinate coord):
 GDALDatasetH TerrainTile::heightsToRaster() const {
   const GlobalGeodetic profile;
   const LatLonBounds tileBounds = profile.tileBounds(coord);
-  const unsigned int tileSize = profile.tileSize();
+  const i_tile tileSize = profile.tileSize();
   
   const double resolution = tileBounds.getWidth() / tileSize;
   double adfGeoTransform[6] = { tileBounds.getMinX(), resolution, 0, tileBounds.getMaxY(), 0, -resolution };

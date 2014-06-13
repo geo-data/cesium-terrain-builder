@@ -74,7 +74,7 @@ TerrainTile GDALTiler::createTerrainTile(const TileCoordinate &coord) const {
   // TODO: try doing this using a VRT derived band:
   // (http://www.gdal.org/gdal_vrttut.html)
   for (unsigned short int i = 0; i < TILE_SIZE; i++) {
-    terrainTile.mHeights[i] = (short int) ((heights[i] + 1000) * 5);
+    terrainTile.mHeights[i] = (i_terrain_height) ((heights[i] + 1000) * 5);
   }
 
   GDALClose(rasterTile);

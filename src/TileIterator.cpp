@@ -4,7 +4,7 @@
 TileIterator::TileIterator(const GDALTiler &tiler) :
   tiler(tiler)
 {
-  unsigned short int zoom = tiler.maxZoomLevel();
+  i_zoom zoom = tiler.maxZoomLevel();
   bounds = tiler.tileBoundsForZoom(zoom);
   coord = TileCoordinate(zoom, bounds.getLowerLeft()); // the initial tile coordinate
 }
@@ -17,7 +17,7 @@ TileIterator::operator++() {                // prefix ++
   /* The statements in this function are the equivalent of the following
      `for` loops but broken down for use in the iterator:
 
-     - for (short int zoom = maxZoom; zoom >= 0; zoom--) {
+     - for (i_zoom zoom = maxZoom; zoom >= 0; zoom--) {
      -   tiler.lowerLeftTile(zoom, tminx, bounds.getMinY());
      -   tiler.upperRightTile(zoom, bounds.getMaxX(), bounds.getMaxY());
      -

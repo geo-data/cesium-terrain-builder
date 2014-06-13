@@ -7,33 +7,28 @@
 
 #include <cmath>
 
-#include "complex-types.hpp"
 #include "TileCoordinate.hpp"
 #include "Bounds.hpp"
 
-typedef Coordinate<unsigned int> PixelPoint;
-typedef Coordinate<double> LatLon;
-typedef Bounds<double> LatLonBounds;
-
 class GlobalGeodetic {
 public:
-  GlobalGeodetic(unsigned int tileSize = 65):
+  GlobalGeodetic(i_tile tileSize = 65):
     mTileSize(tileSize),
     mInitialResolution(180.0 / tileSize)
   {}
 
-  inline double resolution(unsigned short int zoom) const {
+  inline double resolution(i_zoom zoom) const {
     return mInitialResolution / pow(2, zoom);
   }
 
-  inline unsigned short int zoomForResolution(double resolution) const {
-    return (unsigned short int) ceil(log2(mInitialResolution) - log2(resolution));
+  inline i_zoom zoomForResolution(double resolution) const {
+    return (i_zoom) ceil(log2(mInitialResolution) - log2(resolution));
   }
 
   inline PixelPoint
-  latLonToPixels(const LatLon &latLon, unsigned short int zoom) const {
+  latLonToPixels(const LatLon &latLon, i_zoom zoom) const {
     double res = resolution(zoom);
-    unsigned int px = (180 + latLon.x) / res,
+    i_pixel px = (180 + latLon.x) / res,
       py = (90 + latLon.y) / res;
 
     return PixelPoint(px, py);
@@ -41,14 +36,14 @@ public:
 
   inline TilePoint
   pixelsToTile(const PixelPoint &pixel) const {
-    unsigned int tx = (unsigned int) ceil(pixel.x / mTileSize),
-      ty = (unsigned int) ceil(pixel.y / mTileSize);
+    i_tile tx = (i_tile) ceil(pixel.x / mTileSize),
+      ty = (i_tile) ceil(pixel.y / mTileSize);
 
     return TilePoint(tx, ty);
   }
 
   inline TileCoordinate
-  latLonToTile(const LatLon &latLon, unsigned short int zoom) const {
+  latLonToTile(const LatLon &latLon, i_zoom zoom) const {
     const PixelPoint pixel = latLonToPixels(latLon, zoom);
     TilePoint tile = pixelsToTile(pixel);
 
@@ -66,12 +61,12 @@ public:
     return LatLonBounds(minx, miny, maxx, maxy);
   }
 
-  inline unsigned int tileSize() const {
+  inline i_tile tileSize() const {
     return mTileSize;
   }
   
 private:
-  unsigned int mTileSize;
+  i_tile mTileSize;
   double mInitialResolution;
 };
 

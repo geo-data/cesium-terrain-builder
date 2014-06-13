@@ -1,9 +1,7 @@
 #ifndef TILECOORDINATE_HPP
 #define TILECOORDINATE_HPP
 
-#include "Coordinate.hpp"
-
-typedef Coordinate<unsigned int> TilePoint;
+#include "types.hpp"
 
 class TileCoordinate:
   public TilePoint {
@@ -18,12 +16,12 @@ public:
     zoom(other.zoom)
   {}
 
-  TileCoordinate(unsigned short int zoom, unsigned int x, unsigned int y):
+  TileCoordinate(i_zoom zoom, i_tile x, i_tile y):
     TilePoint(x, y),
     zoom(zoom)
   {}
 
-  TileCoordinate(unsigned short int zoom, const TilePoint &coord):
+  TileCoordinate(i_zoom zoom, const TilePoint &coord):
     TilePoint(coord),
     zoom(zoom)
   {}
@@ -40,7 +38,7 @@ public:
     y = point.y;
   }
 
-  unsigned short int zoom;
+  i_zoom zoom;
 };
 
 #endif /* TILECOORDINATE_HPP */
