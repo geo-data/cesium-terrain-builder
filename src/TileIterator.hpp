@@ -9,7 +9,7 @@
 class GDALTiler;
 
 class TileIterator : 
-public std::iterator<std::input_iterator_tag, TerrainTile *>
+public std::iterator<std::input_iterator_tag, TerrainTile>
 {
   unsigned int tminx, tminy, tmaxx, tmaxy;
   TileCoordinate coord;
