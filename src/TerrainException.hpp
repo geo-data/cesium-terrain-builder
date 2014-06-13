@@ -3,7 +3,11 @@
 
 #include <stdexcept>
 
-class TerrainException:
+namespace terrain {
+  class TerrainException;
+}
+
+class terrain::TerrainException:
   public std::runtime_error
 { 
 public:

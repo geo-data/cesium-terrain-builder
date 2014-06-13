@@ -1,7 +1,9 @@
 #include "TileIterator.hpp"
 #include "GDALTiler.hpp"
 
-TileIterator::TileIterator(const GDALTiler &tiler) :
+using namespace terrain;
+
+terrain::TileIterator::TileIterator(const GDALTiler &tiler) :
   tiler(tiler)
 {
   i_zoom zoom = tiler.maxZoomLevel();
@@ -10,7 +12,7 @@ TileIterator::TileIterator(const GDALTiler &tiler) :
 }
 
 TileIterator &
-TileIterator::operator++() {                // prefix ++
+terrain::TileIterator::operator++() {                // prefix ++
   if (exhausted())
     return *this;             // don't increment
 
@@ -46,24 +48,24 @@ TileIterator::operator++() {                // prefix ++
 }
 
 TileIterator
-TileIterator::operator++(int) {             // postfix ++
+terrain::TileIterator::operator++(int) {             // postfix ++
   TileIterator result(*this); // make a copy for result
   ++(*this);                  // use the prefix version to do the work
   return result;              // return the copy (the old) value.
 }
 
 bool
-TileIterator::operator==(const TileIterator &other) const {
+terrain::TileIterator::operator==(const TileIterator &other) const {
   return coord == other.coord
     && tiler.dataset() == other.tiler.dataset();
 }
 
 TerrainTile
-TileIterator::operator*() const {
+terrain::TileIterator::operator*() const {
   return tiler.createTerrainTile(coord);
 }
 
 bool
-TileIterator::exhausted() const {
+terrain::TileIterator::exhausted() const {
   return coord.zoom == 0 && coord.x > bounds.getMaxX() && coord.y > bounds.getMaxY();
 }

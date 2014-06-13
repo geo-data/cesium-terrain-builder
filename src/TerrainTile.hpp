@@ -14,7 +14,12 @@
 // + water mask)
 #define MAX_TERRAIN_SIZE ( TILE_SIZE * 2 ) + 1 + MASK_SIZE
 
-class Terrain {
+namespace terrain {
+  class Terrain;
+  class TerrainTile;
+}
+
+class terrain::Terrain {
 public:
   Terrain();
   Terrain(const char *fileName);
@@ -46,7 +51,7 @@ public:
   bool isLand() const;
   bool hasWaterMask() const;
 
-  std::vector<i_terrain_height> mHeights;
+  std::vector<terrain::i_terrain_height> mHeights;
 
 private:
   char mChildren;
@@ -61,27 +66,27 @@ private:
   };
 };
 
-class TerrainTile :
+class terrain::TerrainTile :
   public Terrain
 {
 public:
-  TerrainTile(TileCoordinate coord);
-  TerrainTile(const char *fileName, TileCoordinate coord);
-  TerrainTile(const Terrain &terrain, TileCoordinate coord);
+  TerrainTile(terrain::TileCoordinate coord);
+  TerrainTile(const char *fileName, terrain::TileCoordinate coord);
+  TerrainTile(const terrain::Terrain &terrain, terrain::TileCoordinate coord);
 
   GDALDatasetH heightsToRaster() const;
   
-  TileCoordinate & getCoordinate() {
+  terrain::TileCoordinate & getCoordinate() {
     return coord;
   }
 
-  const TileCoordinate & getCoordinate() const {
-    return const_cast<const TileCoordinate &>(coord);
+  const terrain::TileCoordinate & getCoordinate() const {
+    return const_cast<const terrain::TileCoordinate &>(coord);
   }
 
 
 private:
-  TileCoordinate coord;
+  terrain::TileCoordinate coord;
 };
 
 #endif /* TERRAINTILE_HPP */

@@ -3,42 +3,46 @@
 
 #include "types.hpp"
 
-class TileCoordinate:
-  public TilePoint {
+namespace terrain {
+  class TileCoordinate;
+}
+
+class terrain::TileCoordinate:
+  public terrain::TilePoint {
 public:
   TileCoordinate():
     TilePoint(0, 0),
     zoom(0)
   {}
 
-  TileCoordinate(const TileCoordinate &other):
+  TileCoordinate(const terrain::TileCoordinate &other):
     TilePoint(other.x, other.y),
     zoom(other.zoom)
   {}
 
-  TileCoordinate(i_zoom zoom, i_tile x, i_tile y):
+  TileCoordinate(terrain::i_zoom zoom, terrain::i_tile x, terrain::i_tile y):
     TilePoint(x, y),
     zoom(zoom)
   {}
 
-  TileCoordinate(i_zoom zoom, const TilePoint &coord):
+  TileCoordinate(terrain::i_zoom zoom, const terrain::TilePoint &coord):
     TilePoint(coord),
     zoom(zoom)
   {}
 
   bool
-  operator==(const TileCoordinate &other) const {
-    return dynamic_cast<const TilePoint &>(*this) == dynamic_cast<const TilePoint &>(other)
+  operator==(const terrain::TileCoordinate &other) const {
+    return dynamic_cast<const terrain::TilePoint &>(*this) == dynamic_cast<const terrain::TilePoint &>(other)
       && zoom == other.zoom;
   }
 
   void
-  setPoint(const TilePoint &point) {
+  setPoint(const terrain::TilePoint &point) {
     x = point.x;
     y = point.y;
   }
 
-  i_zoom zoom;
+  terrain::i_zoom zoom;
 };
 
 #endif /* TILECOORDINATE_HPP */

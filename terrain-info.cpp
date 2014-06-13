@@ -7,6 +7,7 @@
 #include "src/TerrainTile.hpp"
 
 using namespace std;
+using namespace terrain;
 
 class TerrainInfo : public Command {
 public:

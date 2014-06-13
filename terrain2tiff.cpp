@@ -11,6 +11,7 @@
 #include "src/GlobalGeodetic.hpp"
 
 using namespace std;
+using namespace terrain;
 
 class Terrain2Tiff : public Command {
 public:

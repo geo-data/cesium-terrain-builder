@@ -6,33 +6,36 @@
 #include "TileCoordinate.hpp"
 #include "TerrainTile.hpp"
 
-class GDALTiler;
+namespace terrain {
+  class TileIterator;
+  class GDALTiler;
+}
 
-class TileIterator : 
+class terrain::TileIterator :
 public std::iterator<std::input_iterator_tag, TerrainTile>
 {
-  TileBounds bounds;
-  TileCoordinate coord;
-  const GDALTiler &tiler;
+  terrain::TileBounds bounds;
+  terrain::TileCoordinate coord;
+  const terrain::GDALTiler &tiler;
 
 public:
-  TileIterator(const GDALTiler &tiler);
+  TileIterator(const terrain::GDALTiler &tiler);
 
-  TileIterator &
+  terrain::TileIterator &
   operator++();
 
-  TileIterator
+  terrain::TileIterator
   operator++(int);
 
   bool
-  operator==(const TileIterator &b) const;
+  operator==(const terrain::TileIterator &b) const;
 
   bool
-  operator!=(const TileIterator &b) const {
+  operator!=(const terrain::TileIterator &b) const {
     return !operator==(b);
   }
 
-  TerrainTile
+  terrain::TerrainTile
   operator*() const;
 
   bool

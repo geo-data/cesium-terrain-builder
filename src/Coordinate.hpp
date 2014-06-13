@@ -1,8 +1,12 @@
 #ifndef COORDINATE_HPP
 #define COORDINATE_HPP
 
+namespace terrain {
+  template <class T> class Coordinate;
+}
+
 template <class T>
-class Coordinate {
+class terrain::Coordinate {
 public:
   Coordinate():
     x(0),

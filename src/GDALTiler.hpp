@@ -12,7 +12,13 @@
 #include "TerrainTile.hpp"
 #include "Bounds.hpp"
 
-class GDALTiler {
+namespace terrain {
+  class GDALTiler;
+}
+
+using namespace terrain;
+
+class terrain::GDALTiler {
 public:
   GDALTiler(): poDataset(NULL) {}
   GDALTiler(GDALDataset *poDataset);

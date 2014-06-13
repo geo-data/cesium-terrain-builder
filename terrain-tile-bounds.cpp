@@ -8,6 +8,7 @@
 #include "src/GDALTiler.hpp"
 
 using namespace std;
+using namespace terrain;
 
 #ifdef _WIN32
 static const char *osDirSep = "\\";

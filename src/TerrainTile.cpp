@@ -8,6 +8,8 @@
 #include "GlobalGeodetic.hpp"
 #include "Bounds.hpp"
 
+using namespace terrain;
+
 Terrain::Terrain():
   mHeights(TILE_SIZE),
   mChildren(0)

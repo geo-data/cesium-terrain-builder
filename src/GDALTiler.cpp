@@ -1,7 +1,9 @@
 #include "TerrainException.hpp"
 #include "GDALTiler.hpp"
 
-GDALTiler::GDALTiler(GDALDataset *poDataset):
+using namespace terrain;
+
+terrain::GDALTiler::GDALTiler(GDALDataset *poDataset):
   poDataset(poDataset)
 {
   if (poDataset != NULL) {
@@ -21,7 +23,7 @@ GDALTiler::GDALTiler(GDALDataset *poDataset):
   }
 }
 
-GDALTiler::GDALTiler(const GDALTiler &other):
+terrain::GDALTiler::GDALTiler(const GDALTiler &other):
   mProfile(other.mProfile),
   poDataset(other.poDataset),
   mBounds(other.mBounds),
@@ -32,7 +34,7 @@ GDALTiler::GDALTiler(const GDALTiler &other):
   }
 }
 
-GDALTiler::GDALTiler(GDALTiler &other):
+terrain::GDALTiler::GDALTiler(GDALTiler &other):
   mProfile(other.mProfile),
   poDataset(other.poDataset),
   mBounds(other.mBounds),
@@ -43,7 +45,8 @@ GDALTiler::GDALTiler(GDALTiler &other):
   }
 }
 
-GDALTiler & GDALTiler::operator=(const GDALTiler &other) {
+GDALTiler &
+terrain::GDALTiler::operator=(const GDALTiler &other) {
   mProfile = other.mProfile;
   closeDataset();
   poDataset = other.poDataset;
@@ -53,11 +56,12 @@ GDALTiler & GDALTiler::operator=(const GDALTiler &other) {
   return *this;
 }
 
-GDALTiler::~GDALTiler() {
+terrain::GDALTiler::~GDALTiler() {
   closeDataset();
 }
 
-TerrainTile GDALTiler::createTerrainTile(const TileCoordinate &coord) const {
+TerrainTile
+terrain::GDALTiler::createTerrainTile(const TileCoordinate &coord) const {
   TerrainTile terrainTile(coord);
   GDALDataset *rasterTile = (GDALDataset *) createRasterTile(coord);
   GDALRasterBand *heightsBand = rasterTile->GetRasterBand(1);
@@ -103,7 +107,8 @@ TerrainTile GDALTiler::createTerrainTile(const TileCoordinate &coord) const {
   return terrainTile;
 }
 
-GDALDatasetH GDALTiler::createRasterTile(const TileCoordinate &coord) const {
+GDALDatasetH
+terrain::GDALTiler::createRasterTile(const TileCoordinate &coord) const {
   if (poDataset == NULL) {
     throw TerrainException("No GDAL dataset is set");
   }
@@ -199,7 +204,8 @@ GDALDatasetH GDALTiler::createRasterTile(const TileCoordinate &coord) const {
   return hDstDS;
 }
 
-void GDALTiler::closeDataset() {
+void
+terrain::GDALTiler::closeDataset() {
   if (poDataset != NULL) {
     poDataset->Dereference();
 
