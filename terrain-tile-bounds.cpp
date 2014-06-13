@@ -51,7 +51,7 @@ public:
   const char *outputDir;
 };
 
-static void printCoord(ofstream& stream, const Coordinate &coord) {
+static void printCoord(ofstream& stream, const LatLon &coord) {
   stream << "[" << coord.x << ", " << coord.y << "]";
 }
 

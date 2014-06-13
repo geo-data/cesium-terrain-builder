@@ -3,8 +3,10 @@
 
 #include "Coordinate.hpp"
 
+typedef Coordinate<unsigned int> TilePoint;
+
 class TileCoordinate:
-  public Coordinate {
+  public TilePoint {
 public:
   TileCoordinate():
     Coordinate(0, 0),
@@ -21,14 +23,14 @@ public:
     zoom(zoom)
   {}
 
-  TileCoordinate(unsigned short int zoom, const Coordinate &coord):
+  TileCoordinate(unsigned short int zoom, const TilePoint &coord):
     Coordinate(coord),
     zoom(zoom)
   {}
 
   bool
   operator==(const TileCoordinate &other) const {
-    return dynamic_cast<const Coordinate &>(*this) == dynamic_cast<const Coordinate &>(other)
+    return dynamic_cast<const TilePoint &>(*this) == dynamic_cast<const TilePoint &>(other)
       && zoom == other.zoom;
   }
 

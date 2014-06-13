@@ -1,7 +1,8 @@
 #ifndef BOUNDS_HPP
 #define BOUNDS_HPP
 
-#include "Coordinate.hpp"
+#include "geo-types.hpp"
+
 
 class Bounds {
 public:
@@ -46,21 +47,21 @@ public:
     bounds[3] = newValue;
   }
 
-  inline Coordinate
+  inline LatLon
   getLowerLeft() const {
-    return Coordinate(getMinX(), getMinY());
+    return LatLon(getMinX(), getMinY());
   }
-  inline Coordinate
+  inline LatLon
   getLowerRight() const {
-    return Coordinate(getMaxX(), getMinY());
+    return LatLon(getMaxX(), getMinY());
   }
-  inline Coordinate
+  inline LatLon
   getUpperRight() const {
-    return Coordinate(getMaxX(), getMaxY());
+    return LatLon(getMaxX(), getMaxY());
   }
-  inline Coordinate
+  inline LatLon
   getUpperLeft() const {
-    return Coordinate(getMinX(), getMaxY());
+    return LatLon(getMinX(), getMaxY());
   }
 
   inline double getWidth() const {

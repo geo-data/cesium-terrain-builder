@@ -7,15 +7,18 @@
 
 #include <cmath>
 
+#include "geo-types.hpp"
 #include "TileCoordinate.hpp"
 #include "Bounds.hpp"
+
+typedef Coordinate<unsigned int> PixelPoint;
 
 class GlobalGeodetic {
 public:
   GlobalGeodetic(unsigned int tileSize = 65):
     mTileSize(tileSize),
     mInitialResolution(180.0 / tileSize)
-  { }
+  {}
 
   inline double resolution(unsigned short int zoom) const {
     return mInitialResolution / pow(2, zoom);
@@ -25,27 +28,27 @@ public:
     return (unsigned short int) ceil(log2(mInitialResolution) - log2(resolution));
   }
 
-  inline Coordinate
-  latLonToPixels(double lat, double lon, unsigned short int zoom) const {
+  inline PixelPoint
+  latLonToPixels(const LatLon &latLon, unsigned short int zoom) const {
     double res = resolution(zoom);
-    unsigned int px = (180 + lat) / res,
-      py = (90 + lon) / res;
+    unsigned int px = (180 + latLon.x) / res,
+      py = (90 + latLon.y) / res;
 
-    return Coordinate(px, py);
+    return PixelPoint(px, py);
   }
 
-  inline Coordinate
-  pixelsToTile(Coordinate &pixel) const {
+  inline TilePoint
+  pixelsToTile(const PixelPoint &pixel) const {
     unsigned int tx = (unsigned int) ceil(pixel.x / mTileSize),
       ty = (unsigned int) ceil(pixel.y / mTileSize);
 
-    return Coordinate(tx, ty);
+    return TilePoint(tx, ty);
   }
 
   inline TileCoordinate
-  latLonToTile(double lat, double lon, unsigned short int zoom) const {
-    Coordinate pixel = latLonToPixels(lat, lon, zoom);
-    Coordinate tile = pixelsToTile(pixel);
+  latLonToTile(const LatLon &latLon, unsigned short int zoom) const {
+    const PixelPoint pixel = latLonToPixels(latLon, zoom);
+    TilePoint tile = pixelsToTile(pixel);
 
     return TileCoordinate(zoom, tile);
   }

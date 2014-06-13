@@ -31,12 +31,12 @@ public:
 
   inline TileCoordinate
   lowerLeftTile(unsigned short int zoom) const {
-    return mProfile.latLonToTile(mBounds.getMinX(), mBounds.getMinY(), zoom);
+    return mProfile.latLonToTile(mBounds.getLowerLeft(), zoom);
   }
 
   inline TileCoordinate
   upperRightTile(unsigned short int zoom) const {
-    return mProfile.latLonToTile(mBounds.getMaxX(), mBounds.getMaxY(), zoom);
+    return mProfile.latLonToTile(mBounds.getUpperRight(), zoom);
   }
 
   inline double resolution() const {

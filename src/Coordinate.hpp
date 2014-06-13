@@ -1,6 +1,7 @@
 #ifndef COORDINATE_HPP
 #define COORDINATE_HPP
 
+template <class T>
 class Coordinate {
 public:
   Coordinate():
@@ -13,7 +14,7 @@ public:
     y(other.y)
   {}
 
-  Coordinate(unsigned int x, unsigned int y):
+  Coordinate(T x, T y):
     x(x),
     y(y)
   {}
@@ -24,8 +25,7 @@ public:
       && y == other.y;
   }
 
-  unsigned int x;
-  unsigned int y;
+  T x, y;
 };
 
 #endif /* COORDINATE_HPP */
