@@ -73,11 +73,7 @@ void gdal2terrain(const GDALTiler &tiler, const char *outputDir) {
 
     cout << "creating " << filename << endl;
 
-    try {
-      terrainTile.writeFile(filename.c_str());
-    } catch (TerrainException &e) {
-      cerr << "Error: " << e.what() << endl;
-    }
+    terrainTile.writeFile(filename.c_str());
   }
 }
 
@@ -97,9 +93,15 @@ int main(int argc, char *argv[]) {
     cerr << "Error: could not open GDAL dataset" << endl;
     return 1;
   }
-  const GDALTiler tiler(poDataset);
 
-  gdal2terrain(tiler, command.outputDir);
+  try {
+    const GDALTiler tiler(poDataset);
+
+    gdal2terrain(tiler, command.outputDir);
+
+  } catch (TerrainException &e) {
+    cerr << "Error: " << e.what() << endl;
+  }
 
   GDALClose(poDataset);
 

@@ -90,6 +90,7 @@ protected:
 private:
   terrain::GlobalGeodetic mProfile;
   GDALDataset *poDataset;
+  OGRSpatialReference mSRS;
   terrain::LatLonBounds mBounds;
   double mResolution;
 };

@@ -8,8 +8,6 @@ terrain::GDALTiler::GDALTiler(GDALDataset *poDataset):
   poDataset(poDataset)
 {
   if (poDataset != NULL) {
-    poDataset->Reference();     // increase the refcount of the dataset
-
     // Get the bounds of the dataset
     double adfGeoTransform[6];
 
@@ -20,13 +18,29 @@ terrain::GDALTiler::GDALTiler(GDALDataset *poDataset):
                              adfGeoTransform[3]);
 
       mResolution = std::abs(adfGeoTransform[1]);
+    } else {
+      throw TerrainException("Could not get transformation information from dataset");
     }
+
+    mSRS = OGRSpatialReference(poDataset->GetProjectionRef());
+
+    OGRSpatialReference oSRS;
+    if (oSRS.importFromEPSG(4326) != OGRERR_NONE) {
+      throw TerrainException("Could not create EPSG:4326 spatial reference");
+    }
+
+    if (!mSRS.IsSame(&oSRS)) {
+      throw TerrainException("The dataset is not in the EPSG:4326 spatial reference system");
+    }
+
+    poDataset->Reference();     // increase the refcount of the dataset
   }
 }
 
 terrain::GDALTiler::GDALTiler(const GDALTiler &other):
   mProfile(other.mProfile),
   poDataset(other.poDataset),
+  mSRS(other.mSRS),
   mBounds(other.mBounds),
   mResolution(other.mResolution)
 {
@@ -38,6 +52,7 @@ terrain::GDALTiler::GDALTiler(const GDALTiler &other):
 terrain::GDALTiler::GDALTiler(GDALTiler &other):
   mProfile(other.mProfile),
   poDataset(other.poDataset),
+  mSRS(other.mSRS),
   mBounds(other.mBounds),
   mResolution(other.mResolution)
 {
@@ -48,9 +63,16 @@ terrain::GDALTiler::GDALTiler(GDALTiler &other):
 
 GDALTiler &
 terrain::GDALTiler::operator=(const GDALTiler &other) {
-  mProfile = other.mProfile;
   closeDataset();
+
+  mProfile = other.mProfile;
   poDataset = other.poDataset;
+
+  if (poDataset != NULL) {
+    poDataset->Reference();
+  }
+
+  mSRS = other.mSRS;
   mBounds = other.mBounds;
   mResolution = other.mResolution;
 
