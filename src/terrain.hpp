@@ -2,6 +2,7 @@
  * terrain.hpp - definitions for working with libterrain
  */
 
+#include "terrain/config.hpp"
 #include "terrain/types.hpp"
 #include "terrain/TerrainException.hpp"
 #include "terrain/GlobalGeodetic.hpp"

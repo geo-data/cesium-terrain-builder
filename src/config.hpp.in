@@ -1,0 +1,16 @@
+/**
+ * config.hpp - build configured options and settings
+ */
+
+namespace terrain {
+  // We use semantic versioning (http://semver.org)
+  const struct semver {
+    const unsigned short int major;
+    const unsigned short int minor;
+    const unsigned short int patch;
+  } version = {
+    @TERRAIN_VERSION_MAJOR@,
+    @TERRAIN_VERSION_MINOR@,
+    @TERRAIN_VERSION_PATCH@
+  };
+}

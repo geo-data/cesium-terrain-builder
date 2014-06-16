@@ -24,6 +24,17 @@ add_library(terrain SHARED GDALTiler.cpp TerrainTile.cpp TileIterator.cpp)
 target_link_libraries(terrain ${GDAL_LIBRARIES} ${ZLIB_LIBRARIES})
 
 # Install libterrain
-file(GLOB HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/*.hpp")
-install(FILES ${HEADERS} DESTINATION include)
+set(HEADERS
+    Bounds.hpp
+    Coordinate.hpp
+    GDALTiler.hpp
+    GlobalGeodetic.hpp
+    TerrainException.hpp
+    TerrainTile.hpp
+    TileCoordinate.hpp
+    TileIterator.hpp
+    types.hpp)
+install(FILES ${HEADERS} DESTINATION include/terrain)
+install(FILES terrain.hpp DESTINATION include)
+
 install(TARGETS terrain DESTINATION lib)
