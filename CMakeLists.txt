@@ -9,7 +9,7 @@ set(TERRAIN_VERSION_PATCH 0)
 # Configure a header file to pass some of the CMake settings to the source code
 configure_file(
     "${PROJECT_SOURCE_DIR}/src/config.hpp.in"
-    "${PROJECT_BINARY_DIR}/src/config.hpp"
+    "${PROJECT_BINARY_DIR}/config.hpp"
 )
 
 # Add the binary tree to the search path for include files so that we will find
@@ -17,7 +17,7 @@ configure_file(
 include_directories("${PROJECT_BINARY_DIR}")
 
 # Ensure the configuration is installed
-install(FILES ${PROJECT_BINARY_DIR}/src/config.hpp DESTINATION include/terrain)
+install(FILES ${PROJECT_BINARY_DIR}/config.hpp DESTINATION include/terrain)
 
 # Perform as many checks as possible on debug builds:
 #    cmake -DCMAKE_BUILD_TYPE=Debug ..

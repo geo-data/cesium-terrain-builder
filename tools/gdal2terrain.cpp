@@ -4,6 +4,7 @@
 #include "gdal_priv.h"
 #include "commander.hpp"
 
+#include "config.hpp"
 #include "TerrainException.hpp"
 #include "GDALTiler.hpp"
 #include "TileIterator.hpp"
@@ -81,7 +82,7 @@ void gdal2terrain(const GDALTiler &tiler, const char *outputDir) {
 }
 
 int main(int argc, char *argv[]) {
-  GDAL2Terrain command = GDAL2Terrain(argv[0], "0.0.1");
+  GDAL2Terrain command = GDAL2Terrain(argv[0], version.c_str());
   command.setUsage("[options] GDAL_DATASOURCE");
   command.option("-o", "--output-dir <dir>", "specify the output directory for the tiles (defaults to working directory)", GDAL2Terrain::setOutputDir);
 

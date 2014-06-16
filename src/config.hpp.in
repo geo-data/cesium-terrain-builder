@@ -16,11 +16,18 @@ namespace terrain {
     const unsigned short int minor;
     const unsigned short int patch;
 
-    std::string str() const {
+    std::string
+    str() const {
       return static_cast<std::ostringstream*>
         (
          &(std::ostringstream() << major << "." << minor << "." << patch)
          )->str();
+    }
+
+    const char *
+    c_str() const {
+      const std::string string = str();
+      return string.c_str();
     }
 
   } version = {

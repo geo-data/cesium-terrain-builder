@@ -5,6 +5,7 @@
 #include "gdal_priv.h"
 #include "commander.hpp"
 
+#include "config.hpp"
 #include "GDALTiler.hpp"
 
 using namespace std;
@@ -101,7 +102,7 @@ static void writeBounds(GDALTiler &tiler, const char *outputDir) {
 }
 
 int main(int argc, char *argv[]) {
-  TerrainTileBounds command = TerrainTileBounds(argv[0], "0.0.1");
+  TerrainTileBounds command = TerrainTileBounds(argv[0], version.c_str());
   command.setUsage("GDAL_DATASET");
   command.option("-o", "--output-dir <dir>", "specify the output directory for the geojson files (defaults to working directory)", TerrainTileBounds::setOutputDir);
 

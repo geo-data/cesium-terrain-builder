@@ -3,6 +3,7 @@
 #include "gdal_priv.h"
 #include "commander.hpp"
 
+#include "config.hpp"
 #include "TerrainException.hpp"
 #include "TerrainTile.hpp"
 
@@ -61,7 +62,7 @@ public:
 
 int main(int argc, char *argv[]) {
   Terrain terrain;
-  TerrainInfo command = TerrainInfo(argv[0], "0.0.1");
+  TerrainInfo command = TerrainInfo(argv[0], version.c_str());
   command.setUsage("[options] TERRAIN_FILE");
   command.option("-e", "--show-heights", "show the height information as an ASCII raster", TerrainInfo::showHeights);
   command.option("-c", "--no-child", "hide information about child tiles", TerrainInfo::hideChildInfo);

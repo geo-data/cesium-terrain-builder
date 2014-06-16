@@ -6,6 +6,7 @@
 #include "gdal_priv.h"
 #include "commander.hpp"
 
+#include "config.hpp"
 #include "TerrainException.hpp"
 #include "TerrainTile.hpp"
 #include "GlobalGeodetic.hpp"
@@ -118,7 +119,7 @@ void terrain2tiff(TerrainTile &terrain, const char *filename) {
 }
 
 int main(int argc, char *argv[]) {
-  Terrain2Tiff command = Terrain2Tiff(argv[0], "0.0.1");
+  Terrain2Tiff command = Terrain2Tiff(argv[0], version.c_str());
 
   command.setUsage("-i TERRAIN_FILE -z ZOOM_LEVEL -x TILE_X -y TILE_Y -o OUTPUT_FILE ");
   command.option("-i", "--input-filename <filename>", "the terrain tile file to convert", Terrain2Tiff::setInputFilename);
