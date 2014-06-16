@@ -93,34 +93,39 @@ int main(int argc, char *argv[]) {
 
   if (command.mShowChildren) {
     if (terrain.hasChildren()) {
+      cout << "Child tiles:";
       if (terrain.hasChildSW()) {
-        cout << "Has a SW child" << endl;
+        cout << " SW";
       }
       if (terrain.hasChildSE()) {
-        cout << "Has a SE child" << endl;
+        cout << " SE";
       }
       if (terrain.hasChildNW()) {
-        cout << "Has a NW child" << endl;
+        cout << " NW";
       }
       if (terrain.hasChildNE()) {
-        cout << "Has a NE child" << endl;
+        cout << " NE";
       }
     } else {
-      cout << "Doesn't have children" << endl;
+      cout << " None";
     }
+    cout << endl;
   }
 
   if (command.mShowType) {
+    cout << "Tile type: ";
     if (terrain.hasWaterMask()) {
-      cout << "The tile has a water mask" << endl;
+      cout << "water mask";
     } else if (terrain.isLand()) {
-      cout << "The tile is land" << endl;
+      cout << "all land";
     } else if (terrain.isWater()) {
-      cout << "The tile is water" << endl;
+      cout << "all water";
     } else {
       // should not get here!!
+      cout << "unknown";
       cerr << "Unknown tile type!!" << endl;
     }
+    cout << endl;
   }
 
   return 0;
