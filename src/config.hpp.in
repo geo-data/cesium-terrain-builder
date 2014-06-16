@@ -1,16 +1,34 @@
+#ifndef TERRAINCONFIG_HPP
+#define TERRAINCONFIG_HPP
+
+#include <string>
+#include <sstream>
+
 /**
  * config.hpp - build configured options and settings
  */
 
 namespace terrain {
+
   // We use semantic versioning (http://semver.org)
   const struct semver {
     const unsigned short int major;
     const unsigned short int minor;
     const unsigned short int patch;
+
+    std::string str() const {
+      return static_cast<std::ostringstream*>
+        (
+         &(std::ostringstream() << major << "." << minor << "." << patch)
+         )->str();
+    }
+
   } version = {
     @TERRAIN_VERSION_MAJOR@,
     @TERRAIN_VERSION_MINOR@,
     @TERRAIN_VERSION_PATCH@
   };
+
 }
+
+#endif /* TERRAINCONFIG_HPP */
