@@ -81,10 +81,11 @@ int main(int argc, char *argv[]) {
   }
 
   if (command.mShowHeights) {
+    const std::vector<terrain::i_terrain_height> & heights = terrain.getHeights();
     cout << "Heights:";
     for (short int i = 0; i < TILE_SIZE; i++) {
       if (i % 65 == 0) cout << endl;
-      cout << terrain.mHeights[i] << " ";
+      cout << heights[i] << " ";
     }
     cout << endl;
   }

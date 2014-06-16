@@ -51,7 +51,14 @@ public:
   bool isLand() const;
   bool hasWaterMask() const;
 
-  std::vector<terrain::i_terrain_height> mHeights;
+  const std::vector<terrain::i_terrain_height> &
+  getHeights() const;
+
+  std::vector<terrain::i_terrain_height> &
+  getHeights();
+
+protected:
+  std::vector<terrain::i_terrain_height> mHeights; // replace with `std::array` in C++11
 
 private:
   char mChildren;

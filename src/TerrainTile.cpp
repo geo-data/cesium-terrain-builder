@@ -225,6 +225,16 @@ bool Terrain::hasWaterMask() const {
   return mMaskLength == MASK_SIZE;
 }
 
+const std::vector<i_terrain_height> &
+Terrain::getHeights() const {
+  return mHeights;
+}
+
+std::vector<i_terrain_height> &
+Terrain::getHeights() {
+  return mHeights;
+}
+
 TerrainTile::TerrainTile(TileCoordinate coord):
   coord(coord) 
 {}
