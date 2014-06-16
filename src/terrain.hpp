@@ -1,3 +1,6 @@
+#ifndef TERRAIN_HPP
+#define TERRAIN_HPP
+
 /**
  * terrain.hpp - definitions for working with libterrain
  */
@@ -10,3 +13,5 @@
 #include "terrain/TerrainTile.hpp"
 #include "terrain/TileIterator.hpp"
 #include "terrain/GDALTiler.hpp"
+
+#endif /* TERRAIN_HPP */
