@@ -16,8 +16,6 @@ namespace terrain {
   class GDALTiler;
 }
 
-using namespace terrain;
-
 class terrain::GDALTiler {
 public:
   GDALTiler(): poDataset(NULL) {}
@@ -28,26 +26,29 @@ public:
 
   ~GDALTiler();
 
-  GDALDatasetH createRasterTile(const TileCoordinate &coord) const;
-  TerrainTile createTerrainTile(const TileCoordinate &coord) const;
+  GDALDatasetH
+  createRasterTile(const terrain::TileCoordinate &coord) const;
+
+  terrain::TerrainTile
+  createTerrainTile(const terrain::TileCoordinate &coord) const;
 
   inline i_zoom maxZoomLevel() const {
     return mProfile.zoomForResolution(resolution());
   }
 
-  inline TileCoordinate
+  inline terrain::TileCoordinate
   lowerLeftTile(i_zoom zoom) const {
     return mProfile.latLonToTile(mBounds.getLowerLeft(), zoom);
   }
 
-  inline TileCoordinate
+  inline terrain::TileCoordinate
   upperRightTile(i_zoom zoom) const {
     return mProfile.latLonToTile(mBounds.getUpperRight(), zoom);
   }
 
-  inline TileBounds
+  inline terrain::TileBounds
   tileBoundsForZoom(i_zoom zoom) const {
-    TileCoordinate ll = mProfile.latLonToTile(mBounds.getLowerLeft(), zoom),
+    terrain::TileCoordinate ll = mProfile.latLonToTile(mBounds.getLowerLeft(), zoom),
       ur = mProfile.latLonToTile(mBounds.getUpperRight(), zoom);
 
     return TileBounds(ll, ur);
@@ -61,22 +62,24 @@ public:
     return poDataset;
   }
 
-  inline const GlobalGeodetic & profile() const {
+  inline const terrain::GlobalGeodetic &
+  profile() const {
     return mProfile;
   }
 
-  inline const LatLonBounds & bounds() const {
-    return const_cast<const LatLonBounds &>(mBounds);
+  inline const terrain::LatLonBounds &
+  bounds() const {
+    return const_cast<const terrain::LatLonBounds &>(mBounds);
   }
 
 protected:
   void closeDataset();
 
-  inline LatLonBounds
-  terrainTileBounds(const TileCoordinate &coord,
+  inline terrain::LatLonBounds
+  terrainTileBounds(const terrain::TileCoordinate &coord,
                     double& resolution) const {
     i_tile lTileSize = mProfile.tileSize() - 1;
-    LatLonBounds tile = mProfile.tileBounds(coord);
+    terrain::LatLonBounds tile = mProfile.tileBounds(coord);
     resolution = (tile.getMaxX() - tile.getMinX()) / lTileSize;
     tile.setMinX(tile.getMinX() - resolution);
     tile.setMaxY(tile.getMaxY() + resolution);
@@ -85,9 +88,9 @@ protected:
   }
 
 private:
-  GlobalGeodetic mProfile;
+  terrain::GlobalGeodetic mProfile;
   GDALDataset *poDataset;
-  LatLonBounds mBounds;
+  terrain::LatLonBounds mBounds;
   double mResolution;
 };
 

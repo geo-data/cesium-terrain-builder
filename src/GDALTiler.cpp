@@ -1,3 +1,4 @@
+#include "config.hpp"
 #include "TerrainException.hpp"
 #include "GDALTiler.hpp"
 
@@ -66,10 +67,10 @@ terrain::GDALTiler::createTerrainTile(const TileCoordinate &coord) const {
   GDALDataset *rasterTile = (GDALDataset *) createRasterTile(coord);
   GDALRasterBand *heightsBand = rasterTile->GetRasterBand(1);
 
-  float rasterHeights[TILE_SIZE];
+  float rasterHeights[TerrainTile::TILE_CELL_SIZE];
 
-  if (heightsBand->RasterIO(GF_Read, 0, 0, 65, 65,
-                            (void *) rasterHeights, 65, 65, GDT_Float32,
+  if (heightsBand->RasterIO(GF_Read, 0, 0, TILE_SIZE, TILE_SIZE,
+                            (void *) rasterHeights, TILE_SIZE, TILE_SIZE, GDT_Float32,
                             0, 0) != CE_None) {
     GDALClose(rasterTile);
     throw TerrainException("Could not read heights from raster");
@@ -77,9 +78,8 @@ terrain::GDALTiler::createTerrainTile(const TileCoordinate &coord) const {
 
   // TODO: try doing this using a VRT derived band:
   // (http://www.gdal.org/gdal_vrttut.html)
-  std::vector<i_terrain_height> &terrainHeights = terrainTile.getHeights();
-  for (unsigned short int i = 0; i < TILE_SIZE; i++) {
-    terrainHeights[i] = (i_terrain_height) ((rasterHeights[i] + 1000) * 5);
+  for (unsigned short int i = 0; i < TerrainTile::TILE_CELL_SIZE; i++) {
+    terrainTile.mHeights[i] = (i_terrain_height) ((rasterHeights[i] + 1000) * 5);
   }
 
   GDALClose(rasterTile);

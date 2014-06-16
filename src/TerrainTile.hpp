@@ -5,18 +5,13 @@
 
 #include "gdal_priv.h"
 
+#include "config.hpp"
 #include "TileCoordinate.hpp"
-
-#define TILE_SIZE 65 * 65
-#define MASK_SIZE 256 * 256
-
-// The maximum byte size of an uncompressed terrain tile (heights + child flags
-// + water mask)
-#define MAX_TERRAIN_SIZE ( TILE_SIZE * 2 ) + 1 + MASK_SIZE
 
 namespace terrain {
   class Terrain;
   class TerrainTile;
+  class GDALTiler;
 }
 
 class terrain::Terrain {
@@ -60,9 +55,16 @@ public:
 protected:
   std::vector<terrain::i_terrain_height> mHeights; // replace with `std::array` in C++11
 
+  static const unsigned short int TILE_CELL_SIZE = TILE_SIZE * TILE_SIZE;
+  static const unsigned int MASK_CELL_SIZE = MASK_SIZE * MASK_SIZE;
+
+  // The maximum byte size of an uncompressed terrain tile (heights + child
+  // flags + water mask)
+  static const unsigned int MAX_TERRAIN_SIZE = (TILE_CELL_SIZE * 2) + 1 + MASK_CELL_SIZE;
 private:
+
   char mChildren;
-  char mMask[MASK_SIZE];
+  char mMask[MASK_CELL_SIZE];
   size_t mMaskLength;
 
   enum Children {
@@ -76,6 +78,8 @@ private:
 class terrain::TerrainTile :
   public Terrain
 {
+  friend class terrain::GDALTiler;
+
 public:
   TerrainTile(terrain::TileCoordinate coord);
   TerrainTile(const char *fileName, terrain::TileCoordinate coord);

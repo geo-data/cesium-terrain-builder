@@ -1,10 +1,17 @@
 cmake_minimum_required(VERSION 2.6)
 project("Cesium Terrain Builder")
 
-# The version number.
+# The version number
 set(TERRAIN_VERSION_MAJOR 0)
 set(TERRAIN_VERSION_MINOR 1)
 set(TERRAIN_VERSION_PATCH 0)
+
+# The tile size (width and height). According to the spec this should always be
+# 65
+set(TERRAIN_TILE_SIZE 65)
+# The tile water mask size (width and height). According to the spec this
+# should always be 256
+set(TERRAIN_MASK_SIZE 256)
 
 # Configure a header file to pass some of the CMake settings to the source code
 configure_file(

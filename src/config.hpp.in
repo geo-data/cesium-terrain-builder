@@ -36,6 +36,8 @@ namespace terrain {
     @TERRAIN_VERSION_PATCH@
   };
 
+  const unsigned short int TILE_SIZE = @TERRAIN_TILE_SIZE@;
+  const unsigned short int MASK_SIZE = @TERRAIN_MASK_SIZE@;
 }
 
 #endif /* TERRAINCONFIG_HPP */

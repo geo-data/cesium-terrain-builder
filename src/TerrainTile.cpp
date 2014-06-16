@@ -11,31 +11,31 @@
 using namespace terrain;
 
 Terrain::Terrain():
-  mHeights(TILE_SIZE),
+  mHeights(TILE_CELL_SIZE),
   mChildren(0)
 {
   setIsLand();
 }
 
 Terrain::Terrain(const char *fileName):
-  mHeights(TILE_SIZE)
+  mHeights(TILE_CELL_SIZE)
 {
   readFile(fileName);
 }
 
 Terrain::Terrain(FILE *fp):
-  mHeights(TILE_SIZE)
+  mHeights(TILE_CELL_SIZE)
 {
   unsigned char bytes[2];
   int count = 0;
 
-  while ( count < TILE_SIZE && fread(bytes, 2, 1, fp) != 0) {
+  while ( count < TILE_CELL_SIZE && fread(bytes, 2, 1, fp) != 0) {
     /* adapted from
        <http://stackoverflow.com/questions/13001183/how-to-read-little-endian-integers-from-file-in-c> */
     mHeights[count++] = bytes[0] | (bytes[1]<<8);
   }
 
-  if (count+1 != TILE_SIZE) {
+  if (count+1 != TILE_CELL_SIZE) {
     throw TerrainException("Not enough height data");
   }
   
@@ -43,9 +43,9 @@ Terrain::Terrain(FILE *fp):
     throw TerrainException("Could not read child tile byte");
   }
 
-  mMaskLength = fread(mMask, 1, MASK_SIZE, fp);
+  mMaskLength = fread(mMask, 1, MASK_CELL_SIZE, fp);
   switch (mMaskLength) {
-  case MASK_SIZE:
+  case MASK_CELL_SIZE:
     break;
   case 1:
     break;
@@ -73,9 +73,9 @@ Terrain::readFile(const char *fileName) {
 
   switch(inflatedBytes) {
   case MAX_TERRAIN_SIZE:      // a water mask is present
-    mMaskLength = MASK_SIZE;
+    mMaskLength = MASK_CELL_SIZE;
     break;
-  case (TILE_SIZE * 2) + 2:   // there is no water mask
+  case (TILE_CELL_SIZE * 2) + 2:   // there is no water mask
     mMaskLength = 1;
     break;
   default:                    // it can't be a terrain file
@@ -83,7 +83,7 @@ Terrain::readFile(const char *fileName) {
   }
 
   short int byteCount = 0;
-  for (short int i = 0; i < TILE_SIZE; i++, byteCount = i * 2) {
+  for (short int i = 0; i < TILE_CELL_SIZE; i++, byteCount = i * 2) {
     mHeights[i] = inflateBuffer[byteCount] | (inflateBuffer[byteCount + 1]<<8);
   }
 
@@ -94,7 +94,7 @@ Terrain::readFile(const char *fileName) {
 
 void
 Terrain::writeFile(FILE *fp) const {
-  fwrite(mHeights.data(), TILE_SIZE * 2, 1, fp);
+  fwrite(mHeights.data(), TILE_CELL_SIZE * 2, 1, fp);
 
   fwrite(&mChildren, 1, 1, fp);
   fwrite(mMask, mMaskLength, 1, fp);
@@ -108,7 +108,7 @@ Terrain::writeFile(const char *fileName) const {
     throw TerrainException("Failed to open file");
   }
 
-  if (gzwrite(terrainFile, mHeights.data(), TILE_SIZE * 2) == 0) {
+  if (gzwrite(terrainFile, mHeights.data(), TILE_CELL_SIZE * 2) == 0) {
     gzclose(terrainFile);
     throw TerrainException("Failed to write height data");
   }
@@ -222,7 +222,7 @@ bool Terrain::isLand() const {
 }
 
 bool Terrain::hasWaterMask() const {
-  return mMaskLength == MASK_SIZE;
+  return mMaskLength == MASK_CELL_SIZE;
 }
 
 const std::vector<i_terrain_height> &

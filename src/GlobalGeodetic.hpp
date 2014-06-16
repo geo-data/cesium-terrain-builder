@@ -7,6 +7,7 @@
 
 #include <cmath>
 
+#include "config.hpp"
 #include "TileCoordinate.hpp"
 #include "Bounds.hpp"
 
@@ -16,7 +17,7 @@ namespace terrain {
 
 class terrain::GlobalGeodetic {
 public:
-  GlobalGeodetic(terrain::i_tile tileSize = 65):
+  GlobalGeodetic(terrain::i_tile tileSize = terrain::TILE_SIZE):
     mTileSize(tileSize),
     mInitialResolution(180.0 / tileSize)
   {}
