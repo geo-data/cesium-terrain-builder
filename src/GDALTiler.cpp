@@ -1,3 +1,7 @@
+#include <algorithm>            // std::minmax
+
+#include "ogr_srs_api.h"
+
 #include "config.hpp"
 #include "TerrainException.hpp"
 #include "GDALTiler.hpp"
@@ -10,27 +14,58 @@ terrain::GDALTiler::GDALTiler(GDALDataset *poDataset):
   if (poDataset != NULL) {
     // Get the bounds of the dataset
     double adfGeoTransform[6];
+    LatLonBounds bounds;
 
     if( poDataset->GetGeoTransform( adfGeoTransform ) == CE_None ) {
-      mBounds = LatLonBounds(adfGeoTransform[0],
+      bounds = LatLonBounds(adfGeoTransform[0],
                              adfGeoTransform[3] + (poDataset->GetRasterYSize() * adfGeoTransform[5]),
                              adfGeoTransform[0] + (poDataset->GetRasterXSize() * adfGeoTransform[1]),
                              adfGeoTransform[3]);
-
-      mResolution = std::abs(adfGeoTransform[1]);
     } else {
       throw TerrainException("Could not get transformation information from dataset");
     }
 
-    mSRS = OGRSpatialReference(poDataset->GetProjectionRef());
+    OGRSpatialReference srcSRS = OGRSpatialReference(poDataset->GetProjectionRef()),
+      wgs84SRS;
 
-    OGRSpatialReference oSRS;
-    if (oSRS.importFromEPSG(4326) != OGRERR_NONE) {
+    if (wgs84SRS.importFromEPSG(4326) != OGRERR_NONE) {
       throw TerrainException("Could not create EPSG:4326 spatial reference");
     }
 
-    if (!mSRS.IsSame(&oSRS)) {
-      throw TerrainException("The dataset is not in the EPSG:4326 spatial reference system");
+    if (!srcSRS.IsSame(&wgs84SRS)) {
+      double x[4] = { bounds.getMinX(), bounds.getMaxX(), bounds.getMaxX(), bounds.getMinX() };
+      double y[4] = { bounds.getMinY(), bounds.getMinY(), bounds.getMaxY(), bounds.getMaxY() };
+
+      OGRCoordinateTransformation *transformer = OGRCreateCoordinateTransformation(&srcSRS, &wgs84SRS);
+      if (transformer->Transform(4, x, y) != true) {
+        delete transformer;
+        throw TerrainException("Could not transform dataset bounds to EPSG:4326 spatial reference system");
+      }
+      delete transformer;
+
+      // Get the min and max values of the transformed coordinates (this should
+      // be replaced using std::minmax in C++11).
+      double minX = std::min(std::min(x[0], x[1]), std::min(x[2], x[3])),
+        maxX = std::max(std::max(x[0], x[1]), std::max(x[2], x[3])),
+        minY = std::min(std::min(y[0], y[1]), std::min(y[2], y[3])),
+        maxY = std::max(std::max(y[0], y[1]), std::max(y[2], y[3]));
+
+      mBounds = LatLonBounds(minX, minY, maxX, maxY);
+      mResolution = mBounds.getWidth() / poDataset->GetRasterXSize();
+
+      // cache the WGS84 SRS string
+      char *srsWKT = NULL;
+      if (wgs84SRS.exportToWkt(&srsWKT) != OGRERR_NONE) {
+        CPLFree(srsWKT);
+        throw TerrainException("Could not create EPSG:4326 WKT string");
+      }
+      wgs84WKT = srsWKT;
+      CPLFree(srsWKT);
+      srsWKT = NULL;
+
+    } else {
+      mBounds = bounds;
+      mResolution = std::abs(adfGeoTransform[1]);
     }
 
     poDataset->Reference();     // increase the refcount of the dataset
@@ -40,9 +75,9 @@ terrain::GDALTiler::GDALTiler(GDALDataset *poDataset):
 terrain::GDALTiler::GDALTiler(const GDALTiler &other):
   mProfile(other.mProfile),
   poDataset(other.poDataset),
-  mSRS(other.mSRS),
   mBounds(other.mBounds),
-  mResolution(other.mResolution)
+  mResolution(other.mResolution),
+  wgs84WKT(other.wgs84WKT)
 {
   if (poDataset != NULL) {
     poDataset->Reference();     // increase the refcount of the dataset
@@ -52,9 +87,9 @@ terrain::GDALTiler::GDALTiler(const GDALTiler &other):
 terrain::GDALTiler::GDALTiler(GDALTiler &other):
   mProfile(other.mProfile),
   poDataset(other.poDataset),
-  mSRS(other.mSRS),
   mBounds(other.mBounds),
-  mResolution(other.mResolution)
+  mResolution(other.mResolution),
+  wgs84WKT(other.wgs84WKT)
 {
   if (poDataset != NULL) {
     poDataset->Reference();     // increase the refcount of the dataset
@@ -72,9 +107,9 @@ terrain::GDALTiler::operator=(const GDALTiler &other) {
     poDataset->Reference();
   }
 
-  mSRS = other.mSRS;
   mBounds = other.mBounds;
   mResolution = other.mResolution;
+  wgs84WKT = other.wgs84WKT;
 
   return *this;
 }
@@ -147,25 +182,16 @@ terrain::GDALTiler::createRasterTile(const TileCoordinate &coord) const {
   adfGeoTransform[4] = 0;
   adfGeoTransform[5] = -resolution;
 
-  OGRSpatialReference oSRS;
-  if (oSRS.importFromEPSG(4326) != OGRERR_NONE) {
-    throw TerrainException("Could not create EPSG:4326 spatial reference");
-  }
-
   GDALDatasetH hSrcDS = (GDALDatasetH) dataset();
   GDALDatasetH hDstDS;
 
-  char *pszDstWKT = NULL;
-  const char *pszSrcWKT = GDALGetProjectionRef(hSrcDS);
-  const OGRSpatialReference dstSRS(pszSrcWKT);
+  const char *pszSrcWKT = NULL;
+  const char *pszDstWKT = NULL;
 
-  if (!oSRS.IsSame(&dstSRS)) {
-    if (oSRS.exportToWkt( &pszDstWKT ) != OGRERR_NONE) {
-      CPLFree( pszDstWKT );
-      throw TerrainException("Could not create EPSG:4326 WKT string");
-    }
-  } else {
-    pszSrcWKT = NULL;    // we don't need to perform any reprojections
+  if (requiresReprojection()) {
+    // we need to reproject
+    pszSrcWKT = GDALGetProjectionRef(hSrcDS);
+    pszDstWKT = wgs84WKT.c_str();
   }
 
   // set the warp options
@@ -188,7 +214,6 @@ terrain::GDALTiler::createRasterTile(const TileCoordinate &coord) const {
 
   if( psWarpOptions->pTransformerArg == NULL ) {
     GDALDestroyWarpOptions( psWarpOptions );
-    CPLFree( pszDstWKT );
     throw TerrainException("Could not create image to image transformer");
   }
 
@@ -198,16 +223,13 @@ terrain::GDALTiler::createRasterTile(const TileCoordinate &coord) const {
   GDALDestroyWarpOptions( psWarpOptions );
 
   if (hDstDS == NULL) {
-    CPLFree( pszDstWKT );
     throw TerrainException("Could not create warped VRT");
   }
 
   if (GDALSetProjection( hDstDS, pszDstWKT ) != CE_None) {
     GDALClose(hDstDS);
-    CPLFree( pszDstWKT );
     throw TerrainException("Could not set projection on VRT");
   }
-  CPLFree( pszDstWKT );
 
   tileBounds = mProfile.tileBounds(coord);
   resolution = mProfile.resolution(coord.zoom);
@@ -231,6 +253,7 @@ terrain::GDALTiler::createRasterTile(const TileCoordinate &coord) const {
 
 void
 terrain::GDALTiler::closeDataset() {
+  // Dereference and possibly close the GDAL dataset
   if (poDataset != NULL) {
     poDataset->Dereference();
 

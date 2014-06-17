@@ -1,6 +1,7 @@
 #ifndef GDALTILER_HPP
 #define GDALTILER_HPP
 
+#include <string>
 #include <cmath>                // for `abs()`
 
 #include "gdal_priv.h"
@@ -72,6 +73,10 @@ public:
     return const_cast<const terrain::LatLonBounds &>(mBounds);
   }
 
+  inline bool requiresReprojection() const {
+    return wgs84WKT.size() > 0;
+  }
+
 protected:
   void closeDataset();
 
@@ -90,9 +95,9 @@ protected:
 private:
   terrain::GlobalGeodetic mProfile;
   GDALDataset *poDataset;
-  OGRSpatialReference mSRS;
   terrain::LatLonBounds mBounds;
   double mResolution;
+  std::string wgs84WKT;
 };
 
 #endif /* GDALTILER_HPP */
