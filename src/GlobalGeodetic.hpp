@@ -17,61 +17,61 @@ namespace terrain {
 
 class terrain::GlobalGeodetic {
 public:
-  GlobalGeodetic(terrain::i_tile tileSize = terrain::TILE_SIZE):
+  GlobalGeodetic(i_tile tileSize = TILE_SIZE):
     mTileSize(tileSize),
     mInitialResolution(180.0 / tileSize)
   {}
 
-  inline double resolution(terrain::i_zoom zoom) const {
+  inline double resolution(i_zoom zoom) const {
     return mInitialResolution / pow(2, zoom);
   }
 
-  inline terrain::i_zoom zoomForResolution(double resolution) const {
-    return (terrain::i_zoom) ceil(log2(mInitialResolution) - log2(resolution));
+  inline i_zoom zoomForResolution(double resolution) const {
+    return (i_zoom) ceil(log2(mInitialResolution) - log2(resolution));
   }
 
-  inline terrain::PixelPoint
-  latLonToPixels(const terrain::LatLon &latLon, terrain::i_zoom zoom) const {
+  inline PixelPoint
+  latLonToPixels(const LatLon &latLon, i_zoom zoom) const {
     double res = resolution(zoom);
-    terrain::i_pixel px = (180 + latLon.x) / res,
+    i_pixel px = (180 + latLon.x) / res,
       py = (90 + latLon.y) / res;
 
-    return terrain::PixelPoint(px, py);
+    return PixelPoint(px, py);
   }
 
-  inline terrain::TilePoint
-  pixelsToTile(const terrain::PixelPoint &pixel) const {
-    terrain::i_tile tx = (terrain::i_tile) ceil(pixel.x / mTileSize),
-      ty = (terrain::i_tile) ceil(pixel.y / mTileSize);
+  inline TilePoint
+  pixelsToTile(const PixelPoint &pixel) const {
+    i_tile tx = (i_tile) ceil(pixel.x / mTileSize),
+      ty = (i_tile) ceil(pixel.y / mTileSize);
 
-    return terrain::TilePoint(tx, ty);
+    return TilePoint(tx, ty);
   }
 
-  inline terrain::TileCoordinate
-  latLonToTile(const terrain::LatLon &latLon, terrain::i_zoom zoom) const {
-    const terrain::PixelPoint pixel = latLonToPixels(latLon, zoom);
-    terrain::TilePoint tile = pixelsToTile(pixel);
+  inline TileCoordinate
+  latLonToTile(const LatLon &latLon, i_zoom zoom) const {
+    const PixelPoint pixel = latLonToPixels(latLon, zoom);
+    TilePoint tile = pixelsToTile(pixel);
 
-    return terrain::TileCoordinate(zoom, tile);
+    return TileCoordinate(zoom, tile);
   }
 
-  inline terrain::LatLonBounds
-  tileBounds(const terrain::TileCoordinate &coord) const {
+  inline LatLonBounds
+  tileBounds(const TileCoordinate &coord) const {
     double res = resolution(coord.zoom);
     double minx = coord.x * mTileSize * res - 180,
       miny = coord.y * mTileSize * res - 90,
       maxx = (coord.x + 1) * mTileSize * res - 180,
       maxy = (coord.y + 1) * mTileSize * res - 90;
 
-    return terrain::LatLonBounds(minx, miny, maxx, maxy);
+    return LatLonBounds(minx, miny, maxx, maxy);
   }
 
-  inline terrain::i_tile tileSize() const {
+  inline i_tile tileSize() const {
     return mTileSize;
   }
   
 private:
-  terrain::i_tile mTileSize;
+  i_tile mTileSize;
   double mInitialResolution;
 };
 

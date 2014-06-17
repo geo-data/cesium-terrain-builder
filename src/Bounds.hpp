@@ -18,7 +18,7 @@ public:
     setBounds(minx, miny, maxx, maxy);
   }
 
-  Bounds(const terrain::Coordinate<T> &lowerLeft, const terrain::Coordinate<T> &upperRight) {
+  Bounds(const Coordinate<T> &lowerLeft, const Coordinate<T> &upperRight) {
     setBounds(lowerLeft, upperRight);
   }
 
@@ -29,7 +29,7 @@ public:
     bounds[3] = maxy;
   }
 
-  inline void setBounds(const terrain::Coordinate<T> &lowerLeft, const terrain::Coordinate<T> &upperRight) {
+  inline void setBounds(const Coordinate<T> &lowerLeft, const Coordinate<T> &upperRight) {
     bounds[0] = lowerLeft.x;
     bounds[1] = lowerLeft.y;
     bounds[2] = upperRight.x;
@@ -62,21 +62,21 @@ public:
     bounds[3] = newValue;
   }
 
-  inline terrain::Coordinate<T>
+  inline Coordinate<T>
   getLowerLeft() const {
     return Coordinate<T>(getMinX(), getMinY());
   }
-  inline terrain::Coordinate<T>
+  inline Coordinate<T>
   getLowerRight() const {
     return Coordinate<T>(getMaxX(), getMinY());
   }
-  inline terrain::Coordinate<T>
+  inline Coordinate<T>
   getUpperRight() const {
     return Coordinate<T>(getMaxX(), getMaxY());
   }
-  inline terrain::Coordinate<T>
+  inline Coordinate<T>
   getUpperLeft() const {
-    return terrain::Coordinate<T>(getMinX(), getMaxY());
+    return Coordinate<T>(getMinX(), getMaxY());
   }
 
   inline T getWidth() const {
@@ -87,36 +87,36 @@ public:
     return getMaxY() - getMinY();
   }
 
-  inline terrain::Bounds<T> getSW() const {
-    return terrain::Bounds<T>(getMinX(),
+  inline Bounds<T> getSW() const {
+    return Bounds<T>(getMinX(),
                               getMinY(),
                               getMinX() + (getWidth() / 2),
                               getMinY() + (getHeight() / 2));
   }
-  inline terrain::Bounds<T> getNW() const {
-    return terrain::Bounds<T>(getMinX(),
+  inline Bounds<T> getNW() const {
+    return Bounds<T>(getMinX(),
                               getMaxY() - (getHeight() / 2),
                               getMinX() + (getWidth() / 2),
                               getMaxY());
   }
-  inline terrain::Bounds<T> getNE() const {
-    return terrain::Bounds<T>(getMaxX() - (getWidth() / 2),
+  inline Bounds<T> getNE() const {
+    return Bounds<T>(getMaxX() - (getWidth() / 2),
                               getMaxY() - (getHeight() / 2),
                               getMaxX(),
                               getMaxY());
   }
-  inline terrain::Bounds<T> getSE() const {
-    return terrain::Bounds<T>(getMaxX() - (getWidth() / 2),
+  inline Bounds<T> getSE() const {
+    return Bounds<T>(getMaxX() - (getWidth() / 2),
                               getMinY(),
                               getMaxX(),
                               getMinY() + (getHeight() / 2));
   }
   
-  inline bool overlaps(const terrain::Bounds<T> *other) const {
+  inline bool overlaps(const Bounds<T> *other) const {
     return overlaps(*other);
   }
 
-  inline bool overlaps(const terrain::Bounds<T> &other) const {
+  inline bool overlaps(const Bounds<T> &other) const {
     // see
     // <http://stackoverflow.com/questions/306316/determine-if-two-rectangles-overlap-each-other>
     return getMinX() < other.getMaxX() && other.getMinX() < getMaxX() &&

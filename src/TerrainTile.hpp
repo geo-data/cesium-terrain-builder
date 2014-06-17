@@ -46,14 +46,14 @@ public:
   bool isLand() const;
   bool hasWaterMask() const;
 
-  const std::vector<terrain::i_terrain_height> &
+  const std::vector<i_terrain_height> &
   getHeights() const;
 
-  std::vector<terrain::i_terrain_height> &
+  std::vector<i_terrain_height> &
   getHeights();
 
 protected:
-  std::vector<terrain::i_terrain_height> mHeights; // replace with `std::array` in C++11
+  std::vector<i_terrain_height> mHeights; // replace with `std::array` in C++11
 
   static const unsigned short int TILE_CELL_SIZE = TILE_SIZE * TILE_SIZE;
   static const unsigned int MASK_CELL_SIZE = MASK_SIZE * MASK_SIZE;
@@ -78,26 +78,26 @@ private:
 class terrain::TerrainTile :
   public Terrain
 {
-  friend class terrain::GDALTiler;
+  friend class GDALTiler;
 
 public:
-  TerrainTile(terrain::TileCoordinate coord);
-  TerrainTile(const char *fileName, terrain::TileCoordinate coord);
-  TerrainTile(const terrain::Terrain &terrain, terrain::TileCoordinate coord);
+  TerrainTile(TileCoordinate coord);
+  TerrainTile(const char *fileName, TileCoordinate coord);
+  TerrainTile(const Terrain &terrain, TileCoordinate coord);
 
   GDALDatasetH heightsToRaster() const;
   
-  terrain::TileCoordinate & getCoordinate() {
+  inline TileCoordinate & getCoordinate() {
     return coord;
   }
 
-  const terrain::TileCoordinate & getCoordinate() const {
-    return const_cast<const terrain::TileCoordinate &>(coord);
+  inline const TileCoordinate & getCoordinate() const {
+    return const_cast<const TileCoordinate &>(coord);
   }
 
 
 private:
-  terrain::TileCoordinate coord;
+  TileCoordinate coord;
 };
 
 #endif /* TERRAINTILE_HPP */

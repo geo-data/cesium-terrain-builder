@@ -8,41 +8,41 @@ namespace terrain {
 }
 
 class terrain::TileCoordinate:
-  public terrain::TilePoint {
+  public TilePoint {
 public:
   TileCoordinate():
     TilePoint(0, 0),
     zoom(0)
   {}
 
-  TileCoordinate(const terrain::TileCoordinate &other):
+  TileCoordinate(const TileCoordinate &other):
     TilePoint(other.x, other.y),
     zoom(other.zoom)
   {}
 
-  TileCoordinate(terrain::i_zoom zoom, terrain::i_tile x, terrain::i_tile y):
+  TileCoordinate(i_zoom zoom, i_tile x, i_tile y):
     TilePoint(x, y),
     zoom(zoom)
   {}
 
-  TileCoordinate(terrain::i_zoom zoom, const terrain::TilePoint &coord):
+  TileCoordinate(i_zoom zoom, const TilePoint &coord):
     TilePoint(coord),
     zoom(zoom)
   {}
 
-  bool
-  operator==(const terrain::TileCoordinate &other) const {
-    return dynamic_cast<const terrain::TilePoint &>(*this) == dynamic_cast<const terrain::TilePoint &>(other)
+  inline bool
+  operator==(const TileCoordinate &other) const {
+    return dynamic_cast<const TilePoint &>(*this) == dynamic_cast<const TilePoint &>(other)
       && zoom == other.zoom;
   }
 
-  void
-  setPoint(const terrain::TilePoint &point) {
+  inline void
+  setPoint(const TilePoint &point) {
     x = point.x;
     y = point.y;
   }
 
-  terrain::i_zoom zoom;
+  i_zoom zoom;
 };
 
 #endif /* TILECOORDINATE_HPP */
