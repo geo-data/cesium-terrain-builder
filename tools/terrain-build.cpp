@@ -18,9 +18,9 @@ static const char *osDirSep = "\\";
 static const char *osDirSep = "/";
 #endif
 
-class GDAL2Terrain : public Command {
+class TerrainBuild : public Command {
 public:
-  GDAL2Terrain(const char *name, const char *version) :
+  TerrainBuild(const char *name, const char *version) :
     Command(name, version),
     outputDir(".")
   {}
@@ -43,7 +43,7 @@ public:
 
   static void
   setOutputDir(command_t *command) {
-    static_cast<GDAL2Terrain *>(Command::self(command))->outputDir = command->arg;
+    static_cast<TerrainBuild *>(Command::self(command))->outputDir = command->arg;
   }
 
   const char *
@@ -54,7 +54,7 @@ public:
   const char *outputDir;
 };
 
-void gdal2terrain(const GDALTiler &tiler, const char *outputDir) {
+void build(const GDALTiler &tiler, const char *outputDir) {
   const string dirname = string(outputDir) + osDirSep;
   
   for(TileIterator iter(tiler); !iter.exhausted(); ++iter) {
@@ -78,9 +78,9 @@ void gdal2terrain(const GDALTiler &tiler, const char *outputDir) {
 }
 
 int main(int argc, char *argv[]) {
-  GDAL2Terrain command = GDAL2Terrain(argv[0], version.c_str());
+  TerrainBuild command = TerrainBuild(argv[0], version.c_str());
   command.setUsage("[options] GDAL_DATASOURCE");
-  command.option("-o", "--output-dir <dir>", "specify the output directory for the tiles (defaults to working directory)", GDAL2Terrain::setOutputDir);
+  command.option("-o", "--output-dir <dir>", "specify the output directory for the tiles (defaults to working directory)", TerrainBuild::setOutputDir);
 
   // Parse and check the arguments
   command.parse(argc, argv);
@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
   try {
     const GDALTiler tiler(poDataset);
 
-    gdal2terrain(tiler, command.outputDir);
+    build(tiler, command.outputDir);
 
   } catch (TerrainException &e) {
     cerr << "Error: " << e.what() << endl;

@@ -17,9 +17,9 @@ static const char *osDirSep = "\\";
 static const char *osDirSep = "/";
 #endif
 
-class TerrainTileBounds : public Command {
+class TerrainExtents : public Command {
 public:
-  TerrainTileBounds(const char *name, const char *version) :
+  TerrainExtents(const char *name, const char *version) :
     Command(name, version),
     outputDir(".")
   {}
@@ -42,7 +42,7 @@ public:
 
   static void
   setOutputDir(command_t *command) {
-    static_cast<TerrainTileBounds *>(Command::self(command))->outputDir = command->arg;
+    static_cast<TerrainExtents *>(Command::self(command))->outputDir = command->arg;
   }
 
   const char *
@@ -102,9 +102,9 @@ static void writeBounds(GDALTiler &tiler, const char *outputDir) {
 }
 
 int main(int argc, char *argv[]) {
-  TerrainTileBounds command = TerrainTileBounds(argv[0], version.c_str());
+  TerrainExtents command = TerrainExtents(argv[0], version.c_str());
   command.setUsage("GDAL_DATASET");
-  command.option("-o", "--output-dir <dir>", "specify the output directory for the geojson files (defaults to working directory)", TerrainTileBounds::setOutputDir);
+  command.option("-o", "--output-dir <dir>", "specify the output directory for the geojson files (defaults to working directory)", TerrainExtents::setOutputDir);
 
   // Parse and check the arguments
   command.parse(argc, argv);

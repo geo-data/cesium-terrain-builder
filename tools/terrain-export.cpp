@@ -14,9 +14,9 @@
 using namespace std;
 using namespace terrain;
 
-class Terrain2Tiff : public Command {
+class TerrainExport : public Command {
 public:
-  Terrain2Tiff(const char *name, const char *version) :
+  TerrainExport(const char *name, const char *version) :
     Command(name, version),
     inputFilename(NULL),
     outputFilename(NULL),
@@ -27,35 +27,35 @@ public:
 
   static void
   setInputFilename(command_t *command) {
-    Terrain2Tiff *self = static_cast<Terrain2Tiff *>(Command::self(command));
+    TerrainExport *self = static_cast<TerrainExport *>(Command::self(command));
     self->inputFilename = command->arg;
     self->membersSet |= TT_INPUT;
   }
 
   static void
   setOutputFilename(command_t *command) {
-    Terrain2Tiff *self = static_cast<Terrain2Tiff *>(Command::self(command));
+    TerrainExport *self = static_cast<TerrainExport *>(Command::self(command));
     self->outputFilename = command->arg;
     self->membersSet |= TT_OUTPUT;
   }
 
   static void
   setZoomLevel(command_t *command) {
-    Terrain2Tiff *self = static_cast<Terrain2Tiff *>(Command::self(command));
+    TerrainExport *self = static_cast<TerrainExport *>(Command::self(command));
     self->zoom = atoi(command->arg);
     self->membersSet |= TT_ZOOM;
   }
 
   static void
   setTileX(command_t *command) {
-    Terrain2Tiff *self = static_cast<Terrain2Tiff *>(Command::self(command));
+    TerrainExport *self = static_cast<TerrainExport *>(Command::self(command));
     self->tx = atoi(command->arg);
     self->membersSet |= TT_TX;
   }
 
   static void
   setTileY(command_t *command) {
-    Terrain2Tiff *self = static_cast<Terrain2Tiff *>(Command::self(command));
+    TerrainExport *self = static_cast<TerrainExport *>(Command::self(command));
     self->ty = atoi(command->arg);
     self->membersSet |= TT_TY;
   }
@@ -119,14 +119,14 @@ void terrain2tiff(TerrainTile &terrain, const char *filename) {
 }
 
 int main(int argc, char *argv[]) {
-  Terrain2Tiff command = Terrain2Tiff(argv[0], version.c_str());
+  TerrainExport command = TerrainExport(argv[0], version.c_str());
 
   command.setUsage("-i TERRAIN_FILE -z ZOOM_LEVEL -x TILE_X -y TILE_Y -o OUTPUT_FILE ");
-  command.option("-i", "--input-filename <filename>", "the terrain tile file to convert", Terrain2Tiff::setInputFilename);
-  command.option("-z", "--zoom-level <int>", "the zoom level represented by the tile", Terrain2Tiff::setZoomLevel);
-  command.option("-x", "--tile-x <int>", "the tile x coordinate", Terrain2Tiff::setTileX);
-  command.option("-y", "--tile-y <int>", "the tile y coordinate", Terrain2Tiff::setTileY);
-  command.option("-o", "--output-filename <filename>", "the output file to create", Terrain2Tiff::setOutputFilename);
+  command.option("-i", "--input-filename <filename>", "the terrain tile file to convert", TerrainExport::setInputFilename);
+  command.option("-z", "--zoom-level <int>", "the zoom level represented by the tile", TerrainExport::setZoomLevel);
+  command.option("-x", "--tile-x <int>", "the tile x coordinate", TerrainExport::setTileX);
+  command.option("-y", "--tile-y <int>", "the tile y coordinate", TerrainExport::setTileY);
+  command.option("-o", "--output-filename <filename>", "the output file to create", TerrainExport::setOutputFilename);
 
   // Parse and check the arguments
   command.parse(argc, argv);
