@@ -42,11 +42,11 @@ namespace terrain {
  * @brief Create terrain tiles from a GDAL Dataset
  *
  * This class is associated with a GDAL dataset from which it determines the
- * maximum zoom level (see `maxZoomLevel`) and tile extents for a particular
- * zoom level (see `tileBoundsForZoom`).  This information can be used to
- * specify `TileCoordinates` which can be used to create raster or terrain
- * representations of a tile coverage (see `createRasterTile` and
- * `createTerrainTile`).
+ * maximum zoom level (see `GDALTiler::maxZoomLevel`) and tile extents for a
+ * particular zoom level (see `GDALTiler::tileBoundsForZoom`).  This
+ * information can be used to create `TileCoordinate` instances which can be
+ * used to create raster or terrain representations of a tile coverage (see
+ * `GDALTiler::createRasterTile` and `GDALTiler::createTerrainTile`).
  */
 class terrain::GDALTiler {
 public:

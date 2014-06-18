@@ -175,10 +175,10 @@ private:
 };
 
 /**
- * @brief Terrain data associated with a tile coordinate
+ * @brief `Terrain` data associated with a `TileCoordinate`
  *
  * Associating terrain data with a tile coordinate allows the tile to be
- * converted to a geo-referenced raster (see `heightsToRaster`).
+ * converted to a geo-referenced raster (see `TerrainTile::heightsToRaster`).
  */
 class terrain::TerrainTile :
   public Terrain

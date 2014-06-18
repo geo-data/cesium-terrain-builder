@@ -33,13 +33,13 @@ namespace terrain {
 }
 
 /**
- * @brief Query information relevant to the TMS Global Geodetic Profile
+ * @brief An implementation of the TMS Global Geodetic Profile
  *
- * The TMS Global Geodetic Profile is specified at
- * <http://wiki.osgeo.org/wiki/Tile_Map_Service_Specification#global-geodetic>.
- * This class provides tile related functions based on the profile, such as
- * relating a latitude and longitude to a tile (see `latLonToTile`) and getting
- * the latitude and longitude bounds associated with a tile (see `tileBounds`).
+ * This class models the [Tile Mapping Service Global Geodetic
+ * Profile](http://wiki.osgeo.org/wiki/Tile_Map_Service_Specification#global-geodetic).
+ * It provides functionality such as relating a latitude and longitude to a
+ * tile (see `GlobalGeodetic::latLonToTile`) and getting the latitude and
+ * longitude bounds associated with a tile (see `GlobalGeodetic::tileBounds`).
  *
  * The code here is adapted from the logic in the `gdal2tiles.py` script
  * available with the GDAL library.
