@@ -5,8 +5,11 @@
 #include <sstream>
 
 /**
- * @file config.hpp
+ * @file config.hpp.in
  * @brief Build time configured options and settings
+ *
+ * This file is a template used by the CMake build system to create
+ * `config.hpp`.
  */
 
 namespace terrain {
