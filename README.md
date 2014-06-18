@@ -10,8 +10,8 @@ provides a number of
 the terrain data, one of which is height map data for use with the
 [CesiumTerrainProvider](http://cesiumjs.org/Cesium/Build/Documentation/CesiumTerrainProvider.html)
 JavaScript class.  Cesium Terrain Builder can be used to create the tilesets
-that sit behind a terrain server: it does *not* provide a way of serving up
-those tilesets to the browser.
+that sit behind a terrain server used by CesiumTerrainProvider.  Note that it
+does *not* provide a way of serving up those tilesets to the browser.
 
 ## Command Line Tools
 
@@ -27,7 +27,7 @@ tiles for all zoom levels between that maximum and zoom level `0` where the
 tile extents overlap the raster extents, resampling and subsetting the data as
 necessary.
 
-The input raster should contain dsata representing elevations relative to sea
+The input raster should contain data representing elevations relative to sea
 level.
 
 Note that in the case of multiband rasters, only the first band is used as the
@@ -55,7 +55,7 @@ Options:
   used and overviews are implemented for resolutions corresponding to the
   [Global Geodetic Profile](http://wiki.osgeo.org/wiki/Tile_Map_Service_Specification#global-geodetic)
   in the Tile Mapping Service specification.  See the
-  [`gdaladdo`](http://www.gdal.org/gdaladdo.html) tool.
+  [`gdaladdo`](http://www.gdal.org/gdaladdo.html) tool for creating overviews.
 
 ### `terrain-info`
 
@@ -125,8 +125,9 @@ application specific. Instead its aim is simply to take a
 [GDAL](http://www.gdal.org) supported raster format representing a Digital
 Terrain Model (DTM) and convert this to terrain tiles.
 
-See the tools provided with the library (e.g. `terrain-build`) for an example
-on how the the library is used to achieve this.
+See the source code for the tools provided with the library
+(e.g. `terrain-build`) for examples on how the the library is used to achieve
+this.
 
 ### Documentation
 
@@ -163,15 +164,15 @@ library dependencies have been ported and the code itself is standard C++.
 
 ### Runtime requirements
 
-Ensure [GDAL](http://www.gdal.org) >= 2.0.0 is installed, including the
-development header files.  At the time of writing this is not a stable release
-so you may need a nightly build or build the source directly from version
-control.
+Ensure [GDAL](http://www.gdal.org) >= 2.0.0 is installed.  At the time of
+writing this is not a stable release so you may need a nightly build or build
+the source directly from version control.
 
 ### Build requirements
 
-In addition to the runtime requirements listed above you will need
-[CMake](http://www.cmake.org) installed.
+In addition to ensuring the GDAL library is installed, you will need the GDAL
+source development header files. You will also need
+[CMake](http://www.cmake.org) to be available.
 
 ## Installation from Source
 
@@ -186,7 +187,7 @@ In addition to the runtime requirements listed above you will need
 4. On a UNIX system you may need to run `ldconfig` to update the shared library
    cache.
    
-Alternatively in step `3` above you can create a debug build by running `cmake
+Alternatively in step 3 above you can create a debug build by running `cmake
 -DCMAKE_BUILD_TYPE=Debug ..`.  You can also install to a different location by
 specifying the `CMAKE_INSTALL_PREFIX` directive e.g. `cmake
 -DCMAKE_INSTALL_PREFIX=/tmp/terrain ..`.
