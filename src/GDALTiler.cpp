@@ -300,6 +300,10 @@ terrain::GDALTiler::createRasterTile(const TileCoordinate &coord) const {
   return hDstDS;
 }
 
+/**
+ * @details This dereferences the underlying GDAL dataset and closes it if the
+ * reference count falls below 1.
+ */
 void
 terrain::GDALTiler::closeDataset() {
   // Dereference and possibly close the GDAL dataset

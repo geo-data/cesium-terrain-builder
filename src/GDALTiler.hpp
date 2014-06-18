@@ -47,6 +47,12 @@ namespace terrain {
  * information can be used to create `TileCoordinate` instances which can be
  * used to create raster or terrain representations of a tile coverage (see
  * `GDALTiler::createRasterTile` and `GDALTiler::createTerrainTile`).
+ *
+ * The GDAL dataset assigned to the tiler has its reference count incremented
+ * when a tiler is instantiated or copied, meaning that the dataset is shared
+ * with any other handles that may also be in use.  When the tiler is destroyed
+ * the reference count is decremented and, if it reaches `0`, the dataset is
+ * closed.
  */
 class terrain::GDALTiler {
 public:
