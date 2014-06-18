@@ -132,7 +132,7 @@ terrain2tiff(TerrainTile &terrain, const char *filename) {
 int
 main(int argc, char *argv[]) {
   // Setup the command interface
-  TerrainExport command = TerrainExport(argv[0], version.c_str());
+  TerrainExport command = TerrainExport(argv[0], version.cstr);
 
   command.setUsage("-i TERRAIN_FILE -z ZOOM_LEVEL -x TILE_X -y TILE_Y -o OUTPUT_FILE ");
   command.option("-i", "--input-filename <filename>", "the terrain tile file to convert", TerrainExport::setInputFilename);

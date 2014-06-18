@@ -14,7 +14,7 @@ namespace terrain {
   /**
    * @brief Versioning object
    *
-   * We use semantic versioning (http://semver.org)
+   * We use [semantic versioning](http://semver.org).
    */
   const struct semver {
     /// The major version
@@ -24,26 +24,14 @@ namespace terrain {
     /// The patch number
     const unsigned short int patch;
 
-    /// Get the version number as a string
-    std::string
-    str() const {
-      return static_cast<std::ostringstream*>
-        (
-         &(std::ostringstream() << major << "." << minor << "." << patch)
-         )->str();
-    }
-
-    /// Get the version number as a string
-    const char *
-    c_str() const {
-      const std::string string = str();
-      return string.c_str();
-    }
+    /// The version string
+    const char *cstr;
 
   } version = {
     @TERRAIN_VERSION_MAJOR@,
     @TERRAIN_VERSION_MINOR@,
-    @TERRAIN_VERSION_PATCH@
+    @TERRAIN_VERSION_PATCH@,
+    "@TERRAIN_VERSION_MAJOR@.@TERRAIN_VERSION_MINOR@.@TERRAIN_VERSION_PATCH@"
   };
 
   /// The width and height of height data in a tile

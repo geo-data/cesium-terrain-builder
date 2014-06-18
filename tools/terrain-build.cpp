@@ -98,7 +98,7 @@ build(const GDALTiler &tiler, const char *outputDir) {
 
 int
 main(int argc, char *argv[]) {
-  TerrainBuild command = TerrainBuild(argv[0], version.c_str());
+  TerrainBuild command = TerrainBuild(argv[0], version.cstr);
   command.setUsage("[options] GDAL_DATASOURCE");
   command.option("-o", "--output-dir <dir>", "specify the output directory for the tiles (defaults to working directory)", TerrainBuild::setOutputDir);
 

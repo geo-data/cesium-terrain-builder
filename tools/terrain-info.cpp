@@ -72,7 +72,7 @@ public:
 int
 main(int argc, char *argv[]) {
   // Set up the command interface
-  TerrainInfo command = TerrainInfo(argv[0], version.c_str());
+  TerrainInfo command = TerrainInfo(argv[0], version.cstr);
   command.setUsage("[options] TERRAIN_FILE");
   command.option("-e", "--show-heights", "show the height information as an ASCII raster", TerrainInfo::showHeights);
   command.option("-c", "--no-child", "hide information about child tiles", TerrainInfo::hideChildInfo);

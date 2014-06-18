@@ -118,7 +118,7 @@ writeBounds(GDALTiler &tiler, const char *outputDir) {
 
 int
 main(int argc, char *argv[]) {
-  TerrainExtents command = TerrainExtents(argv[0], version.c_str());
+  TerrainExtents command = TerrainExtents(argv[0], version.cstr);
   command.setUsage("GDAL_DATASET");
   command.option("-o", "--output-dir <dir>", "specify the output directory for the geojson files (defaults to working directory)", TerrainExtents::setOutputDir);
 
