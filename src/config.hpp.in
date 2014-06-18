@@ -5,17 +5,26 @@
 #include <sstream>
 
 /**
- * config.hpp - build configured options and settings
+ * @file config.hpp
+ * @brief Build time configured options and settings
  */
 
 namespace terrain {
 
-  // We use semantic versioning (http://semver.org)
+  /**
+   * @brief Versioning object
+   *
+   * We use semantic versioning (http://semver.org)
+   */
   const struct semver {
+    /// The major version
     const unsigned short int major;
+    /// The minor version
     const unsigned short int minor;
+    /// The patch number
     const unsigned short int patch;
 
+    /// Get the version number as a string
     std::string
     str() const {
       return static_cast<std::ostringstream*>
@@ -24,6 +33,7 @@ namespace terrain {
          )->str();
     }
 
+    /// Get the version number as a string
     const char *
     c_str() const {
       const std::string string = str();
@@ -36,7 +46,10 @@ namespace terrain {
     @TERRAIN_VERSION_PATCH@
   };
 
+  /// The width and height of height data in a tile
   const unsigned short int TILE_SIZE = @TERRAIN_TILE_SIZE@;
+
+  /// The width and height of water mask data in a tile
   const unsigned short int MASK_SIZE = @TERRAIN_MASK_SIZE@;
 }
 

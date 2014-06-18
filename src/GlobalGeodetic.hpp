@@ -1,9 +1,10 @@
 #ifndef GLOBALGEODETIC_HPP
 #define GLOBALGEODETIC_HPP
 
-/* 
-   Based on gdal2tiles.py
-*/
+/**
+ * @file GlobalGeodetic.hpp
+ * @brief This defines and declares the `GlobalGeodetic` class
+ */
 
 #include <cmath>
 
@@ -15,21 +16,45 @@ namespace terrain {
   class GlobalGeodetic;
 }
 
+/**
+ * @brief Query information relevant to the TMS Global Geodetic Profile
+ *
+ * The TMS Global Geodetic Profile is specified at
+ * <http://wiki.osgeo.org/wiki/Tile_Map_Service_Specification#global-geodetic>.
+ * This class provides tile related functions based on the profile, such as
+ * relating a latitude and longitude to a tile (see `latLonToTile`) and getting
+ * the latitude and longitude bounds associated with a tile (see `tileBounds`).
+ *
+ * The code here is adapted from the logic in the `gdal2tiles.py` script
+ * available with the GDAL library.
+ */
 class terrain::GlobalGeodetic {
 public:
+
+  /// Initialise the profile with a specific tile size
   GlobalGeodetic(i_tile tileSize = TILE_SIZE):
     mTileSize(tileSize),
     mInitialResolution(180.0 / tileSize)
   {}
 
-  inline double resolution(i_zoom zoom) const {
+  /// Get the resolution for a particular zoom level
+  inline double
+  resolution(i_zoom zoom) const {
     return mInitialResolution / pow(2, zoom);
   }
 
-  inline i_zoom zoomForResolution(double resolution) const {
+  /**
+   * @brief Get the zoom level for a particular resolution
+   *
+   * If the resolution does not exactly match a zoom level then the zoom level
+   * is 'rounded up' to the next level.
+   */
+  inline i_zoom
+  zoomForResolution(double resolution) const {
     return (i_zoom) ceil(log2(mInitialResolution) - log2(resolution));
   }
 
+  /// Get the pixel location for a specific latitude, longitude and zoom
   inline PixelPoint
   latLonToPixels(const LatLon &latLon, i_zoom zoom) const {
     double res = resolution(zoom);
@@ -39,6 +64,7 @@ public:
     return PixelPoint(px, py);
   }
 
+  /// Get the tile x and y associated with a pixel location
   inline TilePoint
   pixelsToTile(const PixelPoint &pixel) const {
     i_tile tx = (i_tile) ceil(pixel.x / mTileSize),
@@ -47,6 +73,7 @@ public:
     return TilePoint(tx, ty);
   }
 
+  /// Get the tile coordinate in which a location falls at a specific zoom level
   inline TileCoordinate
   latLonToTile(const LatLon &latLon, i_zoom zoom) const {
     const PixelPoint pixel = latLonToPixels(latLon, zoom);
@@ -55,6 +82,7 @@ public:
     return TileCoordinate(zoom, tile);
   }
 
+  /// Get the bounds in latitude and longitude of a particular tile
   inline LatLonBounds
   tileBounds(const TileCoordinate &coord) const {
     double res = resolution(coord.zoom);
@@ -66,12 +94,17 @@ public:
     return LatLonBounds(minx, miny, maxx, maxy);
   }
 
-  inline i_tile tileSize() const {
+  /// Get the tile size associated with this profile
+  inline i_tile
+  tileSize() const {
     return mTileSize;
   }
   
 private:
+  /// The tile size associated with this profile
   i_tile mTileSize;
+
+  /// The initial resolution of this particular profile
   double mInitialResolution;
 };
 

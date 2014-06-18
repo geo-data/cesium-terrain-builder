@@ -1,122 +1,200 @@
 #ifndef BOUNDS_HPP
 #define BOUNDS_HPP
 
+/**
+ * @file Bounds.hpp
+ * @brief This declares and defines the `Bounds` class
+ */
+
 #include "Coordinate.hpp"
+#include "TerrainException.hpp"
 
 namespace terrain {
   template <class T> class Bounds;
 }
 
+/// A representation of an extent
 template <class T>
 class terrain::Bounds {
 public:
+
+  /// Create an empty bounds
   Bounds() {
     bounds[0] = bounds[1] = bounds[2] = bounds[3] = 0;
   }
 
+  /// Create bounds from individual extents
   Bounds(T minx, T miny, T maxx, T maxy) {
     setBounds(minx, miny, maxx, maxy);
   }
 
+  /// Create bounds represented by lower left and upper right coordinates
   Bounds(const Coordinate<T> &lowerLeft, const Coordinate<T> &upperRight) {
     setBounds(lowerLeft, upperRight);
   }
 
-  inline void setBounds(T minx, T miny, T maxx, T maxy) {
+  /// Set the bounds from extents
+  inline void
+  setBounds(T minx, T miny, T maxx, T maxy) {
+    if (minx > maxx) {
+      throw TerrainException("The minimum X value is greater than the maximum X value");
+    } else if (miny > maxy) {
+      throw TerrainException("The minimum Y value is greater than the maximum Y value");
+    }
+
     bounds[0] = minx;
     bounds[1] = miny;
     bounds[2] = maxx;
     bounds[3] = maxy;
   }
 
-  inline void setBounds(const Coordinate<T> &lowerLeft, const Coordinate<T> &upperRight) {
-    bounds[0] = lowerLeft.x;
-    bounds[1] = lowerLeft.y;
-    bounds[2] = upperRight.x;
-    bounds[3] = upperRight.y;
+  /// Set the bounds from lower left and upper right coordinates
+  inline void
+  setBounds(const Coordinate<T> &lowerLeft, const Coordinate<T> &upperRight) {
+    setBounds(lowerLeft.x, lowerLeft.y, upperRight.x, upperRight.y);
   }
 
-  inline T getMinX() const {
+  /// Get the minimum X value
+  inline T
+  getMinX() const {
     return bounds[0];
   }
-  inline T getMinY() const {
+
+  /// Get the minimum Y value
+  inline T
+  getMinY() const {
     return bounds[1];
   }
-  inline T getMaxX() const {
+
+  /// Get the maximum X value
+  inline T
+  getMaxX() const {
     return bounds[2];
   }
-  inline T getMaxY() const {
+
+  /// Get the maximum Y value
+  inline T
+  getMaxY() const {
     return bounds[3];
   }
 
-  inline void setMinX(T newValue) {
+  /// Set the minimum X value
+  inline void
+  setMinX(T newValue) {
+    if (newValue > getMaxX())
+      throw TerrainException("The value is greater than the maximum X value");
+
     bounds[0] = newValue;
   }
-  inline void setMinY(T newValue) {
+
+  /// Set the minimum Y value
+  inline void
+  setMinY(T newValue) {
+    if (newValue > getMaxY())
+      throw TerrainException("The value is greater than the maximum Y value");
+
     bounds[1] = newValue;
   }
-  inline void setMaxX(T newValue) {
+
+  /// Set the maximum X value
+  inline void
+  setMaxX(T newValue) {
+    if (newValue < getMinX())
+      throw TerrainException("The value is less than the minimum X value");
+
     bounds[2] = newValue;
   }
-  inline void setMaxY(T newValue) {
+
+  /// Set the maximum Y value
+  inline void
+  setMaxY(T newValue) {
+    if (newValue < getMinY())
+      throw TerrainException("The value is less than the minimum Y value");
+
     bounds[3] = newValue;
   }
 
+  /// Get the lower left corner
   inline Coordinate<T>
   getLowerLeft() const {
     return Coordinate<T>(getMinX(), getMinY());
   }
+
+  /// Get the lower right corner
   inline Coordinate<T>
   getLowerRight() const {
     return Coordinate<T>(getMaxX(), getMinY());
   }
+
+  /// Get the upper right corner
   inline Coordinate<T>
   getUpperRight() const {
     return Coordinate<T>(getMaxX(), getMaxY());
   }
+
+  /// Get the upper left corner
   inline Coordinate<T>
   getUpperLeft() const {
     return Coordinate<T>(getMinX(), getMaxY());
   }
 
-  inline T getWidth() const {
+  /// Get the width
+  inline T
+  getWidth() const {
     return getMaxX() - getMinX();
   }
 
-  inline T getHeight() const {
+  /// Get the height
+  inline T
+  getHeight() const {
     return getMaxY() - getMinY();
   }
 
-  inline Bounds<T> getSW() const {
+  /// Get the lower left quarter of the extents
+  inline Bounds<T>
+  getSW() const {
     return Bounds<T>(getMinX(),
                               getMinY(),
                               getMinX() + (getWidth() / 2),
                               getMinY() + (getHeight() / 2));
   }
-  inline Bounds<T> getNW() const {
+
+  /// Get the upper left quarter of the extents
+  inline Bounds<T>
+  getNW() const {
     return Bounds<T>(getMinX(),
                               getMaxY() - (getHeight() / 2),
                               getMinX() + (getWidth() / 2),
                               getMaxY());
   }
-  inline Bounds<T> getNE() const {
+
+  /// Get the upper right quarter of the extents
+  inline Bounds<T>
+  getNE() const {
     return Bounds<T>(getMaxX() - (getWidth() / 2),
                               getMaxY() - (getHeight() / 2),
                               getMaxX(),
                               getMaxY());
   }
-  inline Bounds<T> getSE() const {
+
+  /// Get the lower right quarter of the extents
+  inline Bounds<T>
+  getSE() const {
     return Bounds<T>(getMaxX() - (getWidth() / 2),
                               getMinY(),
                               getMaxX(),
                               getMinY() + (getHeight() / 2));
   }
-  
-  inline bool overlaps(const Bounds<T> *other) const {
+
+  /// Do these bounds overlap with another?
+  inline bool
+  overlaps(const Bounds<T> *other) const {
     return overlaps(*other);
   }
 
-  inline bool overlaps(const Bounds<T> &other) const {
+  /// Do these bounds overlap with another?
+  inline bool
+  overlaps(const Bounds<T> &other) const {
     // see
     // <http://stackoverflow.com/questions/306316/determine-if-two-rectangles-overlap-each-other>
     return getMinX() < other.getMaxX() && other.getMinX() < getMaxX() &&
@@ -124,6 +202,7 @@ public:
   }
   
 private:
+  /// The extents themselves as { minx, miny, maxx, maxy }
   T bounds[4];
 };
 

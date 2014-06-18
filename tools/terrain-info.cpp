@@ -1,3 +1,11 @@
+/**
+ * @file terrain-info.cpp
+ * @brief A tool to extract information from the terrain tile
+ *
+ * This tool takes a terrain file and optionally extracts height, child tile
+ * and water mask information. It exits with `0` on success or `1` otherwise.
+ */
+
 #include <iostream>
 
 #include "gdal_priv.h"
@@ -10,6 +18,7 @@
 using namespace std;
 using namespace terrain;
 
+/// Handle the terrain info CLI options
 class TerrainInfo : public Command {
 public:
   TerrainInfo(const char *name, const char *version) :
@@ -60,8 +69,9 @@ public:
   bool mShowType;
 };
 
-int main(int argc, char *argv[]) {
-  Terrain terrain;
+int
+main(int argc, char *argv[]) {
+  // Set up the command interface
   TerrainInfo command = TerrainInfo(argv[0], version.c_str());
   command.setUsage("[options] TERRAIN_FILE");
   command.option("-e", "--show-heights", "show the height information as an ASCII raster", TerrainInfo::showHeights);
@@ -74,6 +84,8 @@ int main(int argc, char *argv[]) {
 
   GDALAllRegister();
 
+  // Read the terrain data from the filesystem
+  Terrain terrain;
   try {
     terrain = Terrain(command.getInputFilename());
   } catch (TerrainException &e) {
@@ -81,6 +93,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  // Print out the heights if required
   if (command.mShowHeights) {
     const std::vector<terrain::i_terrain_height> & heights = terrain.getHeights();
     cout << "Heights:";
@@ -91,6 +104,7 @@ int main(int argc, char *argv[]) {
     cout << endl;
   }
 
+  // Print out the child tiles if required
   if (command.mShowChildren) {
     if (terrain.hasChildren()) {
       cout << "Child tiles:";
@@ -112,6 +126,7 @@ int main(int argc, char *argv[]) {
     cout << endl;
   }
 
+  // Print out the tile type if required
   if (command.mShowType) {
     cout << "Tile type: ";
     if (terrain.hasWaterMask()) {

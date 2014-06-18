@@ -1,3 +1,19 @@
+/**
+ * @file terrain-build.cpp
+ * @brief Convert a GDAL raster to terrain tiles
+ *
+ * This tool takes a GDAL raster and converts it to gzip compressed terrain
+ * tiles which are written to an output directory on the filesystem.
+ *
+ * In the case of a multiband raster, only the first band is used to create the
+ * terrain heights.  No water mask is currently set and all tiles are flagged
+ * as being 'all land'.
+ *
+ * It is recommended that the input raster is in the EPSG 4326 spatial
+ * reference system. If this is not the case then the tiles will be reprojected
+ * to EPSG 4326 as required by the terrain tile format.
+ */
+
 #include <iostream>
 #include <sstream>
 
@@ -18,6 +34,7 @@ static const char *osDirSep = "\\";
 static const char *osDirSep = "/";
 #endif
 
+/// Handle the terrain build CLI options
 class TerrainBuild : public Command {
 public:
   TerrainBuild(const char *name, const char *version) :
@@ -54,9 +71,11 @@ public:
   const char *outputDir;
 };
 
-void build(const GDALTiler &tiler, const char *outputDir) {
+/// Output terrain tiles represented by a tiler to a directory
+void
+build(const GDALTiler &tiler, const char *outputDir) {
   const string dirname = string(outputDir) + osDirSep;
-  
+
   for(TileIterator iter(tiler); !iter.exhausted(); ++iter) {
     const TerrainTile terrainTile = *iter;
     const TileCoordinate coord = terrainTile.getCoordinate();
@@ -77,7 +96,8 @@ void build(const GDALTiler &tiler, const char *outputDir) {
   }
 }
 
-int main(int argc, char *argv[]) {
+int
+main(int argc, char *argv[]) {
   TerrainBuild command = TerrainBuild(argv[0], version.c_str());
   command.setUsage("[options] GDAL_DATASOURCE");
   command.option("-o", "--output-dir <dir>", "specify the output directory for the tiles (defaults to working directory)", TerrainBuild::setOutputDir);

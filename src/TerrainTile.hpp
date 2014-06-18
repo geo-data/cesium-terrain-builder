@@ -1,6 +1,11 @@
 #ifndef TERRAINTILE_HPP
 #define TERRAINTILE_HPP
 
+/**
+ * @file TerrainTile.hpp
+ * @brief This declares the `Terrain` and `TerrainTile` classes
+ */
+
 #include <vector>
 
 #include "gdal_priv.h"
@@ -14,59 +19,137 @@ namespace terrain {
   class GDALTiler;
 }
 
+/**
+ * @brief Model the terrain heightmap specification
+ *
+ * This aims to implement the Cesium [heightmap-1.0 terrain
+ * format](http://cesiumjs.org/data-and-assets/terrain/formats/heightmap-1.0.html).
+ */
 class terrain::Terrain {
 public:
+
+  /// Create an empty terrain object
   Terrain();
+
+  /// Instantiate using terrain data on the file system
   Terrain(const char *fileName);
+
+  /// Read terrain data from a file handle
   Terrain(FILE *fp);
 
-  void readFile(const char *fileName);
-  
-  void writeFile(FILE *fp) const;
-  void writeFile(const char *fileName) const;
-  std::vector<bool> mask();
+  /// Read terrain data from the filesystem
+  void
+  readFile(const char *fileName);
 
-  bool hasChildren() const;
-  bool hasChildSW() const;
-  bool hasChildSE() const;
-  bool hasChildNW() const;
-  bool hasChildNE() const;
+  /// Write terrain data to a file handle
+  void
+  writeFile(FILE *fp) const;
 
-  void setChildSW(bool on = true);
-  void setChildSE(bool on = true);
-  void setChildNW(bool on = true);
-  void setChildNE(bool on = true);
+  /// Write terrain data to the filesystem
+  void
+  writeFile(const char *fileName) const;
 
-  void setAllChildren(bool on = true);
+  /// Get the water mask as a boolean mask
+  std::vector<bool>
+  mask();
 
-  void setIsWater();
-  bool isWater() const;
+  /// Does the terrain tile have child tiles?
+  bool
+  hasChildren() const;
 
-  void setIsLand();
-  bool isLand() const;
-  bool hasWaterMask() const;
+  /// Does the terrain tile have a south west child tile?
+  bool
+  hasChildSW() const;
 
+  /// Does the terrain tile have a south east child tile?
+  bool
+  hasChildSE() const;
+
+  /// Does the terrain tile have a north west child tile?
+  bool
+  hasChildNW() const;
+
+  /// Does the terrain tile have a north east child tile?
+  bool
+  hasChildNE() const;
+
+  /// Specify that there is a south west child tile
+  void
+  setChildSW(bool on = true);
+
+  /// Specify that there is a south east child tile
+  void
+  setChildSE(bool on = true);
+
+  /// Specify that there is a north west child tile
+  void
+  setChildNW(bool on = true);
+
+  /// Specify that there is a north east child tile
+  void
+  setChildNE(bool on = true);
+
+  /// Specify that all child tiles are present
+  void
+  setAllChildren(bool on = true);
+
+  /// Specify that this tile is all water
+  void
+  setIsWater();
+
+  /// Is this tile all water?
+  bool
+  isWater() const;
+
+  /// Specify that this tile is all land
+  void
+  setIsLand();
+
+  /// Is this tile all land?
+  bool
+  isLand() const;
+
+  /// Does this tile have a water mask?
+  bool
+  hasWaterMask() const;
+
+  /// Get the height data as a const vector
   const std::vector<i_terrain_height> &
   getHeights() const;
 
+  /// Get the height data as a vector
   std::vector<i_terrain_height> &
   getHeights();
 
 protected:
+  /// The terrain height data
   std::vector<i_terrain_height> mHeights; // replace with `std::array` in C++11
 
+  /// The number of height cells within a terrain tile
   static const unsigned short int TILE_CELL_SIZE = TILE_SIZE * TILE_SIZE;
+
+  /// The number of water mask cells within a terrain tile
   static const unsigned int MASK_CELL_SIZE = MASK_SIZE * MASK_SIZE;
 
-  // The maximum byte size of an uncompressed terrain tile (heights + child
-  // flags + water mask)
+  /**
+   * @brief The maximum byte size of an uncompressed terrain tile
+   *
+   * This is calculated as (heights + child flags + water mask).
+   */
   static const unsigned int MAX_TERRAIN_SIZE = (TILE_CELL_SIZE * 2) + 1 + MASK_CELL_SIZE;
+
 private:
 
-  char mChildren;
-  char mMask[MASK_CELL_SIZE];
-  size_t mMaskLength;
+  char mChildren;               ///< The child flags
+  char mMask[MASK_CELL_SIZE];   ///< The water mask
+  size_t mMaskLength;           ///< What size is the water mask?
 
+  /**
+   * @brief Bit flags defining child tile existence
+   *
+   * There is a good discussion on bitflags
+   * [here](http://www.dylanleigh.net/notes/c-cpp-tricks.html#Using_"Bitflags").
+   */
   enum Children {
     TERRAIN_CHILD_SW = 1,       // 2^0, bit 0
     TERRAIN_CHILD_SE = 2,       // 2^1, bit 1
@@ -75,29 +158,47 @@ private:
   };
 };
 
+/**
+ * @brief Terrain data associated with a tile coordinate
+ *
+ * Associating terrain data with a tile coordinate allows the tile to be
+ * converted to a geo-referenced raster (see `heightsToRaster`).
+ */
 class terrain::TerrainTile :
   public Terrain
 {
   friend class GDALTiler;
 
 public:
+
+  /// Create a terrain tile from a tile coordinate
   TerrainTile(TileCoordinate coord);
+
+  /// Create a terrain tile from a file
   TerrainTile(const char *fileName, TileCoordinate coord);
+
+  /// Create a terrain tile from terrain data
   TerrainTile(const Terrain &terrain, TileCoordinate coord);
 
-  GDALDatasetH heightsToRaster() const;
-  
-  inline TileCoordinate & getCoordinate() {
+  /// Get the height data as an in memory GDAL raster
+  GDALDatasetH
+  heightsToRaster() const;
+
+  /// Get the tile coordinate associated with this tile
+  inline TileCoordinate &
+  getCoordinate() {
     return coord;
   }
 
-  inline const TileCoordinate & getCoordinate() const {
+  /// Get the const coordinate associated with this tile
+  inline const TileCoordinate &
+  getCoordinate() const {
     return const_cast<const TileCoordinate &>(coord);
   }
 
-
 private:
-  TileCoordinate coord;
+
+  TileCoordinate coord;         ///< The coordinate for this terrain tile
 };
 
 #endif /* TERRAINTILE_HPP */

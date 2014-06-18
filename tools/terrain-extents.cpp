@@ -1,3 +1,13 @@
+/**
+ * @file terrain-extents.cpp
+ * @brief A tool to write tile extents covered by a GDAL raster to GeoJSON
+ *
+ * This tool takes a GDAL raster as input, calculates the appropriate maximum
+ * zoom suitable for the raster, and then generates all tiles from the maximum
+ * zoom to zoom level `0` which intersect with the bounds of the raster.  The
+ * tiles are written to a directory in GeoJSON format.
+ */
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -17,6 +27,7 @@ static const char *osDirSep = "\\";
 static const char *osDirSep = "/";
 #endif
 
+/// Handle the terrain extents CLI options
 class TerrainExtents : public Command {
 public:
   TerrainExtents(const char *name, const char *version) :
@@ -53,11 +64,15 @@ public:
   const char *outputDir;
 };
 
-static void printCoord(ofstream& stream, const LatLon &coord) {
+/// Write a GeoJSON coordinate to an output stream
+static void
+printCoord(ofstream& stream, const LatLon &coord) {
   stream << "[" << coord.x << ", " << coord.y << "]";
 }
 
-static void writeBounds(GDALTiler &tiler, const char *outputDir) {
+/// Write the tile extents to a directory in GeoJSON format
+static void
+writeBounds(GDALTiler &tiler, const char *outputDir) {
   ofstream geojson;
   i_zoom maxZoom = tiler.maxZoomLevel();
   GlobalGeodetic profile = tiler.profile();
@@ -101,7 +116,8 @@ static void writeBounds(GDALTiler &tiler, const char *outputDir) {
   }
 }
 
-int main(int argc, char *argv[]) {
+int
+main(int argc, char *argv[]) {
   TerrainExtents command = TerrainExtents(argv[0], version.c_str());
   command.setUsage("GDAL_DATASET");
   command.option("-o", "--output-dir <dir>", "specify the output directory for the geojson files (defaults to working directory)", TerrainExtents::setOutputDir);

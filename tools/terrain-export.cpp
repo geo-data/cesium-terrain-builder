@@ -1,3 +1,11 @@
+/**
+ * @file terrain-export.cpp
+ * @brief The terrain export tool
+ *
+ * This tool takes a terrain file with associated tile coordinate information
+ * and converts it to a GeoTiff using the height information within the tile.
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
@@ -14,6 +22,7 @@
 using namespace std;
 using namespace terrain;
 
+/// Handle the terrain export CLI options
 class TerrainExport : public Command {
 public:
   TerrainExport(const char *name, const char *version) :
@@ -60,7 +69,8 @@ public:
     self->membersSet |= TT_TY;
   }
 
-  void check() const {
+  void
+  check() const {
     bool failed = false;
 
     if ((membersSet & TT_INPUT) != TT_INPUT) {
@@ -105,8 +115,9 @@ private:
   };
 };
 
-
-void terrain2tiff(TerrainTile &terrain, const char *filename) {
+/// Convert the terrain to the geotiff
+void
+terrain2tiff(TerrainTile &terrain, const char *filename) {
   GDALDatasetH hTileDS = terrain.heightsToRaster();
   GDALDatasetH hDstDS;
   GDALDriverH hDriver = GDALGetDriverByName("GTiff");
@@ -118,7 +129,9 @@ void terrain2tiff(TerrainTile &terrain, const char *filename) {
   GDALClose( hTileDS );
 }
 
-int main(int argc, char *argv[]) {
+int
+main(int argc, char *argv[]) {
+  // Setup the command interface
   TerrainExport command = TerrainExport(argv[0], version.c_str());
 
   command.setUsage("-i TERRAIN_FILE -z ZOOM_LEVEL -x TILE_X -y TILE_Y -o OUTPUT_FILE ");
@@ -134,9 +147,11 @@ int main(int argc, char *argv[]) {
 
   GDALAllRegister();
 
+  // Instantiate an appropriate terrain tile
   TileCoordinate coord(command.zoom, command.tx, command.ty);
   TerrainTile terrain(coord);
 
+  // Read the data into the tile from the filesystem
   try {
     terrain.readFile(command.inputFilename);
   } catch (TerrainException &e) {
@@ -145,6 +160,7 @@ int main(int argc, char *argv[]) {
 
   cout << "Creating " << command.outputFilename << " using zoom " << command.zoom << " from tile " << command.tx << "," << command.ty << endl;
 
+  // Write the data to tiff
   terrain2tiff(terrain, command.outputFilename);
 
   return 0;

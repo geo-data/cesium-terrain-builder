@@ -1,3 +1,8 @@
+/**
+ * @file TerrainTile.cpp
+ * @brief This defines the `Terrain` and `TerrainTile` classes
+ */
+
 #include <string.h>             // for memcpy
 
 #include "zlib.h"
@@ -17,32 +22,42 @@ Terrain::Terrain():
   setIsLand();
 }
 
+/**
+ * @details This reads gzipped terrain data from a file.
+ */
 Terrain::Terrain(const char *fileName):
   mHeights(TILE_CELL_SIZE)
 {
   readFile(fileName);
 }
 
+/**
+ * @details This reads raw uncompressed terrain data from a file handle.
+ */
 Terrain::Terrain(FILE *fp):
   mHeights(TILE_CELL_SIZE)
 {
   unsigned char bytes[2];
   int count = 0;
 
+  // Get the height data from the file handle
   while ( count < TILE_CELL_SIZE && fread(bytes, 2, 1, fp) != 0) {
     /* adapted from
        <http://stackoverflow.com/questions/13001183/how-to-read-little-endian-integers-from-file-in-c> */
     mHeights[count++] = bytes[0] | (bytes[1]<<8);
   }
 
+  // Check we have the expected amound of height data
   if (count+1 != TILE_CELL_SIZE) {
     throw TerrainException("Not enough height data");
   }
-  
+
+  // Get the child flag
   if ( fread(&(mChildren), 1, 1, fp) != 1 ) {
     throw TerrainException("Could not read child tile byte");
   }
 
+  // Get the water mask
   mMaskLength = fread(mMask, 1, MASK_CELL_SIZE, fp);
   switch (mMaskLength) {
   case MASK_CELL_SIZE:
@@ -54,6 +69,9 @@ Terrain::Terrain(FILE *fp):
   }
 }
 
+/**
+ * @details This reads gzipped terrain data from a file.
+ */
 void
 Terrain::readFile(const char *fileName) {
   unsigned char inflateBuffer[MAX_TERRAIN_SIZE];
@@ -64,6 +82,7 @@ Terrain::readFile(const char *fileName) {
     throw TerrainException("Failed to open file");
   }
 
+  // Uncompress the file into the buffer
   inflatedBytes = gzread(terrainFile, inflateBuffer, MAX_TERRAIN_SIZE);
   if (gzread(terrainFile, inflateBuffer, 1) != 0) {
     gzclose(terrainFile);
@@ -71,6 +90,7 @@ Terrain::readFile(const char *fileName) {
   }
   gzclose(terrainFile);
 
+  // Check the water mask type
   switch(inflatedBytes) {
   case MAX_TERRAIN_SIZE:      // a water mask is present
     mMaskLength = MASK_CELL_SIZE;
@@ -82,24 +102,32 @@ Terrain::readFile(const char *fileName) {
     throw TerrainException("File has wrong file size to be a valid terrain");
   }
 
+  // Get the height data
   short int byteCount = 0;
   for (short int i = 0; i < TILE_CELL_SIZE; i++, byteCount = i * 2) {
     mHeights[i] = inflateBuffer[byteCount] | (inflateBuffer[byteCount + 1]<<8);
   }
 
+  // Get the child flag
   mChildren = inflateBuffer[byteCount]; // byte 8451
 
+  // Get the water mask
   memcpy(mMask, &(inflateBuffer[++byteCount]), mMaskLength);
 }
 
+/**
+ * @details This writes raw uncompressed terrain data to a filehandle.
+ */
 void
 Terrain::writeFile(FILE *fp) const {
   fwrite(mHeights.data(), TILE_CELL_SIZE * 2, 1, fp);
-
   fwrite(&mChildren, 1, 1, fp);
   fwrite(mMask, mMaskLength, 1, fp);
 }
 
+/**
+ * @details This writes gzipped terrain data to a file.
+ */
 void 
 Terrain::writeFile(const char *fileName) const {
   gzFile terrainFile = gzopen(fileName, "wb");
@@ -108,21 +136,25 @@ Terrain::writeFile(const char *fileName) const {
     throw TerrainException("Failed to open file");
   }
 
+  // Write the height data
   if (gzwrite(terrainFile, mHeights.data(), TILE_CELL_SIZE * 2) == 0) {
     gzclose(terrainFile);
     throw TerrainException("Failed to write height data");
   }
 
+  // Write the child flags
   if (gzputc(terrainFile, mChildren) == -1) {
     gzclose(terrainFile);
     throw TerrainException("Failed to write child flags");
   }
 
+  // Write the water mask
   if (gzwrite(terrainFile, mMask, mMaskLength) == 0) {
     gzclose(terrainFile);
     throw TerrainException("Failed to write water mask");
   }
 
+  // Try and close the file
   switch (gzclose(terrainFile)) {
   case Z_OK:
     break;
@@ -135,35 +167,40 @@ Terrain::writeFile(const char *fileName) const {
   }
 }
 
-std::vector<bool> Terrain::mask() {
+std::vector<bool>
+Terrain::mask() {
   std::vector<bool> mask;
   mask.assign(mMask, mMask + mMaskLength);
   return mask;
 }
 
-/* for a discussion on bitflags see
-   <http://www.dylanleigh.net/notes/c-cpp-tricks.html#Using_"Bitflags"> */
-bool Terrain::hasChildren() const {
+bool
+Terrain::hasChildren() const {
   return mChildren;
 }
 
-bool Terrain::hasChildSW() const {
+bool
+Terrain::hasChildSW() const {
   return ((mChildren & TERRAIN_CHILD_SW) == TERRAIN_CHILD_SW);
 }
 
-bool Terrain::hasChildSE() const {
+bool
+Terrain::hasChildSE() const {
   return ((mChildren & TERRAIN_CHILD_SE) == TERRAIN_CHILD_SE);
 }
 
-bool Terrain::hasChildNW() const {
+bool
+Terrain::hasChildNW() const {
   return ((mChildren & TERRAIN_CHILD_NW) == TERRAIN_CHILD_NW);
 }
 
-bool Terrain::hasChildNE() const {
+bool
+Terrain::hasChildNE() const {
   return ((mChildren & TERRAIN_CHILD_NE) == TERRAIN_CHILD_NE);
 }
 
-void Terrain::setChildSW(bool on) {
+void
+Terrain::setChildSW(bool on) {
   if (on) {
     mChildren |= TERRAIN_CHILD_SW;
   } else {
@@ -171,7 +208,8 @@ void Terrain::setChildSW(bool on) {
   }
 }
 
-void Terrain::setChildSE(bool on) {
+void
+Terrain::setChildSE(bool on) {
   if (on) {
     mChildren |= TERRAIN_CHILD_SE;
   } else {
@@ -179,7 +217,8 @@ void Terrain::setChildSE(bool on) {
   }
 }
 
-void Terrain::setChildNW(bool on) {
+void
+Terrain::setChildNW(bool on) {
   if (on) {
     mChildren |= TERRAIN_CHILD_NW;
   } else {
@@ -187,7 +226,8 @@ void Terrain::setChildNW(bool on) {
   }
 }
 
-void Terrain::setChildNE(bool on) {
+void
+Terrain::setChildNE(bool on) {
   if (on) {
     mChildren |= TERRAIN_CHILD_NE;
   } else {
@@ -195,7 +235,8 @@ void Terrain::setChildNE(bool on) {
   }
 }
 
-void Terrain::setAllChildren(bool on) {
+void
+Terrain::setAllChildren(bool on) {
   if (on) {
     mChildren = TERRAIN_CHILD_SW | TERRAIN_CHILD_SE | TERRAIN_CHILD_NW | TERRAIN_CHILD_NE;
   } else {
@@ -203,25 +244,30 @@ void Terrain::setAllChildren(bool on) {
   }
 }
 
-void Terrain::setIsWater() {
+void
+Terrain::setIsWater() {
   mMask[0] = 1;
   mMaskLength = 1;
 }
 
-bool Terrain::isWater() const {
+bool
+Terrain::isWater() const {
   return mMaskLength == 1 && (bool) mMask[0];
 }
 
-void Terrain::setIsLand() {
+void
+Terrain::setIsLand() {
   mMask[0] = 0;
   mMaskLength = 1;
 }
 
-bool Terrain::isLand() const {
+bool
+Terrain::isLand() const {
   return mMaskLength == 1 && ! (bool) mMask[0];
 }
 
-bool Terrain::hasWaterMask() const {
+bool
+Terrain::hasWaterMask() const {
   return mMaskLength == MASK_CELL_SIZE;
 }
 
@@ -230,6 +276,10 @@ Terrain::getHeights() const {
   return mHeights;
 }
 
+/**
+ * @details The data in the returned vector can be altered but do not alter
+ * the number of elements in the vector.
+ */
 std::vector<i_terrain_height> &
 Terrain::getHeights() {
   return mHeights;
@@ -249,27 +299,38 @@ TerrainTile::TerrainTile(const Terrain &terrain, TileCoordinate coord):
   coord(coord)
 {}
 
-GDALDatasetH TerrainTile::heightsToRaster() const {
+GDALDatasetH
+TerrainTile::heightsToRaster() const {
+  // Create the geo transform for this raster tile
   const GlobalGeodetic profile;
   const LatLonBounds tileBounds = profile.tileBounds(coord);
   const i_tile tileSize = profile.tileSize();
-  
   const double resolution = tileBounds.getWidth() / tileSize;
-  double adfGeoTransform[6] = { tileBounds.getMinX(), resolution, 0, tileBounds.getMaxY(), 0, -resolution };
+  double adfGeoTransform[6] = {
+    tileBounds.getMinX(),
+    resolution,
+    0,
+    tileBounds.getMaxY(),
+    0,
+    -resolution
+  };
 
+  // Create the spatial reference system for the raster
   OGRSpatialReference oSRS;
   if (oSRS.importFromEPSG(4326) != OGRERR_NONE) {
     throw TerrainException("Could not create EPSG:4326 spatial reference");
   }
 
+  char *pszDstWKT = NULL;
+  if (oSRS.exportToWkt( &pszDstWKT ) != OGRERR_NONE) {
+    CPLFree( pszDstWKT );
+    throw TerrainException("Could not create EPSG:4326 WKT string");
+  }
+
+  // Create an 'In Memory' raster
   GDALDriverH hDriver = GDALGetDriverByName( "MEM" );
   GDALDatasetH hDstDS;
   GDALRasterBandH hBand;
-
-  char *pszDstWKT = NULL;
-  if (oSRS.exportToWkt( &pszDstWKT ) != OGRERR_NONE) {
-    throw TerrainException("Could not create EPSG:4326 WKT string");
-  }
 
   hDstDS = GDALCreate(hDriver, "", tileSize, tileSize, 1, GDT_Int16, NULL );
   if (hDstDS == NULL) {
@@ -277,6 +338,7 @@ GDALDatasetH TerrainTile::heightsToRaster() const {
     throw TerrainException("Could not create in memory raster");
   }
 
+  // Set the projection
   if (GDALSetProjection( hDstDS, pszDstWKT ) != CE_None) {
     GDALClose(hDstDS);
     CPLFree( pszDstWKT );
@@ -284,11 +346,13 @@ GDALDatasetH TerrainTile::heightsToRaster() const {
   }
   CPLFree( pszDstWKT );
 
+  // Apply the geo transform
   if (GDALSetGeoTransform( hDstDS, adfGeoTransform ) != CE_None) {
     GDALClose(hDstDS);
     throw TerrainException("Could not set projection on VRT");
   }
 
+  // Finally write the height data
   hBand = GDALGetRasterBand( hDstDS, 1 );
   if (GDALRasterIO( hBand, GF_Write, 0, 0, tileSize, tileSize,
                     (void *) mHeights.data(), tileSize, tileSize, GDT_Int16, 0, 0 ) != CE_None) {
