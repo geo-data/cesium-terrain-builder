@@ -1,11 +1,10 @@
 ## -*- docker-image-name: "homme/cesium-terrain-builder:latest" -*-
 
 ##
-# The OpenStreetMap Tile Server
+# Cesium Terrain Builder
 #
-# This creates an image containing the OpenStreetMap tile server stack as
-# described at
-# <http://switch2osm.org/serving-tiles/manually-building-a-tile-server-12-04/>.
+# This creates an image containing an installation of the Cesium Terrain
+# Builder software (https://github.com/geo-data/cesium-terrain-builder).
 #
 
 FROM homme/gdal:latest
