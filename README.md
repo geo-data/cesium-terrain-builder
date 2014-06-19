@@ -174,7 +174,9 @@ In addition to ensuring the GDAL library is installed, you will need the GDAL
 source development header files. You will also need
 [CMake](http://www.cmake.org) to be available.
 
-## Installation from Source
+## Installation
+
+### From Source
 
 1. Ensure your system meets the requirements above.
 
@@ -191,6 +193,17 @@ Alternatively in step 3 above you can create a debug build by running `cmake
 -DCMAKE_BUILD_TYPE=Debug ..`.  You can also install to a different location by
 specifying the `CMAKE_INSTALL_PREFIX` directive e.g. `cmake
 -DCMAKE_INSTALL_PREFIX=/tmp/terrain ..`.
+
+### Using Docker
+
+A [Docker](http://www.docker.com/) image at the Docker Registry.  The only
+requirement to getting up and running with Cesium Terrain Builder is having
+docker available on your system: all software dependencies, build and
+installation issues are encapsulated in the image.
+
+See
+[the Cesium Terrain Builder page](https://registry.hub.docker.com/u/homme/cesium-terrain-builder/)
+on the Docker Registry for further details.
 
 ## Limitations and TODO
 
