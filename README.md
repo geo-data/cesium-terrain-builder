@@ -196,14 +196,13 @@ specifying the `CMAKE_INSTALL_PREFIX` directive e.g. `cmake
 
 ### Using Docker
 
-A [Docker](http://www.docker.com/) image at the Docker Registry.  The only
-requirement to getting up and running with Cesium Terrain Builder is having
-docker available on your system: all software dependencies, build and
-installation issues are encapsulated in the image.
+A [Docker](http://www.docker.com/) image
+[is available](https://registry.hub.docker.com/u/homme/cesium-terrain-builder/)
+at the Docker Registry: follow the link for usage information.
 
-See
-[the Cesium Terrain Builder page](https://registry.hub.docker.com/u/homme/cesium-terrain-builder/)
-on the Docker Registry for further details.
+The only requirement to getting up and running with Cesium Terrain Builder is
+having docker available on your system: all software dependencies, build and
+installation issues are encapsulated in the image.
 
 ## Limitations and TODO
 

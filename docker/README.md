@@ -31,6 +31,3 @@ host system:
     mkdir /data/tiles && terrain-build -o /data/tiles /data/source.tiff
 
 You should now have the tiles available on your host system in `/tmp/tiles`.
-
-Note that the image tagged `latest` represents the latest Cesium Terrain
-Builder code *at the time the image was built*.
