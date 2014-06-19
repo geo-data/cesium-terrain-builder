@@ -126,7 +126,7 @@ application specific. Instead its aim is simply to take a
 Terrain Model (DTM) and convert this to terrain tiles.
 
 See the source code for the tools provided with the library
-(e.g. `terrain-build`) for examples on how the the library is used to achieve
+(e.g. `terrain-build`) for examples on how the library is used to achieve
 this.
 
 ### Documentation
