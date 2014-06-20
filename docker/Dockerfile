@@ -11,10 +11,11 @@ FROM homme/gdal:latest
 MAINTAINER Homme Zwaagstra <hrz@geodata.soton.ac.uk>
 
 # Ensure `cmake` is present
+RUN apt-get update -y
 RUN apt-get install -y cmake
 
 # Install Cesium Terrain Builder itself
-ADD ./checkout.txt /tmp/ctb-checkout.txt
+ADD ./ctb-checkout.txt /tmp/ctb-checkout.txt
 ADD ./install-ctb.sh /tmp/
 RUN sh /tmp/install-ctb.sh
 
