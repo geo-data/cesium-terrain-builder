@@ -65,21 +65,21 @@ public:
   /// Override the equality operator
   inline bool
   operator==(const TileCoordinate &other) const {
-    return dynamic_cast<const TilePoint &>(*this) == dynamic_cast<const TilePoint &>(other)
+    return TilePoint::operator==(other)
       && zoom == other.zoom;
   }
 
   /// Override the assignment operator
   inline void
   operator=(const TileCoordinate &other) {
-    dynamic_cast<TilePoint &>(*this) = dynamic_cast<const TilePoint &>(other);
+    TilePoint::operator=(other);
     zoom = other.zoom;
   }
 
   /// Set the point
   inline void
   setPoint(const TilePoint &point) {
-    dynamic_cast<TilePoint &>(*this) = point;
+    TilePoint::operator=(point);
   }
 
   i_zoom zoom;                  ///< The zoom level

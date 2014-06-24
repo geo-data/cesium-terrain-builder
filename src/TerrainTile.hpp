@@ -183,7 +183,7 @@ private:
 class terrain::TerrainTile :
   public Terrain
 {
-  friend class GDALTiler;
+  friend class TerrainTiler;
 
 public:
 

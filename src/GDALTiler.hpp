@@ -39,14 +39,14 @@ namespace terrain {
 }
 
 /**
- * @brief Create terrain tiles from a GDAL Dataset
+ * @brief Create raster tiles from a GDAL Dataset
  *
  * This class is associated with a GDAL dataset from which it determines the
  * maximum zoom level (see `GDALTiler::maxZoomLevel`) and tile extents for a
  * particular zoom level (see `GDALTiler::tileBoundsForZoom`).  This
  * information can be used to create `TileCoordinate` instances which can be
- * used to create raster or terrain representations of a tile coverage (see
- * `GDALTiler::createRasterTile` and `GDALTiler::createTerrainTile`).
+ * used to create raster representations of a tile coverage (see
+ * `GDALTiler::createRasterTile`).
  *
  * The GDAL dataset assigned to the tiler has its reference count incremented
  * when a tiler is instantiated or copied, meaning that the dataset is shared
@@ -79,12 +79,8 @@ public:
   ~GDALTiler();
 
   /// Create a raster tile from a tile coordinate
-  GDALDatasetH
+  virtual GDALDatasetH
   createRasterTile(const TileCoordinate &coord) const;
-
-  /// Create a terrain tile from a tile coordinate
-  TerrainTile
-  createTerrainTile(const TileCoordinate &coord) const;
 
   /// Get the maximum zoom level for the dataset
   inline i_zoom
@@ -147,40 +143,14 @@ protected:
   /// Close the underlying dataset
   void closeDataset();
 
-  /**
-   * @brief Get terrain bounds shifted to introduce a pixel overlap
-   *
-   * Given a `TileCoordinate`, this sets the resolution and returns latitude
-   * and longitude bounds for a tile which include a pixel's worth of data
-   * outside the actual tile bounds to both the east and the north.  This is
-   * used to satisfy the terrain heightmap specification of terrain tiles
-   * including a pixel's worth of data from surrounding tiles.
-   *
-   * @param coord The tile coordinate identifying the tile in question
-   * @param resolution The resolution of the modified extent is set here
-   */
-  inline LatLonBounds
-  terrainTileBounds(const TileCoordinate &coord,
-                    double &resolution) const {
-    // The actual tile size accounting for a border
-    i_tile lTileSize = mProfile.tileSize() - 1;
-    LatLonBounds tile = mProfile.tileBounds(coord); // the actual tile bounds
+  /// Create a raster tile from a tile coordinate and geo transform
+  GDALDatasetH
+  createRasterTile(double (&adfGeoTransform)[6]) const;
 
-    // Get the resolution for the dataset without a border
-    resolution = (tile.getMaxX() - tile.getMinX()) / lTileSize;
-
-    // extend the easting by one pixel's worth
-    tile.setMinX(tile.getMinX() - resolution);
-
-    // extend the northing by one pixel's worth
-    tile.setMaxY(tile.getMaxY() + resolution);
-
-    return tile;
-  }
-
-private:
   /// The geodetic profile for the terrain tileset
   GlobalGeodetic mProfile;
+
+private:
 
   /// The dataset from which to generate tiles
   GDALDataset *poDataset;

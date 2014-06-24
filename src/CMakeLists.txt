@@ -20,7 +20,12 @@ if(NOT ZLIB_FOUND)
 endif()
 include_directories(${ZLIB_INCLUDE_DIRS})
   
-add_library(terrain SHARED GDALTiler.cpp TerrainTile.cpp TileIterator.cpp)
+add_library(terrain SHARED
+    GDALTiler.cpp
+    TerrainTiler.cpp
+    TerrainTile.cpp
+    RasterIterator.cpp
+    TerrainIterator.cpp)
 target_link_libraries(terrain ${GDAL_LIBRARIES} ${ZLIB_LIBRARIES})
 
 # Install libterrain

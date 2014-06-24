@@ -144,54 +144,29 @@ terrain::GDALTiler::~GDALTiler() {
   closeDataset();
 }
 
-TerrainTile
-terrain::GDALTiler::createTerrainTile(const TileCoordinate &coord) const {
-  TerrainTile terrainTile(coord); // a terrain tile represented by the tile coordinate
-  GDALDataset *rasterTile = (GDALDataset *) createRasterTile(coord); // the raster associated with this tile coordinate
-  GDALRasterBand *heightsBand = rasterTile->GetRasterBand(1);
+GDALDatasetH
+terrain::GDALTiler::createRasterTile(const TileCoordinate &coord) const {
+  // Convert the tile bounds into a geo transform
+  double adfGeoTransform[6],
+    resolution = mProfile.resolution(coord.zoom);
+  LatLonBounds tileBounds = mProfile.tileBounds(coord);
 
-  // Copy the raster data into an array
-  float rasterHeights[TerrainTile::TILE_CELL_SIZE];
-  if (heightsBand->RasterIO(GF_Read, 0, 0, TILE_SIZE, TILE_SIZE,
-                            (void *) rasterHeights, TILE_SIZE, TILE_SIZE, GDT_Float32,
-                            0, 0) != CE_None) {
-    GDALClose(rasterTile);
-    throw TerrainException("Could not read heights from raster");
+  adfGeoTransform[0] = tileBounds.getMinX(); // min longitude
+  adfGeoTransform[1] = resolution;
+  adfGeoTransform[2] = 0;
+  adfGeoTransform[3] = tileBounds.getMaxY(); // max latitude
+  adfGeoTransform[4] = 0;
+  adfGeoTransform[5] = -resolution;
+
+  GDALDatasetH hDstDS = createRasterTile(adfGeoTransform);
+
+  // Set the shifted geo transform to the VRT
+  if (GDALSetGeoTransform( hDstDS, adfGeoTransform ) != CE_None) {
+    GDALClose(hDstDS);
+    throw TerrainException("Could not set geo transform on VRT");
   }
 
-  // Copy the raster data into the terrain tile heights
-  // TODO: try doing this using a VRT derived band:
-  // (http://www.gdal.org/gdal_vrttut.html)
-  for (unsigned short int i = 0; i < TerrainTile::TILE_CELL_SIZE; i++) {
-    terrainTile.mHeights[i] = (i_terrain_height) ((rasterHeights[i] + 1000) * 5);
-  }
-
-  GDALClose(rasterTile);
-
-  // If we are not at the maximum zoom level we need to set child flags on the
-  // tile where child tiles overlap the dataset bounds.
-  if (coord.zoom != maxZoomLevel()) {
-    LatLonBounds tileBounds = mProfile.tileBounds(coord);
-
-    if (! (bounds().overlaps(tileBounds))) {
-      terrainTile.setAllChildren(false);
-    } else {
-      if (bounds().overlaps(tileBounds.getSW())) {
-        terrainTile.setChildSW();
-      }
-      if (bounds().overlaps(tileBounds.getNW())) {
-        terrainTile.setChildNW();
-      }
-      if (bounds().overlaps(tileBounds.getNE())) {
-        terrainTile.setChildNE();
-      }
-      if (bounds().overlaps(tileBounds.getSE())) {
-        terrainTile.setChildSE();
-      }
-    }
-  }
-
-  return terrainTile;
+  return hDstDS;
 }
 
 /**
@@ -201,26 +176,20 @@ terrain::GDALTiler::createTerrainTile(const TileCoordinate &coord) const {
  * underlying dataset is not in the EPSG:4326 projection.  This information is
  * then encapsulated as a GDAL virtual raster (VRT) dataset and returned to the
  * caller.
+ *
+ * It is the caller's responsibility to call `GDALClose()` on the returned
+ * dataset.
  */
 GDALDatasetH
-terrain::GDALTiler::createRasterTile(const TileCoordinate &coord) const {
+terrain::GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
   if (poDataset == NULL) {
     throw TerrainException("No GDAL dataset is set");
   }
 
-  // Get the bounds and resolution for a tile coordinate which represents the
-  // data overlap requested by the terrain specification.
-  double resolution;
-  LatLonBounds tileBounds = terrainTileBounds(coord, resolution);
-
-  // Convert the tile bounds into a geo transform
-  double adfGeoTransform[6];
-  adfGeoTransform[0] = tileBounds.getMinX(); // min longitude
-  adfGeoTransform[1] = resolution;
-  adfGeoTransform[2] = 0;
-  adfGeoTransform[3] = tileBounds.getMaxY(); // max latitude
-  adfGeoTransform[4] = 0;
-  adfGeoTransform[5] = -resolution;
+  short int nBandCount = poDataset->GetRasterCount();
+  if (nBandCount < 1) {
+    throw TerrainException("At least one band must be present in the GDAL dataset");
+  }
 
   // The source and sink datasets
   GDALDatasetH hSrcDS = (GDALDatasetH) dataset();
@@ -240,13 +209,15 @@ terrain::GDALTiler::createRasterTile(const TileCoordinate &coord) const {
   GDALWarpOptions *psWarpOptions = GDALCreateWarpOptions();
   //psWarpOptions->eResampleAlg = eResampleAlg;
   psWarpOptions->hSrcDS = hSrcDS;
-  psWarpOptions->nBandCount = 1;
+  psWarpOptions->nBandCount = nBandCount;
   psWarpOptions->panSrcBands =
     (int *) CPLMalloc(sizeof(int) * psWarpOptions->nBandCount );
-  psWarpOptions->panSrcBands[0] = 1;
   psWarpOptions->panDstBands =
     (int *) CPLMalloc(sizeof(int) * psWarpOptions->nBandCount );
-  psWarpOptions->panDstBands[0] = 1;
+
+  for (short unsigned int i = 0; i < nBandCount; ++i) {
+    psWarpOptions->panDstBands[i] = psWarpOptions->panSrcBands[i] = i + 1;
+  }
 
   psWarpOptions->pfnTransformer = GDALGenImgProjTransform;
   psWarpOptions->pTransformerArg =
@@ -272,24 +243,6 @@ terrain::GDALTiler::createRasterTile(const TileCoordinate &coord) const {
 
   // Set the projection information on the dataset
   if (GDALSetProjection( hDstDS, pszDstWKT ) != CE_None) {
-    GDALClose(hDstDS);
-    throw TerrainException("Could not set projection on VRT");
-  }
-
-  // The previous geotransform represented the data with an overlap as required
-  // by the terrain specification.  This now needs to be overwritten so that
-  // the data is shifted to the bounds defined by tile itself.
-  tileBounds = mProfile.tileBounds(coord);
-  resolution = mProfile.resolution(coord.zoom);
-  adfGeoTransform[0] = tileBounds.getMinX(); // min longitude
-  adfGeoTransform[1] = resolution;
-  adfGeoTransform[2] = 0;
-  adfGeoTransform[3] = tileBounds.getMaxY(); // max latitude
-  adfGeoTransform[4] = 0;
-  adfGeoTransform[5] = -resolution;
-
-  // Set the shifted geo transform to the VRT
-  if (GDALSetGeoTransform( hDstDS, adfGeoTransform ) != CE_None) {
     GDALClose(hDstDS);
     throw TerrainException("Could not set projection on VRT");
   }

@@ -16,10 +16,10 @@
 
 /**
  * @file terrain-build.cpp
- * @brief Convert a GDAL raster to terrain tiles
+ * @brief Convert a GDAL raster to a tile format
  *
- * This tool takes a GDAL raster and converts it to gzip compressed terrain
- * tiles which are written to an output directory on the filesystem.
+ * This tool takes a GDAL raster and by default converts it to gzip compressed
+ * terrain tiles which are written to an output directory on the filesystem.
  *
  * In the case of a multiband raster, only the first band is used to create the
  * terrain heights.  No water mask is currently set and all tiles are flagged
@@ -28,18 +28,23 @@
  * It is recommended that the input raster is in the EPSG 4326 spatial
  * reference system. If this is not the case then the tiles will be reprojected
  * to EPSG 4326 as required by the terrain tile format.
+ *
+ * Using the `--output-format` flag this tool can also be used to create tiles
+ * in other raster formats that are supported by GDAL.
  */
 
 #include <iostream>
 #include <sstream>
+#include <string.h>             // for strcmp
 
 #include "gdal_priv.h"
 #include "commander.hpp"
 
 #include "config.hpp"
 #include "TerrainException.hpp"
-#include "GDALTiler.hpp"
-#include "TileIterator.hpp"
+#include "TerrainTiler.hpp"
+#include "RasterIterator.hpp"
+#include "TerrainIterator.hpp"
 
 using namespace std;
 using namespace terrain;
@@ -55,7 +60,8 @@ class TerrainBuild : public Command {
 public:
   TerrainBuild(const char *name, const char *version) :
     Command(name, version),
-    outputDir(".")
+    outputDir("."),
+    outputFormat("Terrain")
   {}
 
   void
@@ -79,32 +85,84 @@ public:
     static_cast<TerrainBuild *>(Command::self(command))->outputDir = command->arg;
   }
 
+  static void
+  setOutputFormat(command_t *command) {
+    static_cast<TerrainBuild *>(Command::self(command))->outputFormat = command->arg;
+  }
+
   const char *
   getInputFilename() const {
     return  (command->argc == 1) ? command->argv[0] : NULL;
   }
 
   const char *outputDir;
+  const char *outputFormat;
 };
+
+string
+getTileFilename(const TileCoordinate &coord, const string dirname, const char *extension) {
+  string filename = dirname + static_cast<ostringstream*>
+    (
+     &(ostringstream()
+       << coord.zoom
+       << "-"
+       << coord.x
+       << "-"
+       << coord.y)
+     )->str();
+
+  if (extension != NULL) {
+    filename += ".";
+    filename += extension;
+  }
+
+  return filename;
+}
+
+/// Output GDAL tiles represented by a tiler to a directory
+void
+buildGDAL(const GDALTiler &tiler, const char *outputDir, const char *outputFormat) {
+  GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName(outputFormat);
+
+  if (poDriver == NULL) {
+    throw TerrainException("Could not retrieve GDAL driver");
+  }
+
+  if (poDriver->pfnCreateCopy == NULL) {
+    throw TerrainException("The GDAL driver must be write enabled, specifically supporting 'CreateCopy'");
+  }
+
+  const char *extension = poDriver->GetMetadataItem(GDAL_DMD_EXTENSION);
+  const string dirname = string(outputDir) + osDirSep;
+
+  for (RasterIterator iter(tiler); !iter.exhausted(); ++iter) {
+    std::pair<const TileCoordinate &, GDALDataset *> result = *iter;
+    const TileCoordinate &coord = result.first;
+    GDALDataset *poSrcDS = result.second;
+    GDALDataset *poDstDS;
+    const string filename = getTileFilename(coord, dirname, extension);
+
+    cout << "creating " << filename << endl;
+
+    poDstDS = poDriver->CreateCopy(filename.c_str(), poSrcDS, FALSE,
+                                   NULL, NULL, NULL );
+
+    // Close the datasets, flushing data to destination
+    if (poDstDS != NULL)
+      GDALClose(poDstDS);
+    GDALClose(poSrcDS);
+  }
+}
 
 /// Output terrain tiles represented by a tiler to a directory
 void
-build(const GDALTiler &tiler, const char *outputDir) {
+buildTerrain(const TerrainTiler &tiler, const char *outputDir) {
   const string dirname = string(outputDir) + osDirSep;
 
-  for(TileIterator iter(tiler); !iter.exhausted(); ++iter) {
+  for (TerrainIterator iter(tiler); !iter.exhausted(); ++iter) {
     const TerrainTile terrainTile = *iter;
-    const TileCoordinate coord = terrainTile.getCoordinate();
-    const string filename = dirname + static_cast<ostringstream*>
-      (
-       &(ostringstream()
-         << coord.zoom
-         << "-"
-         << coord.x
-         << "-"
-         << coord.y
-         << ".terrain")
-       )->str();
+    const TileCoordinate &coord = terrainTile.getCoordinate();
+    const string filename = getTileFilename(coord, dirname, "terrain");
 
     cout << "creating " << filename << endl;
 
@@ -117,6 +175,7 @@ main(int argc, char *argv[]) {
   TerrainBuild command = TerrainBuild(argv[0], version.cstr);
   command.setUsage("[options] GDAL_DATASOURCE");
   command.option("-o", "--output-dir <dir>", "specify the output directory for the tiles (defaults to working directory)", TerrainBuild::setOutputDir);
+  command.option("-f", "--output-format <format>", "specify the output format for the tiles. This is either `Terrain` (the default) or any format listed by `gdalinfo --formats`", TerrainBuild::setOutputFormat);
 
   // Parse and check the arguments
   command.parse(argc, argv);
@@ -131,9 +190,13 @@ main(int argc, char *argv[]) {
   }
 
   try {
-    const GDALTiler tiler(poDataset);
-
-    build(tiler, command.outputDir);
+    if (strcmp(command.outputFormat, "Terrain") == 0) {
+      const TerrainTiler tiler(poDataset);
+      buildTerrain(tiler, command.outputDir);
+    } else {                    // it's a GDAL format
+      const GDALTiler tiler(poDataset);
+      buildGDAL(tiler, command.outputDir, command.outputFormat);
+    }
 
   } catch (TerrainException &e) {
     cerr << "Error: " << e.what() << endl;
