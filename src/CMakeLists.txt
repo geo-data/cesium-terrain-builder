@@ -25,7 +25,8 @@ add_library(terrain SHARED
     TerrainTiler.cpp
     TerrainTile.cpp
     RasterIterator.cpp
-    TerrainIterator.cpp)
+    TerrainIterator.cpp
+    GlobalMercator.cpp)
 target_link_libraries(terrain ${GDAL_LIBRARIES} ${ZLIB_LIBRARIES})
 
 # Install libterrain

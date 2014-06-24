@@ -1,6 +1,3 @@
-#ifndef GLOBALGEODETIC_HPP
-#define GLOBALGEODETIC_HPP
-
 /*******************************************************************************
  * Copyright 2014 GeoData <geodata@soton.ac.uk>
  *
@@ -18,33 +15,14 @@
  *******************************************************************************/
 
 /**
- * @file GlobalGeodetic.hpp
- * @brief This defines and declares the `GlobalGeodetic` class
+ * @file GlobalMercator.cpp
+ * @brief This defines the `GlobalMercator` class
  */
 
-#include "config.hpp"
-#include "Grid.hpp"
+#include "GlobalMercator.hpp"
 
-namespace terrain {
-  class GlobalGeodetic;
-}
+using namespace terrain;
 
-/**
- * @brief An implementation of the TMS Global Geodetic Profile
- *
- * This class models the [Tile Mapping Service Global Geodetic
- * Profile](http://wiki.osgeo.org/wiki/Tile_Map_Service_Specification#global-geodetic).
- */
-class terrain::GlobalGeodetic:
-  public Grid {
-public:
-
-  /// Initialise the profile with a specific tile size
-  GlobalGeodetic(i_tile tileSize = TILE_SIZE, bool tmsCompatible = true):
-    Grid(tileSize,
-         LatLonBounds(-180, -90, 180, 90),
-         (tmsCompatible) ? 2 : 1)
-  {}
-};
-
-#endif /* GLOBALGEODETIC_HPP */
+const unsigned int GlobalMercator::mSemiMajorAxis = 6378137;
+const double GlobalMercator::mEarthCircumference = 2 * M_PI * GlobalMercator::mSemiMajorAxis;
+const double GlobalMercator::mOriginShift = GlobalMercator::mEarthCircumference / 2.0;

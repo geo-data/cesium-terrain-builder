@@ -21,6 +21,7 @@
 
 #include <algorithm>            // std::minmax
 
+#include "ogr_spatialref.h"
 #include "ogr_srs_api.h"
 
 #include "config.hpp"

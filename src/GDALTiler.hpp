@@ -26,7 +26,6 @@
 #include <cmath>                // for `abs()`
 
 #include "gdal_priv.h"
-#include "ogr_spatialref.h"
 #include "gdalwarper.h"
 
 #include "TileCoordinate.hpp"
@@ -91,20 +90,20 @@ public:
   /// Get the lower left tile for a particular zoom level
   inline TileCoordinate
   lowerLeftTile(i_zoom zoom) const {
-    return mProfile.latLonToTile(mBounds.getLowerLeft(), zoom);
+    return mProfile.crsToTile(mBounds.getLowerLeft(), zoom);
   }
 
   /// Get the upper right tile for a particular zoom level
   inline TileCoordinate
   upperRightTile(i_zoom zoom) const {
-    return mProfile.latLonToTile(mBounds.getUpperRight(), zoom);
+    return mProfile.crsToTile(mBounds.getUpperRight(), zoom);
   }
 
   /// Get the tile bounds for a particular zoom level
   inline TileBounds
   tileBoundsForZoom(i_zoom zoom) const {
-    TileCoordinate ll = mProfile.latLonToTile(mBounds.getLowerLeft(), zoom),
-      ur = mProfile.latLonToTile(mBounds.getUpperRight(), zoom);
+    TileCoordinate ll = mProfile.crsToTile(mBounds.getLowerLeft(), zoom),
+      ur = mProfile.crsToTile(mBounds.getUpperRight(), zoom);
 
     return TileBounds(ll, ur);
   }
