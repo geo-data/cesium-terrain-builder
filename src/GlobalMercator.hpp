@@ -42,20 +42,24 @@ public:
 
   GlobalMercator(i_tile tileSize = 256):
     Grid(tileSize,
-         CRSBounds(-mOriginShift, -mOriginShift, mOriginShift, mOriginShift))
+         CRSBounds(-cOriginShift, -cOriginShift, cOriginShift, cOriginShift),
+         cSRS)
   {}
 
 protected:
 
   /// The semi major axis of the WGS84 ellipsoid (the radius of the earth in
   /// meters)
-  static const unsigned int mSemiMajorAxis;
+  static const unsigned int cSemiMajorAxis;
 
   /// The circumference of the earth in meters
-  static const double mEarthCircumference;
+  static const double cEarthCircumference;
 
   /// The coordinate origin (the middle of the grid extent)
-  static const double mOriginShift;
+  static const double cOriginShift;
+
+  /// The EPSG:3785 spatial reference system
+  static const OGRSpatialReference cSRS;
 };
 
 #endif /* GLOBALMERCATOR_HPP */

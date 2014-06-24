@@ -24,6 +24,8 @@
 
 #include <cmath>
 
+#include "ogr_spatialref.h"
+
 #include "types.hpp"
 #include "TileCoordinate.hpp"
 
@@ -50,9 +52,13 @@ class terrain::Grid {
 public:
 
   /// Initialise a grid tile
-  Grid(i_tile tileSize, CRSBounds extent, unsigned short int rootTiles = 1):
+  Grid(i_tile tileSize,
+       const CRSBounds extent,
+       const OGRSpatialReference srs,
+       unsigned short int rootTiles = 1):
     mTileSize(tileSize),
     mExtent(extent),
+    mSRS(srs),
     mInitialResolution((extent.getWidth() / rootTiles) / tileSize ),
     mXOriginShift(extent.getWidth() / 2),
     mYOriginShift(extent.getHeight() / 2)
@@ -132,6 +138,12 @@ public:
     return mTileSize;
   }
 
+  /// Get the tile size associated with this grid
+  inline const OGRSpatialReference &
+  getSRS() const {
+    return mSRS;
+  }
+
 protected:
 
   /// The tile size associated with this grid
@@ -139,6 +151,9 @@ protected:
 
   /// The area covered by the grid
   CRSBounds mExtent;
+
+  /// The spatial reference system covered by the grid
+  OGRSpatialReference mSRS;
 
   double mInitialResolution, ///< The initial resolution of this particular profile
     mXOriginShift, ///< The shift in CRS coordinates to get to the origin from minx

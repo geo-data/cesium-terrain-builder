@@ -15,25 +15,20 @@
  *******************************************************************************/
 
 /**
- * @file GlobalMercator.cpp
- * @brief This defines the `GlobalMercator` class
+ * @file GlobalGeodetic.cpp
+ * @brief This defines the `GlobalGeodetic` class
  */
 
-#include "GlobalMercator.hpp"
+#include "GlobalGeodetic.hpp"
 
 using namespace terrain;
-
-// Set the class level properties
-const unsigned int GlobalMercator::cSemiMajorAxis = 6378137;
-const double GlobalMercator::cEarthCircumference = 2 * M_PI * GlobalMercator::cSemiMajorAxis;
-const double GlobalMercator::cOriginShift = GlobalMercator::cEarthCircumference / 2.0;
 
 // Set the spatial reference
 static OGRSpatialReference
 setSRS(void) {
   OGRSpatialReference srs;
-  srs.importFromEPSG(3785);
+  srs.importFromEPSG(4326);
   return srs;
 }
 
-const OGRSpatialReference GlobalMercator::cSRS = setSRS();
+const OGRSpatialReference GlobalGeodetic::cSRS = setSRS();
