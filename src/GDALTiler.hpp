@@ -127,9 +127,9 @@ public:
   }
 
   /// Get the dataset bounds in EPSG:4326 coordinates
-  inline const LatLonBounds &
+  inline const CRSBounds &
   bounds() const {
-    return const_cast<const LatLonBounds &>(mBounds);
+    return const_cast<const CRSBounds &>(mBounds);
   }
 
   /// Does the dataset require reprojecting to EPSG:4326?
@@ -155,7 +155,7 @@ private:
   GDALDataset *poDataset;
 
   /// The extent of the underlying dataset in latitude and longitude
-  LatLonBounds mBounds;
+  CRSBounds mBounds;
 
   /// The cell resolution of the underlying dataset
   double mResolution;

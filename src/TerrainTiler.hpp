@@ -93,12 +93,12 @@ protected:
    * @param coord The tile coordinate identifying the tile in question
    * @param resolution The resolution of the modified extent is set here
    */
-  inline LatLonBounds
+  inline CRSBounds
   terrainTileBounds(const TileCoordinate &coord,
                     double &resolution) const {
     // The actual tile size accounting for a border
     i_tile lTileSize = mProfile.tileSize() - 1;
-    LatLonBounds tile = mProfile.tileBounds(coord); // the actual tile bounds
+    CRSBounds tile = mProfile.tileBounds(coord); // the actual tile bounds
 
     // Get the resolution for the dataset without a border
     resolution = (tile.getMaxX() - tile.getMinX()) / lTileSize;

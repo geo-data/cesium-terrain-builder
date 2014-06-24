@@ -42,7 +42,7 @@ public:
   /// Initialise the profile with a specific tile size
   GlobalGeodetic(i_tile tileSize = TILE_SIZE, bool tmsCompatible = true):
     Grid(tileSize,
-         LatLonBounds(-180, -90, 180, 90),
+         CRSBounds(-180, -90, 180, 90),
          (tmsCompatible) ? 2 : 1)
   {}
 };

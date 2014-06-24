@@ -42,7 +42,7 @@ public:
 
   GlobalMercator(i_tile tileSize = 256):
     Grid(tileSize,
-         LatLonBounds(-mOriginShift, -mOriginShift, mOriginShift, mOriginShift))
+         CRSBounds(-mOriginShift, -mOriginShift, mOriginShift, mOriginShift))
   {}
 
 protected:

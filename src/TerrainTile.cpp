@@ -319,7 +319,7 @@ GDALDatasetH
 TerrainTile::heightsToRaster() const {
   // Create the geo transform for this raster tile
   const GlobalGeodetic profile;
-  const LatLonBounds tileBounds = profile.tileBounds(coord);
+  const CRSBounds tileBounds = profile.tileBounds(coord);
   const i_tile tileSize = profile.tileSize();
   const double resolution = tileBounds.getWidth() / tileSize;
   double adfGeoTransform[6] = {

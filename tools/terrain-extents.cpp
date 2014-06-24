@@ -82,7 +82,7 @@ public:
 
 /// Write a GeoJSON coordinate to an output stream
 static void
-printCoord(ofstream& stream, const LatLon &coord) {
+printCoord(ofstream& stream, const CRSPoint &coord) {
   stream << "[" << coord.x << ", " << coord.y << "]";
 }
 
@@ -106,18 +106,18 @@ writeBounds(GDALTiler &tiler, const char *outputDir) {
 
     for (/* currentTile.x = tminx */; currentTile.x <= tileBounds.getMaxX(); currentTile.x++) {
       for (currentTile.y = tileBounds.getMinY(); currentTile.y <= tileBounds.getMaxY(); currentTile.y++) {
-        LatLonBounds latLonBounds = profile.tileBounds(currentTile);
+        CRSBounds crsBounds = profile.tileBounds(currentTile);
 
         geojson << "{ \"type\": \"Feature\", \"geometry\": { \"type\": \"Polygon\", \"coordinates\": [[";
-        printCoord(geojson, latLonBounds.getLowerLeft());
+        printCoord(geojson, crsBounds.getLowerLeft());
         geojson << ", ";
-        printCoord(geojson, latLonBounds.getLowerRight());
+        printCoord(geojson, crsBounds.getLowerRight());
         geojson << ", ";
-        printCoord(geojson, latLonBounds.getUpperRight());
+        printCoord(geojson, crsBounds.getUpperRight());
         geojson << ", ";
-        printCoord(geojson, latLonBounds.getUpperLeft());
+        printCoord(geojson, crsBounds.getUpperLeft());
         geojson << ", ";
-        printCoord(geojson, latLonBounds.getLowerLeft());
+        printCoord(geojson, crsBounds.getLowerLeft());
         geojson << "]]}, \"properties\": {\"tx\": " << currentTile.x << ", \"ty\": " << currentTile.y << "}}";
         if (currentTile.y != tileBounds.getMaxY())
           geojson << "," << endl;

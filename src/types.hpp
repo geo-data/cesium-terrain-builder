@@ -36,8 +36,8 @@ namespace terrain {
   // Complex types
   typedef Bounds<i_tile> TileBounds;      ///< Tile extents in tile coordinates
   typedef Coordinate<i_pixel> PixelPoint; ///< The location of a pixel
-  typedef Coordinate<double> LatLon;      ///< A latitude and longitude
-  typedef Bounds<double> LatLonBounds;    ///< Extents in latitude and longitude
+  typedef Coordinate<double> CRSPoint; ///< A Coordinate Reference System coordinate
+  typedef Bounds<double> CRSBounds;       ///< Extents in CRS coordinates
   typedef Coordinate<i_tile> TilePoint;   ///< The location of a tile
 
 }

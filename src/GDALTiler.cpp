@@ -39,13 +39,13 @@ terrain::GDALTiler::GDALTiler(GDALDataset *poDataset):
 
     // Get the bounds of the dataset
     double adfGeoTransform[6];
-    LatLonBounds bounds;
+    CRSBounds bounds;
 
     if( poDataset->GetGeoTransform( adfGeoTransform ) == CE_None ) {
-      bounds = LatLonBounds(adfGeoTransform[0],
-                             adfGeoTransform[3] + (poDataset->GetRasterYSize() * adfGeoTransform[5]),
-                             adfGeoTransform[0] + (poDataset->GetRasterXSize() * adfGeoTransform[1]),
-                             adfGeoTransform[3]);
+      bounds = CRSBounds(adfGeoTransform[0],
+                         adfGeoTransform[3] + (poDataset->GetRasterYSize() * adfGeoTransform[5]),
+                         adfGeoTransform[0] + (poDataset->GetRasterXSize() * adfGeoTransform[1]),
+                         adfGeoTransform[3]);
     } else {
       throw TerrainException("Could not get transformation information from dataset");
     }
@@ -77,7 +77,7 @@ terrain::GDALTiler::GDALTiler(GDALDataset *poDataset):
         minY = std::min(std::min(y[0], y[1]), std::min(y[2], y[3])),
         maxY = std::max(std::max(y[0], y[1]), std::max(y[2], y[3]));
 
-      mBounds = LatLonBounds(minX, minY, maxX, maxY); // set the bounds
+      mBounds = CRSBounds(minX, minY, maxX, maxY); // set the bounds
       mResolution = mBounds.getWidth() / poDataset->GetRasterXSize(); // set the resolution
 
       // cache the WGS84 SRS string for use in reprojections later
@@ -150,7 +150,7 @@ terrain::GDALTiler::createRasterTile(const TileCoordinate &coord) const {
   // Convert the tile bounds into a geo transform
   double adfGeoTransform[6],
     resolution = mProfile.resolution(coord.zoom);
-  LatLonBounds tileBounds = mProfile.tileBounds(coord);
+  CRSBounds tileBounds = mProfile.tileBounds(coord);
 
   adfGeoTransform[0] = tileBounds.getMinX(); // min longitude
   adfGeoTransform[1] = resolution;
