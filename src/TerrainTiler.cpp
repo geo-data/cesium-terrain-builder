@@ -84,6 +84,11 @@ terrain::TerrainTiler::createTerrainTile(const TileCoordinate &coord) const {
  */
 GDALDatasetH
 terrain::TerrainTiler::createRasterTile(const TileCoordinate &coord) const {
+  // Ensure we have some data from which to create a tile
+  if (poDataset && poDataset->GetRasterCount() < 1) {
+    throw TerrainException("At least one band must be present in the GDAL dataset");
+  }
+
   // Get the bounds and resolution for a tile coordinate which represents the
   // data overlap requested by the terrain specification.
   double resolution;

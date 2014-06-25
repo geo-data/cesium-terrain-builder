@@ -150,8 +150,6 @@ protected:
   /// The grid used for generating tiles
   Grid mGrid;
 
-private:
-
   /// The dataset from which to generate tiles
   GDALDataset *poDataset;
 

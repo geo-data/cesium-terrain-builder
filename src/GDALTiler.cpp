@@ -184,11 +184,6 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
     throw TerrainException("No GDAL dataset is set");
   }
 
-  short int nBandCount = poDataset->GetRasterCount();
-  if (nBandCount < 1) {
-    throw TerrainException("At least one band must be present in the GDAL dataset");
-  }
-
   // The source and sink datasets
   GDALDatasetH hSrcDS = (GDALDatasetH) dataset();
   GDALDatasetH hDstDS;
@@ -207,13 +202,13 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
   GDALWarpOptions *psWarpOptions = GDALCreateWarpOptions();
   //psWarpOptions->eResampleAlg = eResampleAlg;
   psWarpOptions->hSrcDS = hSrcDS;
-  psWarpOptions->nBandCount = nBandCount;
+  psWarpOptions->nBandCount = poDataset->GetRasterCount();
   psWarpOptions->panSrcBands =
     (int *) CPLMalloc(sizeof(int) * psWarpOptions->nBandCount );
   psWarpOptions->panDstBands =
     (int *) CPLMalloc(sizeof(int) * psWarpOptions->nBandCount );
 
-  for (short unsigned int i = 0; i < nBandCount; ++i) {
+  for (short unsigned int i = 0; i < psWarpOptions->nBandCount; ++i) {
     psWarpOptions->panDstBands[i] = psWarpOptions->panSrcBands[i] = i + 1;
   }
 
