@@ -36,8 +36,13 @@ set(HEADERS
     Coordinate.hpp
     GDALTiler.hpp
     GlobalGeodetic.hpp
+    GlobalMercator.hpp
+    Grid.hpp
+    RasterIterator.hpp
     TerrainException.hpp
+    TerrainIterator.hpp
     TerrainTile.hpp
+    TerrainTiler.hpp
     TileCoordinate.hpp
     TileIterator.hpp
     types.hpp)

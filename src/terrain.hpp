@@ -68,9 +68,11 @@
 #include "terrain/types.hpp"
 #include "terrain/TerrainException.hpp"
 #include "terrain/GlobalGeodetic.hpp"
+#include "terrain/GlobalMercator.hpp"
 #include "terrain/TileCoordinate.hpp"
 #include "terrain/TerrainTile.hpp"
-#include "terrain/TileIterator.hpp"
+#include "terrain/RasterIterator.hpp"
+#include "terrain/TerrainIterator.hpp"
 #include "terrain/GDALTiler.hpp"
 
 #endif /* TERRAIN_HPP */
