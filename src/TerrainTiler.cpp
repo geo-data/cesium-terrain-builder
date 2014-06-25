@@ -51,7 +51,7 @@ terrain::TerrainTiler::createTerrainTile(const TileCoordinate &coord) const {
   // If we are not at the maximum zoom level we need to set child flags on the
   // tile where child tiles overlap the dataset bounds.
   if (coord.zoom != maxZoomLevel()) {
-    CRSBounds tileBounds = mProfile.tileBounds(coord);
+    CRSBounds tileBounds = mGrid.tileBounds(coord);
 
     if (! (bounds().overlaps(tileBounds))) {
       terrainTile.setAllChildren(false);
@@ -103,8 +103,8 @@ terrain::TerrainTiler::createRasterTile(const TileCoordinate &coord) const {
   // The previous geotransform represented the data with an overlap as required
   // by the terrain specification.  This now needs to be overwritten so that
   // the data is shifted to the bounds defined by tile itself.
-  tileBounds = mProfile.tileBounds(coord);
-  resolution = mProfile.resolution(coord.zoom);
+  tileBounds = mGrid.tileBounds(coord);
+  resolution = mGrid.resolution(coord.zoom);
   adfGeoTransform[0] = tileBounds.getMinX(); // min longitude
   adfGeoTransform[1] = resolution;
   adfGeoTransform[2] = 0;

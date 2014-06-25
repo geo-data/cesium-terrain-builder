@@ -51,6 +51,9 @@ namespace terrain {
 class terrain::Grid {
 public:
 
+  /// An empty grid
+  Grid() {}
+
   /// Initialise a grid tile
   Grid(i_tile tileSize,
        const CRSBounds extent,
@@ -63,6 +66,19 @@ public:
     mXOriginShift(extent.getWidth() / 2),
     mYOriginShift(extent.getHeight() / 2)
   {}
+
+  /// Overload the assignment operator
+  Grid &
+  operator=(const Grid &other) {
+    mTileSize = other.mTileSize;
+    mExtent = other.mExtent;
+    mSRS = other.mSRS;
+    mInitialResolution = other.mInitialResolution;
+    mXOriginShift = other.mXOriginShift;
+    mYOriginShift = other.mYOriginShift;
+
+    return *this;
+  }
 
   /// Get the resolution for a particular zoom level
   inline double

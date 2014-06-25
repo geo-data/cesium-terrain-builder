@@ -36,11 +36,14 @@
 #include <iostream>
 #include <sstream>
 #include <string.h>             // for strcmp
+#include <stdlib.h>             // for atoi
 
 #include "gdal_priv.h"
 #include "commander.hpp"
 
 #include "config.hpp"
+#include "GlobalGeodetic.hpp"
+#include "GlobalMercator.hpp"
 #include "TerrainException.hpp"
 #include "TerrainTiler.hpp"
 #include "RasterIterator.hpp"
@@ -61,7 +64,9 @@ public:
   TerrainBuild(const char *name, const char *version) :
     Command(name, version),
     outputDir("."),
-    outputFormat("Terrain")
+    outputFormat("Terrain"),
+    profile("geodetic"),
+    tileSize(0)
   {}
 
   void
@@ -90,6 +95,16 @@ public:
     static_cast<TerrainBuild *>(Command::self(command))->outputFormat = command->arg;
   }
 
+  static void
+  setProfile(command_t *command) {
+    static_cast<TerrainBuild *>(Command::self(command))->profile = command->arg;
+  }
+
+  static void
+  setTileSize(command_t *command) {
+    static_cast<TerrainBuild *>(Command::self(command))->tileSize = atoi(command->arg);
+  }
+
   const char *
   getInputFilename() const {
     return  (command->argc == 1) ? command->argv[0] : NULL;
@@ -97,6 +112,8 @@ public:
 
   const char *outputDir;
   const char *outputFormat;
+  const char *profile;
+  int tileSize;
 };
 
 string
@@ -176,12 +193,26 @@ main(int argc, char *argv[]) {
   command.setUsage("[options] GDAL_DATASOURCE");
   command.option("-o", "--output-dir <dir>", "specify the output directory for the tiles (defaults to working directory)", TerrainBuild::setOutputDir);
   command.option("-f", "--output-format <format>", "specify the output format for the tiles. This is either `Terrain` (the default) or any format listed by `gdalinfo --formats`", TerrainBuild::setOutputFormat);
+  command.option("-p", "--profile <profile>", "specify the TMS profile for the tiles. This is either `geodetic` (the default) or `mercator`", TerrainBuild::setProfile);
+  command.option("-t", "--tile-size <size>", "specify the size of the tiles in pixels. This defaults to 65 for terrain tiles and 256 for other GDAL formats", TerrainBuild::setTileSize);
 
   // Parse and check the arguments
   command.parse(argc, argv);
   command.check();
 
   GDALAllRegister();
+
+  Grid grid;
+  if (strcmp(command.profile, "geodetic") == 0) {
+    int tileSize = (command.tileSize < 1) ? 65 : command.tileSize;
+    grid = GlobalGeodetic(tileSize);
+  } else if (strcmp(command.profile, "mercator") == 0) {
+    int tileSize = (command.tileSize < 1) ? 256 : command.tileSize;
+    grid = GlobalMercator(tileSize);
+  } else {
+    cerr << "Error: Unknown profile: " << command.profile << endl;
+    return 1;
+  }
 
   GDALDataset  *poDataset = (GDALDataset *) GDALOpen(command.getInputFilename(), GA_ReadOnly);
   if (poDataset == NULL) {
@@ -191,10 +222,10 @@ main(int argc, char *argv[]) {
 
   try {
     if (strcmp(command.outputFormat, "Terrain") == 0) {
-      const TerrainTiler tiler(poDataset);
+      const TerrainTiler tiler(poDataset, grid);
       buildTerrain(tiler, command.outputDir);
     } else {                    // it's a GDAL format
-      const GDALTiler tiler(poDataset);
+      const GDALTiler tiler(poDataset, grid);
       buildGDAL(tiler, command.outputDir, command.outputFormat);
     }
 

@@ -53,8 +53,8 @@ public:
   {}
 
   /// Instantiate a tiler with a GDAL dataset
-  TerrainTiler(GDALDataset *poDataset) :
-    GDALTiler(poDataset)
+  TerrainTiler(GDALDataset *poDataset, const Grid &grid) :
+    GDALTiler(poDataset, grid)
   {}
 
   /// The const copy constructor
@@ -97,8 +97,8 @@ protected:
   terrainTileBounds(const TileCoordinate &coord,
                     double &resolution) const {
     // The actual tile size accounting for a border
-    i_tile lTileSize = mProfile.tileSize() - 1;
-    CRSBounds tile = mProfile.tileBounds(coord); // the actual tile bounds
+    i_tile lTileSize = mGrid.tileSize() - 1;
+    CRSBounds tile = mGrid.tileBounds(coord); // the actual tile bounds
 
     // Get the resolution for the dataset without a border
     resolution = (tile.getMaxX() - tile.getMinX()) / lTileSize;

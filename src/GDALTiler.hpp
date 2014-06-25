@@ -58,11 +58,12 @@ public:
 
   /// Instantiate a tiler with an empty GDAL dataset
   GDALTiler():
+    mGrid(GlobalGeodetic()),
     poDataset(NULL)
   {}
 
   /// Instantiate a tiler with a GDAL dataset
-  GDALTiler(GDALDataset *poDataset);
+  GDALTiler(GDALDataset *poDataset, const Grid &grid);
 
   /// The const copy constructor
   GDALTiler(const GDALTiler &other);
@@ -84,26 +85,26 @@ public:
   /// Get the maximum zoom level for the dataset
   inline i_zoom
   maxZoomLevel() const {
-    return mProfile.zoomForResolution(resolution());
+    return mGrid.zoomForResolution(resolution());
   }
 
   /// Get the lower left tile for a particular zoom level
   inline TileCoordinate
   lowerLeftTile(i_zoom zoom) const {
-    return mProfile.crsToTile(mBounds.getLowerLeft(), zoom);
+    return mGrid.crsToTile(mBounds.getLowerLeft(), zoom);
   }
 
   /// Get the upper right tile for a particular zoom level
   inline TileCoordinate
   upperRightTile(i_zoom zoom) const {
-    return mProfile.crsToTile(mBounds.getUpperRight(), zoom);
+    return mGrid.crsToTile(mBounds.getUpperRight(), zoom);
   }
 
   /// Get the tile bounds for a particular zoom level
   inline TileBounds
   tileBoundsForZoom(i_zoom zoom) const {
-    TileCoordinate ll = mProfile.crsToTile(mBounds.getLowerLeft(), zoom),
-      ur = mProfile.crsToTile(mBounds.getUpperRight(), zoom);
+    TileCoordinate ll = mGrid.crsToTile(mBounds.getLowerLeft(), zoom),
+      ur = mGrid.crsToTile(mBounds.getUpperRight(), zoom);
 
     return TileBounds(ll, ur);
   }
@@ -120,10 +121,10 @@ public:
     return poDataset;
   }
 
-  /// Get the associated geodetic profile
-  inline const GlobalGeodetic &
-  profile() const {
-    return mProfile;
+  /// Get the associated grid
+  inline const Grid &
+  grid() const {
+    return mGrid;
   }
 
   /// Get the dataset bounds in EPSG:4326 coordinates
@@ -135,7 +136,7 @@ public:
   /// Does the dataset require reprojecting to EPSG:4326?
   inline bool
   requiresReprojection() const {
-    return wgs84WKT.size() > 0;
+    return crsWKT.size() > 0;
   }
 
 protected:
@@ -146,8 +147,8 @@ protected:
   GDALDatasetH
   createRasterTile(double (&adfGeoTransform)[6]) const;
 
-  /// The geodetic profile for the terrain tileset
-  GlobalGeodetic mProfile;
+  /// The grid used for generating tiles
+  Grid mGrid;
 
 private:
 
@@ -161,12 +162,12 @@ private:
   double mResolution;
 
   /**
-   * @brief The EPSG:4326 projection in Well Known Text format
+   * @brief The dataset projection in Well Known Text format
    *
-   * This is only set if the underlying dataset is not in EPSG:4326 in which
-   * case this string is used for reprojecting to EPSG:4326 when required.
+   * This is only set if the underlying dataset does not match the coordinate
+   * reference system of the grid being used.
    */
-  std::string wgs84WKT;
+  std::string crsWKT;
 };
 
 #endif /* GDALTILER_HPP */

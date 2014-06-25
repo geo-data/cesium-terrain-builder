@@ -32,6 +32,8 @@
 #include "commander.hpp"
 
 #include "config.hpp"
+#include "GlobalGeodetic.hpp"
+#include "GlobalMercator.hpp"
 #include "GDALTiler.hpp"
 
 using namespace std;
@@ -48,7 +50,9 @@ class TerrainExtents : public Command {
 public:
   TerrainExtents(const char *name, const char *version) :
     Command(name, version),
-    outputDir(".")
+    outputDir("."),
+    profile("geodetic"),
+    tileSize(0)
   {}
 
   void
@@ -72,12 +76,24 @@ public:
     static_cast<TerrainExtents *>(Command::self(command))->outputDir = command->arg;
   }
 
+  static void
+  setProfile(command_t *command) {
+    static_cast<TerrainExtents *>(Command::self(command))->profile = command->arg;
+  }
+
+  static void
+  setTileSize(command_t *command) {
+    static_cast<TerrainExtents *>(Command::self(command))->tileSize = atoi(command->arg);
+  }
+
   const char *
   getInputFilename() const {
     return  (command->argc == 1) ? command->argv[0] : NULL;
   }
 
   const char *outputDir;
+  const char *profile;
+  int tileSize;
 };
 
 /// Write a GeoJSON coordinate to an output stream
@@ -91,7 +107,7 @@ static void
 writeBounds(GDALTiler &tiler, const char *outputDir) {
   ofstream geojson;
   i_zoom maxZoom = tiler.maxZoomLevel();
-  GlobalGeodetic profile = tiler.profile();
+  const Grid &grid = tiler.grid();
   const string dirname = string(outputDir) + osDirSep;
 
   for (short int zoom = maxZoom; zoom >= 0; zoom--) {
@@ -106,7 +122,7 @@ writeBounds(GDALTiler &tiler, const char *outputDir) {
 
     for (/* currentTile.x = tminx */; currentTile.x <= tileBounds.getMaxX(); currentTile.x++) {
       for (currentTile.y = tileBounds.getMinY(); currentTile.y <= tileBounds.getMaxY(); currentTile.y++) {
-        CRSBounds crsBounds = profile.tileBounds(currentTile);
+        CRSBounds crsBounds = grid.tileBounds(currentTile);
 
         geojson << "{ \"type\": \"Feature\", \"geometry\": { \"type\": \"Polygon\", \"coordinates\": [[";
         printCoord(geojson, crsBounds.getLowerLeft());
@@ -137,6 +153,8 @@ main(int argc, char *argv[]) {
   TerrainExtents command = TerrainExtents(argv[0], version.cstr);
   command.setUsage("GDAL_DATASET");
   command.option("-o", "--output-dir <dir>", "specify the output directory for the geojson files (defaults to working directory)", TerrainExtents::setOutputDir);
+  command.option("-p", "--profile <profile>", "specify the TMS profile for the tiles. This is either `geodetic` (the default) or `mercator`", TerrainExtents::setProfile);
+  command.option("-t", "--tile-size <size>", "specify the size of the tiles in pixels. This defaults to 65 for terrain tiles and 256 for other GDAL formats", TerrainExtents::setTileSize);
 
   // Parse and check the arguments
   command.parse(argc, argv);
@@ -144,8 +162,20 @@ main(int argc, char *argv[]) {
 
   GDALAllRegister();
 
+  Grid grid;
+  if (strcmp(command.profile, "geodetic") == 0) {
+    int tileSize = (command.tileSize < 1) ? 65 : command.tileSize;
+    grid = GlobalGeodetic(tileSize);
+  } else if (strcmp(command.profile, "mercator") == 0) {
+    int tileSize = (command.tileSize < 1) ? 256 : command.tileSize;
+    grid = GlobalMercator(tileSize);
+  } else {
+    cerr << "Error: Unknown profile: " << command.profile << endl;
+    return 1;
+  }
+
   GDALDataset  *poDataset = (GDALDataset *) GDALOpen(command.getInputFilename(), GA_ReadOnly);
-  GDALTiler tiler(poDataset);
+  GDALTiler tiler(poDataset, grid);
 
   writeBounds(tiler, command.outputDir);
 

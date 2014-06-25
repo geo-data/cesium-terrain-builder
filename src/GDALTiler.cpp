@@ -30,7 +30,8 @@
 
 using namespace terrain;
 
-terrain::GDALTiler::GDALTiler(GDALDataset *poDataset):
+GDALTiler::GDALTiler(GDALDataset *poDataset, const Grid &grid):
+  mGrid(grid),
   poDataset(poDataset)
 {
   // if the dataset is set we need to initialise the tile bounds and raster
@@ -50,20 +51,16 @@ terrain::GDALTiler::GDALTiler(GDALDataset *poDataset):
       throw TerrainException("Could not get transformation information from dataset");
     }
 
-    // Find out whether the dataset is in the EPSG:4326 spatial reference system
-    OGRSpatialReference srcSRS = OGRSpatialReference(poDataset->GetProjectionRef()),
-      wgs84SRS;
+    // Find out whether the dataset SRS matches that of the grid
+    OGRSpatialReference srcSRS = OGRSpatialReference(poDataset->GetProjectionRef());
+    OGRSpatialReference gridSRS = mGrid.getSRS();
 
-    if (wgs84SRS.importFromEPSG(4326) != OGRERR_NONE) {
-      throw TerrainException("Could not create EPSG:4326 spatial reference");
-    }
-
-    if (!srcSRS.IsSame(&wgs84SRS)) { // it isn't in EPSG:4326
-      // We need to transform the bounds to EPSG:4326
+      if (!srcSRS.IsSame(&gridSRS)) { // it doesn't match
+      // We need to transform the bounds to the grid SRS
       double x[4] = { bounds.getMinX(), bounds.getMaxX(), bounds.getMaxX(), bounds.getMinX() };
       double y[4] = { bounds.getMinY(), bounds.getMinY(), bounds.getMaxY(), bounds.getMaxY() };
 
-      OGRCoordinateTransformation *transformer = OGRCreateCoordinateTransformation(&srcSRS, &wgs84SRS);
+      OGRCoordinateTransformation *transformer = OGRCreateCoordinateTransformation(&srcSRS, &gridSRS);
       if (transformer->Transform(4, x, y) != true) {
         delete transformer;
         throw TerrainException("Could not transform dataset bounds to EPSG:4326 spatial reference system");
@@ -80,13 +77,13 @@ terrain::GDALTiler::GDALTiler(GDALDataset *poDataset):
       mBounds = CRSBounds(minX, minY, maxX, maxY); // set the bounds
       mResolution = mBounds.getWidth() / poDataset->GetRasterXSize(); // set the resolution
 
-      // cache the WGS84 SRS string for use in reprojections later
+      // cache the SRS string for use in reprojections later
       char *srsWKT = NULL;
-      if (wgs84SRS.exportToWkt(&srsWKT) != OGRERR_NONE) {
+      if (gridSRS.exportToWkt(&srsWKT) != OGRERR_NONE) {
         CPLFree(srsWKT);
-        throw TerrainException("Could not create EPSG:4326 WKT string");
+        throw TerrainException("Could not create grid WKT string");
       }
-      wgs84WKT = srsWKT;
+      crsWKT = srsWKT;
       CPLFree(srsWKT);
       srsWKT = NULL;
 
@@ -99,24 +96,24 @@ terrain::GDALTiler::GDALTiler(GDALDataset *poDataset):
   }
 }
 
-terrain::GDALTiler::GDALTiler(const GDALTiler &other):
-  mProfile(other.mProfile),
+GDALTiler::GDALTiler(const GDALTiler &other):
+  mGrid(other.mGrid),
   poDataset(other.poDataset),
   mBounds(other.mBounds),
   mResolution(other.mResolution),
-  wgs84WKT(other.wgs84WKT)
+  crsWKT(other.crsWKT)
 {
   if (poDataset != NULL) {
     poDataset->Reference();     // increase the refcount of the dataset
   }
 }
 
-terrain::GDALTiler::GDALTiler(GDALTiler &other):
-  mProfile(other.mProfile),
+GDALTiler::GDALTiler(GDALTiler &other):
+  mGrid(other.mGrid),
   poDataset(other.poDataset),
   mBounds(other.mBounds),
   mResolution(other.mResolution),
-  wgs84WKT(other.wgs84WKT)
+  crsWKT(other.crsWKT)
 {
   if (poDataset != NULL) {
     poDataset->Reference();     // increase the refcount of the dataset
@@ -124,10 +121,10 @@ terrain::GDALTiler::GDALTiler(GDALTiler &other):
 }
 
 GDALTiler &
-terrain::GDALTiler::operator=(const GDALTiler &other) {
+GDALTiler::operator=(const GDALTiler &other) {
   closeDataset();
 
-  mProfile = other.mProfile;
+  mGrid = other.mGrid;
   poDataset = other.poDataset;
 
   if (poDataset != NULL) {
@@ -136,21 +133,21 @@ terrain::GDALTiler::operator=(const GDALTiler &other) {
 
   mBounds = other.mBounds;
   mResolution = other.mResolution;
-  wgs84WKT = other.wgs84WKT;
+  crsWKT = other.crsWKT;
 
   return *this;
 }
 
-terrain::GDALTiler::~GDALTiler() {
+GDALTiler::~GDALTiler() {
   closeDataset();
 }
 
 GDALDatasetH
-terrain::GDALTiler::createRasterTile(const TileCoordinate &coord) const {
+GDALTiler::createRasterTile(const TileCoordinate &coord) const {
   // Convert the tile bounds into a geo transform
   double adfGeoTransform[6],
-    resolution = mProfile.resolution(coord.zoom);
-  CRSBounds tileBounds = mProfile.tileBounds(coord);
+    resolution = mGrid.resolution(coord.zoom);
+  CRSBounds tileBounds = mGrid.tileBounds(coord);
 
   adfGeoTransform[0] = tileBounds.getMinX(); // min longitude
   adfGeoTransform[1] = resolution;
@@ -182,7 +179,7 @@ terrain::GDALTiler::createRasterTile(const TileCoordinate &coord) const {
  * dataset.
  */
 GDALDatasetH
-terrain::GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
+GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
   if (poDataset == NULL) {
     throw TerrainException("No GDAL dataset is set");
   }
@@ -203,7 +200,7 @@ terrain::GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
   // Populate the SRS WKT strings if we need to reproject
   if (requiresReprojection()) {
     pszSrcWKT = GDALGetProjectionRef(hSrcDS);
-    pszDstWKT = wgs84WKT.c_str();
+    pszDstWKT = crsWKT.c_str();
   }
 
   // Set the warp options
@@ -235,7 +232,7 @@ terrain::GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
   GDALSetGenImgProjTransformerDstGeoTransform( psWarpOptions->pTransformerArg, adfGeoTransform );
 
   // The raster tile is represented as a VRT dataset
-  hDstDS = GDALCreateWarpedVRT(hSrcDS, mProfile.tileSize(), mProfile.tileSize(), adfGeoTransform, psWarpOptions);
+  hDstDS = GDALCreateWarpedVRT(hSrcDS, mGrid.tileSize(), mGrid.tileSize(), adfGeoTransform, psWarpOptions);
   GDALDestroyWarpOptions( psWarpOptions );
 
   if (hDstDS == NULL) {
@@ -259,7 +256,7 @@ terrain::GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
  * reference count falls below 1.
  */
 void
-terrain::GDALTiler::closeDataset() {
+GDALTiler::closeDataset() {
   // Dereference and possibly close the GDAL dataset
   if (poDataset != NULL) {
     poDataset->Dereference();

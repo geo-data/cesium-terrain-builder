@@ -22,8 +22,6 @@
  * @brief This defines the `GlobalMercator` class
  */
 
-#define _USE_MATH_DEFINES       // for M_PI
-
 #include "Grid.hpp"
 
 namespace terrain {

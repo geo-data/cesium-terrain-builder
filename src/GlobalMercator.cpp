@@ -19,6 +19,8 @@
  * @brief This defines the `GlobalMercator` class
  */
 
+#define _USE_MATH_DEFINES       // for M_PI
+
 #include "GlobalMercator.hpp"
 
 using namespace terrain;
@@ -32,7 +34,7 @@ const double GlobalMercator::cOriginShift = GlobalMercator::cEarthCircumference 
 static OGRSpatialReference
 setSRS(void) {
   OGRSpatialReference srs;
-  srs.importFromEPSG(3785);
+  srs.importFromEPSG(3857);
   return srs;
 }
 
