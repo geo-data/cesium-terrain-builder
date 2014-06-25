@@ -38,6 +38,7 @@ set(HEADERS
     GlobalGeodetic.hpp
     GlobalMercator.hpp
     Grid.hpp
+    GridIterator.hpp
     RasterIterator.hpp
     TerrainException.hpp
     TerrainIterator.hpp

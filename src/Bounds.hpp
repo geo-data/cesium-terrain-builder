@@ -49,6 +49,15 @@ public:
     setBounds(lowerLeft, upperRight);
   }
 
+  /// Overload the equality operator
+  virtual bool
+  operator==(const Bounds<T> &other) const {
+    return bounds[0] == other.bounds[0]
+      && bounds[1] == other.bounds[1]
+      && bounds[2] == other.bounds[2]
+      && bounds[3] == other.bounds[3];
+  }
+
   /// Set the bounds from extents
   inline void
   setBounds(T minx, T miny, T maxx, T maxy) {

@@ -34,6 +34,7 @@
 #include "config.hpp"
 #include "GlobalGeodetic.hpp"
 #include "GlobalMercator.hpp"
+#include "GridIterator.hpp"
 #include "GDALTiler.hpp"
 
 using namespace std;
@@ -102,49 +103,56 @@ printCoord(ofstream& stream, const CRSPoint &coord) {
   stream << "[" << coord.x << ", " << coord.y << "]";
 }
 
+/// Write a GeoJSON tile to an output stream
+static void
+printTile(ofstream& stream, const GridIterator &iter, const Grid &grid) {
+  if (iter.exhausted())
+    return;
+
+  const TileCoordinate currentTile = *iter;
+  const CRSBounds crsBounds = grid.tileBounds(currentTile);
+
+  stream << "{ \"type\": \"Feature\", \"geometry\": { \"type\": \"Polygon\", \"coordinates\": [[";
+  printCoord(stream, crsBounds.getLowerLeft());
+  stream << ", ";
+  printCoord(stream, crsBounds.getLowerRight());
+  stream << ", ";
+  printCoord(stream, crsBounds.getUpperRight());
+  stream << ", ";
+  printCoord(stream, crsBounds.getUpperLeft());
+  stream << ", ";
+  printCoord(stream, crsBounds.getLowerLeft());
+  stream << "]]}, \"properties\": {\"tx\": " << currentTile.x << ", \"ty\": " << currentTile.y << "}}";
+}
+
 /// Write the tile extents to a directory in GeoJSON format
 static void
 writeBounds(GDALTiler &tiler, const char *outputDir) {
   ofstream geojson;
   i_zoom maxZoom = tiler.maxZoomLevel();
   const Grid &grid = tiler.grid();
+  GridIterator iter(grid, tiler.bounds(), maxZoom);
   const string dirname = string(outputDir) + osDirSep;
 
   // Set the precision and numeric notation on the stream
   geojson.precision(15);
   geojson.setf(std::ios::scientific, std::ios::floatfield);
 
+  // Create a new geojson file for each zoom level
   for (short int zoom = maxZoom; zoom >= 0; zoom--) {
-    TileBounds tileBounds = tiler.tileBoundsForZoom(zoom);
-    TileCoordinate currentTile(zoom, tileBounds.getLowerLeft());
-
     const string filename = dirname + static_cast<ostringstream*>( &(ostringstream() << zoom << ".geojson") )->str();
     cout << "creating " << filename << endl;
 
     geojson.open(filename.c_str());
     geojson << "{ \"type\": \"FeatureCollection\", \"features\": [" << endl;
 
-    for (/* currentTile.x = tminx */; currentTile.x <= tileBounds.getMaxX(); currentTile.x++) {
-      for (currentTile.y = tileBounds.getMinY(); currentTile.y <= tileBounds.getMaxY(); currentTile.y++) {
-        CRSBounds crsBounds = grid.tileBounds(currentTile);
+    // Iterate over the tiles in the zoom level
+    iter.reset(zoom, zoom);
+    printTile(geojson, iter, grid);
 
-        geojson << "{ \"type\": \"Feature\", \"geometry\": { \"type\": \"Polygon\", \"coordinates\": [[";
-        printCoord(geojson, crsBounds.getLowerLeft());
-        geojson << ", ";
-        printCoord(geojson, crsBounds.getLowerRight());
-        geojson << ", ";
-        printCoord(geojson, crsBounds.getUpperRight());
-        geojson << ", ";
-        printCoord(geojson, crsBounds.getUpperLeft());
-        geojson << ", ";
-        printCoord(geojson, crsBounds.getLowerLeft());
-        geojson << "]]}, \"properties\": {\"tx\": " << currentTile.x << ", \"ty\": " << currentTile.y << "}}";
-        if (currentTile.y != tileBounds.getMaxY())
-          geojson << "," << endl;
-      }
-      if (currentTile.x != tileBounds.getMaxX())
-        geojson << "," << endl;
-
+    for (++iter; !iter.exhausted(); ++iter) {
+      geojson << "," << endl;
+      printTile(geojson, iter, grid);
     }
 
     geojson << "]}" << endl;

@@ -83,6 +83,18 @@ public:
     return *this;
   }
 
+  /// Override the equality operator
+  bool
+  operator==(const Grid &other) const {
+    return mTileSize == other.mTileSize
+      && mExtent == other.mExtent
+      && mSRS.IsSame(&(other.mSRS))
+      && mInitialResolution == other.mInitialResolution
+      && mXOriginShift == other.mXOriginShift
+      && mYOriginShift == other.mYOriginShift
+      && mZoomFactor == other.mZoomFactor;
+  }
+
   /// Get the resolution for a particular zoom level
   inline double
   resolution(i_zoom zoom) const {
@@ -163,6 +175,21 @@ public:
   inline const OGRSpatialReference &
   getSRS() const {
     return mSRS;
+  }
+
+  /// Get the extent covered by the grid in CRS coordinates
+  inline const CRSBounds &
+  getExtent() const {
+    return mExtent;
+  }
+
+  /// Get the extent covered by the grid in tile coordinates for a zoom level
+  inline TileBounds
+  getTileExtent(i_zoom zoom) const {
+    TileCoordinate ll = crsToTile(mExtent.getLowerLeft(), zoom),
+      ur = crsToTile(mExtent.getUpperRight(), zoom);
+
+    return TileBounds(ll, ur);
   }
 
 protected:
