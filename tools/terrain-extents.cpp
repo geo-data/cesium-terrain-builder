@@ -110,6 +110,10 @@ writeBounds(GDALTiler &tiler, const char *outputDir) {
   const Grid &grid = tiler.grid();
   const string dirname = string(outputDir) + osDirSep;
 
+  // Set the precision and numeric notation on the stream
+  geojson.precision(15);
+  geojson.setf(std::ios::scientific, std::ios::floatfield);
+
   for (short int zoom = maxZoom; zoom >= 0; zoom--) {
     TileBounds tileBounds = tiler.tileBoundsForZoom(zoom);
     TileCoordinate currentTile(zoom, tileBounds.getLowerLeft());
