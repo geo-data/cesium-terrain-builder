@@ -25,9 +25,10 @@
 #include <iterator>
 
 #include "TileCoordinate.hpp"
+#include "Grid.hpp"
 
 namespace terrain {
-  class GridIterator;
+  template <class T> class GridIterator;
 }
 
 /**
@@ -48,8 +49,9 @@ namespace terrain {
  * grid, but alternative extents can be passed in to the constructor, acting as
  * a spatial filter.
  */
+template <class T>
 class terrain::GridIterator :
-  public std::iterator<std::input_iterator_tag, TileCoordinate>
+  public std::iterator<std::input_iterator_tag, T>
 {
 public:
 
@@ -80,7 +82,7 @@ public:
   }
 
   /// Override the ++prefix operator
-  GridIterator &
+  GridIterator<T> &
   operator++() {
     // don't increment if exhausted
     if (exhausted())
@@ -125,16 +127,16 @@ public:
   }
 
   /// Override the postfix++ operator
-  GridIterator
+  GridIterator<T>
   operator++(int) {
-    GridIterator result(*this);   // make a copy for returning
+    GridIterator<T> result(*this);   // make a copy for returning
     ++(*this);                    // use the prefix version to do the work
     return result;                // return the copy (the old) value.
   }
 
   /// Override the equality operator
   bool
-  operator==(const GridIterator &other) const {
+  operator==(const GridIterator<T> &other) const {
     return currentTile == other.currentTile
       && startZoom == other.startZoom
       && endZoom == other.endZoom
@@ -145,15 +147,13 @@ public:
 
   /// Override the inequality operator
   bool
-  operator!=(const GridIterator &other) const {
+  operator!=(const GridIterator<T> &other) const {
     return !operator==(other);
   }
 
   /// Override the dereference operator to return a tile
-  TileCoordinate
-  operator*() const {
-    return currentTile;
-  }
+  T
+  operator*() const;
 
   /// Return `true` if the iterator is at the end
   bool

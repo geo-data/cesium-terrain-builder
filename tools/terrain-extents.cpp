@@ -27,6 +27,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <utility>              // for std::pair
 
 #include "gdal_priv.h"
 #include "commander.hpp"
@@ -34,7 +35,7 @@
 #include "config.hpp"
 #include "GlobalGeodetic.hpp"
 #include "GlobalMercator.hpp"
-#include "GridIterator.hpp"
+#include "CRSBoundsIterator.hpp"
 #include "GDALTiler.hpp"
 
 using namespace std;
@@ -105,24 +106,23 @@ printCoord(ofstream& stream, const CRSPoint &coord) {
 
 /// Write a GeoJSON tile to an output stream
 static void
-printTile(ofstream& stream, const GridIterator &iter, const Grid &grid) {
+printTile(ofstream& stream, const CRSBoundsIterator &iter) {
   if (iter.exhausted())
     return;
 
-  const TileCoordinate currentTile = *iter;
-  const CRSBounds crsBounds = grid.tileBounds(currentTile);
+  const std::pair<TileCoordinate, CRSBounds> result = *iter;
 
   stream << "{ \"type\": \"Feature\", \"geometry\": { \"type\": \"Polygon\", \"coordinates\": [[";
-  printCoord(stream, crsBounds.getLowerLeft());
+  printCoord(stream, result.second.getLowerLeft());
   stream << ", ";
-  printCoord(stream, crsBounds.getLowerRight());
+  printCoord(stream, result.second.getLowerRight());
   stream << ", ";
-  printCoord(stream, crsBounds.getUpperRight());
+  printCoord(stream, result.second.getUpperRight());
   stream << ", ";
-  printCoord(stream, crsBounds.getUpperLeft());
+  printCoord(stream, result.second.getUpperLeft());
   stream << ", ";
-  printCoord(stream, crsBounds.getLowerLeft());
-  stream << "]]}, \"properties\": {\"tx\": " << currentTile.x << ", \"ty\": " << currentTile.y << "}}";
+  printCoord(stream, result.second.getLowerLeft());
+  stream << "]]}, \"properties\": {\"tx\": " << result.first.x << ", \"ty\": " << result.first.y << "}}";
 }
 
 /// Write the tile extents to a directory in GeoJSON format
@@ -131,7 +131,7 @@ writeBounds(GDALTiler &tiler, const char *outputDir) {
   ofstream geojson;
   i_zoom maxZoom = tiler.maxZoomLevel();
   const Grid &grid = tiler.grid();
-  GridIterator iter(grid, tiler.bounds(), maxZoom);
+  CRSBoundsIterator iter(grid, tiler.bounds(), maxZoom);
   const string dirname = string(outputDir) + osDirSep;
 
   // Set the precision and numeric notation on the stream
@@ -148,11 +148,11 @@ writeBounds(GDALTiler &tiler, const char *outputDir) {
 
     // Iterate over the tiles in the zoom level
     iter.reset(zoom, zoom);
-    printTile(geojson, iter, grid);
+    printTile(geojson, iter);
 
     for (++iter; !iter.exhausted(); ++iter) {
       geojson << "," << endl;
-      printTile(geojson, iter, grid);
+      printTile(geojson, iter);
     }
 
     geojson << "]}" << endl;
