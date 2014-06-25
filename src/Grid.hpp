@@ -58,13 +58,15 @@ public:
   Grid(i_tile tileSize,
        const CRSBounds extent,
        const OGRSpatialReference srs,
-       unsigned short int rootTiles = 1):
+       unsigned short int rootTiles = 1,
+       float zoomFactor = 2):
     mTileSize(tileSize),
     mExtent(extent),
     mSRS(srs),
     mInitialResolution((extent.getWidth() / rootTiles) / tileSize ),
     mXOriginShift(extent.getWidth() / 2),
-    mYOriginShift(extent.getHeight() / 2)
+    mYOriginShift(extent.getHeight() / 2),
+    mZoomFactor(zoomFactor)
   {}
 
   /// Overload the assignment operator
@@ -76,6 +78,7 @@ public:
     mInitialResolution = other.mInitialResolution;
     mXOriginShift = other.mXOriginShift;
     mYOriginShift = other.mYOriginShift;
+    mZoomFactor = other.mZoomFactor;
 
     return *this;
   }
@@ -83,7 +86,7 @@ public:
   /// Get the resolution for a particular zoom level
   inline double
   resolution(i_zoom zoom) const {
-    return mInitialResolution / pow(2, zoom);
+    return mInitialResolution / pow(mZoomFactor, zoom);
   }
 
   /**
@@ -94,7 +97,9 @@ public:
    */
   inline i_zoom
   zoomForResolution(double resolution) const {
-    return (i_zoom) ceil(log2(mInitialResolution) - log2(resolution));
+    // if mZoomFactor == 2 the following is the same as using:
+    // log2(mInitialResolution) - log2(resolution)
+    return (i_zoom) ceil((log(mInitialResolution)/log(mZoomFactor)) - (log(resolution)/log(mZoomFactor)));
   }
 
   /// Get the tile covering a pixel location
@@ -174,6 +179,9 @@ protected:
   double mInitialResolution, ///< The initial resolution of this particular profile
     mXOriginShift, ///< The shift in CRS coordinates to get to the origin from minx
     mYOriginShift; ///< The shift in CRS coordinates to get to the origin from miny
+
+  /// By what factor will the scale increase at each zoom level?
+  float mZoomFactor;
 };
 
 #endif /* TERRAINGRID_HPP */
