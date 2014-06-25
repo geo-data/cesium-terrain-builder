@@ -117,18 +117,18 @@ public:
 
   /// Get the pixel location represented by a CRS point and zoom level
   inline PixelPoint
-  crsToPixels(const CRSPoint &latLon, i_zoom zoom) const {
+  crsToPixels(const CRSPoint &coord, i_zoom zoom) const {
     double res = resolution(zoom);
-    i_pixel px = (mXOriginShift + latLon.x) / res,
-      py = (mYOriginShift + latLon.y) / res;
+    i_pixel px = (mXOriginShift + coord.x) / res,
+      py = (mYOriginShift + coord.y) / res;
 
     return PixelPoint(px, py);
   }
 
   /// Get the tile coordinate in which a location falls at a specific zoom level
   inline TileCoordinate
-  crsToTile(const CRSPoint &latLon, i_zoom zoom) const {
-    const PixelPoint pixel = crsToPixels(latLon, zoom);
+  crsToTile(const CRSPoint &coord, i_zoom zoom) const {
+    const PixelPoint pixel = crsToPixels(coord, zoom);
     TilePoint tile = pixelsToTile(pixel);
 
     return TileCoordinate(zoom, tile);
