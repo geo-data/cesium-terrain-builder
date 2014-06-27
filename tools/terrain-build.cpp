@@ -163,11 +163,14 @@ buildGDAL(const GDALTiler &tiler, const char *outputDir, const char *outputForma
 
     poDstDS = poDriver->CreateCopy(filename.c_str(), poSrcDS, FALSE,
                                    NULL, NULL, NULL );
+    GDALClose(poSrcDS);
 
     // Close the datasets, flushing data to destination
-    if (poDstDS != NULL)
-      GDALClose(poDstDS);
-    GDALClose(poSrcDS);
+    if (poDstDS == NULL) {
+      throw TerrainException("Could not create GDAL tile");
+    }
+
+    GDALClose(poDstDS);
   }
 }
 
