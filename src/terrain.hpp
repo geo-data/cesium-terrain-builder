@@ -64,15 +64,22 @@
  * details.
  */
 
-#include "terrain/config.hpp"
-#include "terrain/types.hpp"
-#include "terrain/TerrainException.hpp"
+#include "terrain/Bounds.hpp"
+#include "terrain/Coordinate.hpp"
+#include "terrain/CRSBoundsIterator.hpp"
+#include "terrain/GDALTiler.hpp"
 #include "terrain/GlobalGeodetic.hpp"
 #include "terrain/GlobalMercator.hpp"
-#include "terrain/TileCoordinate.hpp"
-#include "terrain/TerrainTile.hpp"
+#include "terrain/Grid.hpp"
+#include "terrain/GridIterator.hpp"
 #include "terrain/RasterIterator.hpp"
+#include "terrain/TerrainException.hpp"
 #include "terrain/TerrainIterator.hpp"
-#include "terrain/GDALTiler.hpp"
+#include "terrain/TerrainTile.hpp"
+#include "terrain/TerrainTiler.hpp"
+#include "terrain/TileCoordinate.hpp"
+#include "terrain/TileCoordinateIterator.hpp"
+#include "terrain/TilerIterator.hpp"
+#include "terrain/types.hpp"
 
 #endif /* TERRAIN_HPP */

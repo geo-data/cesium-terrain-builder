@@ -34,6 +34,7 @@ target_link_libraries(terrain ${GDAL_LIBRARIES} ${ZLIB_LIBRARIES})
 set(HEADERS
     Bounds.hpp
     Coordinate.hpp
+    CRSBoundsIterator.hpp
     GDALTiler.hpp
     GlobalGeodetic.hpp
     GlobalMercator.hpp
@@ -45,6 +46,7 @@ set(HEADERS
     TerrainTile.hpp
     TerrainTiler.hpp
     TileCoordinate.hpp
+    TileCoordinateIterator.hpp
     TilerIterator.hpp
     types.hpp)
 install(FILES ${HEADERS} DESTINATION include/terrain)
