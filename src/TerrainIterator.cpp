@@ -24,11 +24,11 @@
 using namespace terrain;
 
 terrain::TerrainIterator::TerrainIterator(const TerrainTiler &tiler):
-  TileIterator(tiler)
+  TilerIterator(tiler)
 {}
 
 terrain::TerrainIterator::TerrainIterator(const TerrainTiler &tiler, i_zoom startZoom, i_zoom endZoom):
-  TileIterator(tiler, startZoom, endZoom)
+  TilerIterator(tiler, startZoom, endZoom)
 {}
 
 /**

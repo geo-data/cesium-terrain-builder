@@ -45,7 +45,7 @@ set(HEADERS
     TerrainTile.hpp
     TerrainTiler.hpp
     TileCoordinate.hpp
-    TileIterator.hpp
+    TilerIterator.hpp
     types.hpp)
 install(FILES ${HEADERS} DESTINATION include/terrain)
 install(FILES terrain.hpp DESTINATION include)

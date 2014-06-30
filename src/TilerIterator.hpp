@@ -1,5 +1,5 @@
-#ifndef TILEITERATOR_HPP
-#define TILEITERATOR_HPP
+#ifndef TILERITERATOR_HPP
+#define TILERITERATOR_HPP
 
 /*******************************************************************************
  * Copyright 2014 GeoData <geodata@soton.ac.uk>
@@ -18,14 +18,14 @@
  *******************************************************************************/
 
 /**
- * @file TileIterator.hpp
- * @brief This declares and defines the `TileIterator` class
+ * @file TilerIterator.hpp
+ * @brief This declares and defines the `TilerIterator` class
  */
 
 #include "GridIterator.hpp"
 
 namespace terrain {
-  template <class T1, class T2> class TileIterator;
+  template <class T1, class T2> class TilerIterator;
 }
 
 /**
@@ -35,18 +35,18 @@ namespace terrain {
  * constructor and are used to forward iterate over all tiles in the tiler.
  */
 template <class T1, class T2>
-class terrain::TileIterator :
+class terrain::TilerIterator :
   public GridIterator<T1>
 {
 public:
 
   /// Instantiate an iterator with a tiler
-  TileIterator(const T2 &tiler) :
+  TilerIterator(const T2 &tiler) :
     GridIterator<T1>(tiler.grid(), tiler.bounds(), tiler.maxZoomLevel(), 0),
     tiler(tiler)
   {}
 
-  TileIterator(const T2 &tiler, i_zoom startZoom, i_zoom endZoom = 0) :
+  TilerIterator(const T2 &tiler, i_zoom startZoom, i_zoom endZoom = 0) :
     GridIterator<T1>(tiler.grid(), tiler.bounds(), startZoom, endZoom),
     tiler(tiler)
   {}
@@ -56,4 +56,4 @@ protected:
   const T2 &tiler;              ///< The tiler we are iterating over
 };
 
-#endif /* TILEITERATOR_HPP */
+#endif /* TILERITERATOR_HPP */

@@ -26,7 +26,7 @@
 
 #include "gdal_priv.h"
 
-#include "TileIterator.hpp"
+#include "TilerIterator.hpp"
 #include "GDALTiler.hpp"
 
 namespace terrain {
@@ -42,7 +42,7 @@ namespace terrain {
  * on the returned dataset.
  */
 class terrain::RasterIterator :
-  public TileIterator< std::pair<const TileCoordinate &, GDALDataset *>, const GDALTiler & >
+  public TilerIterator< std::pair<const TileCoordinate &, GDALDataset *>, const GDALTiler & >
 {
 public:
 

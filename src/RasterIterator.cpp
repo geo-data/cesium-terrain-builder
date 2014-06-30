@@ -24,11 +24,11 @@
 using namespace terrain;
 
 terrain::RasterIterator::RasterIterator(const GDALTiler &tiler) :
-  TileIterator(tiler)
+  TilerIterator(tiler)
 {}
 
 terrain::RasterIterator::RasterIterator(const GDALTiler &tiler, i_zoom startZoom, i_zoom endZoom):
-  TileIterator(tiler, startZoom, endZoom)
+  TilerIterator(tiler, startZoom, endZoom)
 {}
 
 /**

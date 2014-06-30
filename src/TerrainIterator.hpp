@@ -24,7 +24,7 @@
 
 #include "TerrainTile.hpp"
 #include "TerrainTiler.hpp"
-#include "TileIterator.hpp"
+#include "TilerIterator.hpp"
 
 namespace terrain {
   class TerrainIterator;
@@ -38,7 +38,7 @@ namespace terrain {
  * overrides the `operator*` method to return a `TerrainTile`.
  */
 class terrain::TerrainIterator :
-  public TileIterator< TerrainTile, const TerrainTiler & >
+  public TilerIterator< TerrainTile, const TerrainTiler & >
 {
 public:
 
