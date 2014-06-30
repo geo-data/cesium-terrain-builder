@@ -36,7 +36,8 @@ namespace terrain {
  *
  * Instances of this class take a `Grid` (or derived class) in the constructor
  * and are used to forward iterate over all tiles contained in the grid,
- * starting from a specified maximum zoom level and moving up to level `0` e.g.
+ * starting from a specified maximum zoom level and moving up to a specified
+ * minimum zoom level e.g.
  *
  * \code
  *    for(GridIterator iter(tiler); !iter.exhausted(); ++iter) {
@@ -78,6 +79,7 @@ public:
     if (startZoom < endZoom)
       throw TerrainException("Iterating from a starting zoom level that is less than the end zoom level");
 
+    currentTile.zoom = startZoom;
     setTileBounds();
   }
 
@@ -150,10 +152,6 @@ public:
   operator!=(const GridIterator<T> &other) const {
     return !operator==(other);
   }
-
-  /// Override the dereference operator to return a tile
-  T
-  operator*() const;
 
   /// Return `true` if the iterator is at the end
   bool

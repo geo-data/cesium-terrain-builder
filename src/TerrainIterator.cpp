@@ -1,5 +1,4 @@
 #include "TerrainIterator.hpp"
-#include "TerrainTiler.hpp"
 
 /*******************************************************************************
  * Copyright 2014 GeoData <geodata@soton.ac.uk>
@@ -28,11 +27,15 @@ terrain::TerrainIterator::TerrainIterator(const TerrainTiler &tiler):
   TileIterator(tiler)
 {}
 
+terrain::TerrainIterator::TerrainIterator(const TerrainTiler &tiler, i_zoom startZoom, i_zoom endZoom):
+  TileIterator(tiler, startZoom, endZoom)
+{}
+
 /**
  * @details use the tiler to create a `TerrainTile` on the fly for the
  * `TileCoordinate` currently pointed to by the iterator.
  */
 TerrainTile
 terrain::TerrainIterator::operator*() const {
-  return tiler.createTerrainTile(coord);
+  return tiler.createTerrainTile(currentTile);
 }

@@ -23,11 +23,11 @@
  */
 
 #include "TerrainTile.hpp"
+#include "TerrainTiler.hpp"
 #include "TileIterator.hpp"
 
 namespace terrain {
   class TerrainIterator;
-  class TerrainTiler;
 }
 
 /**
@@ -44,6 +44,8 @@ public:
 
   /// Instantiate an iterator with a tiler
   TerrainIterator(const TerrainTiler &tiler);
+
+  TerrainIterator(const TerrainTiler &tiler, i_zoom startZoom, i_zoom endZoom = 0);
 
   /// Override the dereference operator to return a `TerrainTile`
   TerrainTile

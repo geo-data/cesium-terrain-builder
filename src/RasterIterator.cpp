@@ -1,5 +1,4 @@
 #include "RasterIterator.hpp"
-#include "GDALTiler.hpp"
 
 /*******************************************************************************
  * Copyright 2014 GeoData <geodata@soton.ac.uk>
@@ -28,6 +27,10 @@ terrain::RasterIterator::RasterIterator(const GDALTiler &tiler) :
   TileIterator(tiler)
 {}
 
+terrain::RasterIterator::RasterIterator(const GDALTiler &tiler, i_zoom startZoom, i_zoom endZoom):
+  TileIterator(tiler, startZoom, endZoom)
+{}
+
 /**
  * @details The `GDALDataset *` is a pointer to a [virtual
  * raster](http://www.gdal.org/gdal_vrttut.html). It is the caller's
@@ -37,7 +40,7 @@ std::pair<const TileCoordinate &, GDALDataset *>
 terrain::RasterIterator::operator*() const {
   return std::pair<const TileCoordinate &, GDALDataset *>
     (
-     coord,
-     static_cast<GDALDataset *>(tiler.createRasterTile(coord))
+     currentTile,
+     static_cast<GDALDataset *>(tiler.createRasterTile(currentTile))
      );
 }

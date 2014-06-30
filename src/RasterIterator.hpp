@@ -27,10 +27,10 @@
 #include "gdal_priv.h"
 
 #include "TileIterator.hpp"
+#include "GDALTiler.hpp"
 
 namespace terrain {
   class RasterIterator;
-  class GDALTiler;
 }
 
 /**
@@ -48,6 +48,8 @@ public:
 
   /// Instantiate an iterator with a tiler
   RasterIterator(const GDALTiler &tiler);
+
+  RasterIterator(const GDALTiler &tiler, i_zoom startZoom, i_zoom endZoom = 0);
 
   /// Override the dereference operator to return a `GDALDataset *`
   std::pair<const TileCoordinate &, GDALDataset *>
