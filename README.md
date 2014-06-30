@@ -28,19 +28,31 @@ tile extents overlap the raster extents, resampling and subsetting the data as
 necessary.
 
 The input raster should contain data representing elevations relative to sea
-level.
+level. `NODATA` (null) values are not currently dealt with: these should be
+filled using interpolation in a data preprocessing step.
 
 Note that in the case of multiband rasters, only the first band is used as the
 input DEM.
 
+As well as creating terrain tiles, the tool can also be used for generating
+tiles in GDAL supported formats using the `--output-format` option.  Tiles can
+be created in either Web Mercator or Global Geodetic projections using the
+`--profile` option.  Note that when generating terrain tiles for use in Cesium
+the defaults should not be changed!
+
 ```
-Usage: ./tools/terrain-build [options] GDAL_DATASOURCE
+Usage: terrain-build [options] GDAL_DATASOURCE
 
 Options:
 
   -V, --version                 output program version
   -h, --help                    output help information
   -o, --output-dir <dir>        specify the output directory for the tiles (defaults to working directory)
+  -f, --output-format <format>  specify the output format for the tiles. This is either `Terrain` (the default) or any format listed by `gdalinfo --formats`
+  -p, --profile <profile>       specify the TMS profile for the tiles. This is either `geodetic` (the default) or `mercator`
+  -t, --tile-size <size>        specify the size of the tiles in pixels. This defaults to 65 for terrain tiles and 256 for other GDAL formats
+  -s, --start-zoom <zoom>       specify the zoom level to start at. This should be greater than the end zoom level
+  -e, --end-zoom <zoom>         specify the zoom level to end at. This should be less than the start zoom level and >= 0
 ```
 
 #### Recommendations
@@ -57,13 +69,18 @@ Options:
   in the Tile Mapping Service specification.  See the
   [`gdaladdo`](http://www.gdal.org/gdaladdo.html) tool for creating overviews.
 
+* DEM datasets composed of multiple files can be composited into a single GDAL
+  [Virtual Raster](http://www.gdal.org/gdal_vrttut.html) (VRT) dataset for use
+  as input to CTB.  See the
+  [`gdalbuildvrt`](http://www.gdal.org/gdalbuildvrt.html) tool.
+
 ### `terrain-info`
 
 This provides various information on a terrain tile, mainly useful for
 debugging purposes.
 
 ```
-Usage: ./tools/terrain-info [options] TERRAIN_FILE
+Usage: terrain-info [options] TERRAIN_FILE
 
 Options:
 
@@ -85,7 +102,7 @@ Note that the tool does not normalise the terrain data to sea level but
 displays it exactly as it is found in the terrain data.
 
 ```
-Usage: ./tools/terrain-export -i TERRAIN_FILE -z ZOOM_LEVEL -x TILE_X -y TILE_Y -o OUTPUT_FILE 
+Usage: terrain-export -i TERRAIN_FILE -z ZOOM_LEVEL -x TILE_X -y TILE_Y -o OUTPUT_FILE
 
 Options:
 
@@ -106,13 +123,17 @@ level as a [GeoJSON](http://geojson.org/) file containing the tile extents for
 that particular zoom level.
 
 ```
-Usage: ./tools/terrain-extents GDAL_DATASET
+Usage: terrain-extents GDAL_DATASET
 
 Options:
 
   -V, --version                 output program version
   -h, --help                    output help information
   -o, --output-dir <dir>        specify the output directory for the geojson files (defaults to working directory)
+  -p, --profile <profile>       specify the TMS profile for the tiles. This is either `geodetic` (the default) or `mercator`
+  -t, --tile-size <size>        specify the size of the tiles in pixels. This defaults to 65 for terrain tiles and 256 for other GDAL formats
+  -s, --start-zoom <zoom>       specify the zoom level to start at. This should be greater than the end zoom level
+  -e, --end-zoom <zoom>         specify the zoom level to end at. This should be less than the start zoom level and >= 0
 ```
 
 ## LibTerrain
@@ -154,7 +175,7 @@ valid tiles represented by a `GDALTiler`.
 Although the software has been used to create a substantial number of terrain
 tile sets currently in production use, it should be considered alpha quality
 software: it needs broader testing, a comprehensive test harness and the API is
-liable to change.  
+liable to change.
 
 To date the software has only been developed and deployed on a Linux OS,
 although porting it to other systems should be relatively painless as the
@@ -188,7 +209,7 @@ source development header files. You will also need
 
 4. On a UNIX system you may need to run `ldconfig` to update the shared library
    cache.
-   
+
 Alternatively in step 3 above you can create a debug build by running `cmake
 -DCMAKE_BUILD_TYPE=Debug ..`.  You can also install to a different location by
 specifying the `CMAKE_INSTALL_PREFIX` directive e.g. `cmake
@@ -208,10 +229,10 @@ installation issues are encapsulated in the image.
 
 * Create a comprehensive test harness, including code coverage and valgrind
   analysis.
-  
+
 * Add support for the new
   [quantized-mesh-1.0 terrain format](http://cesiumjs.org/data-and-assets/terrain/formats/quantized-mesh-1.0.html).
-  
+
 * The `terrain-build` command currently only outputs files to a directory and
   as such is subjected to filesystem limits (e.g. inode limits): it should be
   able to output tiles in a format that overcomes these limits and which is
@@ -220,7 +241,7 @@ installation issues are encapsulated in the image.
 
 * Provide hooks into the GDAL error handling mechanism to more gracefully
   intercept GDAL errors.
-  
+
 * Enable more options to be passed to the VRT warper, such as the resampling
   algorithm, deciding whether an approximate warp is acceptable, using the
   multi-threading warp functionality etc.
@@ -229,7 +250,7 @@ installation issues are encapsulated in the image.
   the underlying `TileIterator` class): at the moment tiles are automatically
   generated from the maximum zoom level supported by the native raster
   resolution to zoom level `0`.
-  
+
 * Add support for creating water masks to tiles could be useful: at the moment
   all tiles are flagged as being of type 'land'.
 
