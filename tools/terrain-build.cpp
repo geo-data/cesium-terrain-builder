@@ -66,7 +66,9 @@ public:
     outputDir("."),
     outputFormat("Terrain"),
     profile("geodetic"),
-    tileSize(0)
+    tileSize(0),
+    startZoom(-1),
+    endZoom(-1)
   {}
 
   void
@@ -105,6 +107,17 @@ public:
     static_cast<TerrainBuild *>(Command::self(command))->tileSize = atoi(command->arg);
   }
 
+
+  static void
+  setStartZoom(command_t *command) {
+    static_cast<TerrainBuild *>(Command::self(command))->startZoom = atoi(command->arg);
+  }
+
+  static void
+  setEndZoom(command_t *command) {
+    static_cast<TerrainBuild *>(Command::self(command))->endZoom = atoi(command->arg);
+  }
+
   const char *
   getInputFilename() const {
     return  (command->argc == 1) ? command->argv[0] : NULL;
@@ -114,6 +127,8 @@ public:
   const char *outputFormat;
   const char *profile;
   int tileSize;
+  int startZoom;
+  int endZoom;
 };
 
 string
@@ -138,8 +153,8 @@ getTileFilename(const TileCoordinate &coord, const string dirname, const char *e
 
 /// Output GDAL tiles represented by a tiler to a directory
 void
-buildGDAL(const GDALTiler &tiler, const char *outputDir, const char *outputFormat) {
-  GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName(outputFormat);
+buildGDAL(const GDALTiler &tiler, const TerrainBuild &command) {
+  GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName(command.outputFormat);
 
   if (poDriver == NULL) {
     throw TerrainException("Could not retrieve GDAL driver");
@@ -150,9 +165,11 @@ buildGDAL(const GDALTiler &tiler, const char *outputDir, const char *outputForma
   }
 
   const char *extension = poDriver->GetMetadataItem(GDAL_DMD_EXTENSION);
-  const string dirname = string(outputDir) + osDirSep;
+  const string dirname = string(command.outputDir) + osDirSep;
+  i_zoom startZoom = (command.startZoom < 0) ? tiler.maxZoomLevel() : command.startZoom,
+    endZoom = (command.endZoom < 0) ? 0 : command.endZoom;
 
-  for (RasterIterator iter(tiler); !iter.exhausted(); ++iter) {
+  for (RasterIterator iter(tiler, startZoom, endZoom); !iter.exhausted(); ++iter) {
     std::pair<const TileCoordinate &, GDALDataset *> result = *iter;
     const TileCoordinate &coord = result.first;
     GDALDataset *poSrcDS = result.second;
@@ -176,10 +193,12 @@ buildGDAL(const GDALTiler &tiler, const char *outputDir, const char *outputForma
 
 /// Output terrain tiles represented by a tiler to a directory
 void
-buildTerrain(const TerrainTiler &tiler, const char *outputDir) {
-  const string dirname = string(outputDir) + osDirSep;
+buildTerrain(const TerrainTiler &tiler, const TerrainBuild &command) {
+  const string dirname = string(command.outputDir) + osDirSep;
+  i_zoom startZoom = (command.startZoom < 0) ? tiler.maxZoomLevel() : command.startZoom,
+    endZoom = (command.endZoom < 0) ? 0 : command.endZoom;
 
-  for (TerrainIterator iter(tiler); !iter.exhausted(); ++iter) {
+  for (TerrainIterator iter(tiler, startZoom, endZoom); !iter.exhausted(); ++iter) {
     const TerrainTile terrainTile = *iter;
     const TileCoordinate &coord = terrainTile.getCoordinate();
     const string filename = getTileFilename(coord, dirname, "terrain");
@@ -198,6 +217,8 @@ main(int argc, char *argv[]) {
   command.option("-f", "--output-format <format>", "specify the output format for the tiles. This is either `Terrain` (the default) or any format listed by `gdalinfo --formats`", TerrainBuild::setOutputFormat);
   command.option("-p", "--profile <profile>", "specify the TMS profile for the tiles. This is either `geodetic` (the default) or `mercator`", TerrainBuild::setProfile);
   command.option("-t", "--tile-size <size>", "specify the size of the tiles in pixels. This defaults to 65 for terrain tiles and 256 for other GDAL formats", TerrainBuild::setTileSize);
+  command.option("-s", "--start-zoom <zoom>", "specify the zoom level to start at. This should be greater than the end zoom level", TerrainBuild::setStartZoom);
+  command.option("-e", "--end-zoom <zoom>", "specify the zoom level to end at. This should be less than the start zoom level and >= 0", TerrainBuild::setEndZoom);
 
   // Parse and check the arguments
   command.parse(argc, argv);
@@ -226,10 +247,10 @@ main(int argc, char *argv[]) {
   try {
     if (strcmp(command.outputFormat, "Terrain") == 0) {
       const TerrainTiler tiler(poDataset, grid);
-      buildTerrain(tiler, command.outputDir);
+      buildTerrain(tiler, command);
     } else {                    // it's a GDAL format
       const GDALTiler tiler(poDataset, grid);
-      buildGDAL(tiler, command.outputDir, command.outputFormat);
+      buildGDAL(tiler, command);
     }
 
   } catch (TerrainException &e) {

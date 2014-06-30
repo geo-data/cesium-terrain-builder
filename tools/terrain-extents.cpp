@@ -54,7 +54,9 @@ public:
     Command(name, version),
     outputDir("."),
     profile("geodetic"),
-    tileSize(0)
+    tileSize(0),
+    startZoom(-1),
+    endZoom(-1)
   {}
 
   void
@@ -70,7 +72,7 @@ public:
       break;
     }
 
-    help();                   // print help and exit
+    help();                     // print help and exit
   }
 
   static void
@@ -88,14 +90,31 @@ public:
     static_cast<TerrainExtents *>(Command::self(command))->tileSize = atoi(command->arg);
   }
 
+  static void
+  setStartZoom(command_t *command) {
+    static_cast<TerrainExtents *>(Command::self(command))->startZoom = atoi(command->arg);
+  }
+
+  static void
+  setEndZoom(command_t *command) {
+    static_cast<TerrainExtents *>(Command::self(command))->endZoom = atoi(command->arg);
+  }
+
   const char *
   getInputFilename() const {
     return  (command->argc == 1) ? command->argv[0] : NULL;
   }
 
+  static bool
+  cmpZoomLevels (i_zoom i, i_zoom j) {
+    return (i > j);
+  }
+
   const char *outputDir;
   const char *profile;
   int tileSize;
+  int startZoom;
+  int endZoom;
 };
 
 /// Write a GeoJSON coordinate to an output stream
@@ -125,38 +144,57 @@ printTile(ofstream& stream, const CRSBoundsIterator &iter) {
   stream << "]]}, \"properties\": {\"tx\": " << result.first.x << ", \"ty\": " << result.first.y << "}}";
 }
 
+/// Output the tile extent for a particular zoom level
+static bool
+writeBoundsForZoom(ofstream &geojson, const string &dirname, CRSBoundsIterator &iter, i_zoom zoom) {
+  const string filename = dirname + static_cast<ostringstream*>( &(ostringstream() << zoom << ".geojson") )->str();
+  cout << "creating " << filename << endl;
+
+  geojson.open(filename.c_str(), ofstream::trunc);
+  if (!geojson) {
+    cerr << "File could not be opened: " << strerror(errno) << endl; // Get some info as to why
+    return false;
+  }
+
+  geojson << "{ \"type\": \"FeatureCollection\", \"features\": [" << endl;
+
+  // Iterate over the tiles in the zoom level
+  iter.reset(zoom, zoom);
+  printTile(geojson, iter);
+
+  for (++iter; !iter.exhausted(); ++iter) {
+    geojson << "," << endl;
+    printTile(geojson, iter);
+  }
+
+  geojson << "]}" << endl;
+  geojson.close();
+
+  return true;
+}
+
 /// Write the tile extents to a directory in GeoJSON format
 static void
-writeBounds(GDALTiler &tiler, const char *outputDir) {
+writeBounds(GDALTiler &tiler, const char *outputDir, int startZoom, int endZoom) {
   ofstream geojson;
-  i_zoom maxZoom = tiler.maxZoomLevel();
   const Grid &grid = tiler.grid();
-  CRSBoundsIterator iter(grid, tiler.bounds(), maxZoom);
   const string dirname = string(outputDir) + osDirSep;
+
+  if (startZoom < 0)
+    startZoom = tiler.maxZoomLevel();
+  if (endZoom < 0)
+    endZoom = 0;
+
+  CRSBoundsIterator iter(grid, tiler.bounds(), startZoom, endZoom);
 
   // Set the precision and numeric notation on the stream
   geojson.precision(15);
-  geojson.setf(std::ios::scientific, std::ios::floatfield);
+  geojson.setf(ios::scientific, ios::floatfield);
 
-  // Create a new geojson file for each zoom level
-  for (short int zoom = maxZoom; zoom >= 0; zoom--) {
-    const string filename = dirname + static_cast<ostringstream*>( &(ostringstream() << zoom << ".geojson") )->str();
-    cout << "creating " << filename << endl;
-
-    geojson.open(filename.c_str());
-    geojson << "{ \"type\": \"FeatureCollection\", \"features\": [" << endl;
-
-    // Iterate over the tiles in the zoom level
-    iter.reset(zoom, zoom);
-    printTile(geojson, iter);
-
-    for (++iter; !iter.exhausted(); ++iter) {
-      geojson << "," << endl;
-      printTile(geojson, iter);
-    }
-
-    geojson << "]}" << endl;
-    geojson.close();
+  // Iterate over all zoom selected levels
+  for (; startZoom >= endZoom; --startZoom) {
+    if (!writeBoundsForZoom(geojson, dirname, iter, startZoom))
+      return;
   }
 }
 
@@ -167,6 +205,8 @@ main(int argc, char *argv[]) {
   command.option("-o", "--output-dir <dir>", "specify the output directory for the geojson files (defaults to working directory)", TerrainExtents::setOutputDir);
   command.option("-p", "--profile <profile>", "specify the TMS profile for the tiles. This is either `geodetic` (the default) or `mercator`", TerrainExtents::setProfile);
   command.option("-t", "--tile-size <size>", "specify the size of the tiles in pixels. This defaults to 65 for terrain tiles and 256 for other GDAL formats", TerrainExtents::setTileSize);
+  command.option("-s", "--start-zoom <zoom>", "specify the zoom level to start at. This should be greater than the end zoom level", TerrainExtents::setStartZoom);
+  command.option("-e", "--end-zoom <zoom>", "specify the zoom level to end at. This should be less than the start zoom level and >= 0", TerrainExtents::setEndZoom);
 
   // Parse and check the arguments
   command.parse(argc, argv);
@@ -189,7 +229,7 @@ main(int argc, char *argv[]) {
   GDALDataset  *poDataset = (GDALDataset *) GDALOpen(command.getInputFilename(), GA_ReadOnly);
   GDALTiler tiler(poDataset, grid);
 
-  writeBounds(tiler, command.outputDir);
+  writeBounds(tiler, command.outputDir, command.startZoom, command.endZoom);
 
   return 0;
 }
