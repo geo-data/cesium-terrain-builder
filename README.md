@@ -1,7 +1,7 @@
 # Cesium Terrain Builder
 
 This is a C++ library and associated command line tools designed to create
-terrain tiles for use in the [Cesium JavaScript](http://cesiumjs.org) library.
+terrain tiles for use with the [Cesium JavaScript](http://cesiumjs.org) library.
 
 Cesium can create interactive 3D globes (à la Google Earth) in your web browser
 whereby imagery is draped over a model of the underlying terrain.  Cesium
@@ -25,7 +25,9 @@ This creates gzipped terrain tiles from a GDAL raster representing a
 zoom level concomitant with the native raster resolution and creates terrain
 tiles for all zoom levels between that maximum and zoom level `0` where the
 tile extents overlap the raster extents, resampling and subsetting the data as
-necessary.
+necessary. E.g.
+
+    terrain-build --output-dir ./terrain-tiles dem.tif
 
 The input raster should contain data representing elevations relative to sea
 level. `NODATA` (null) values are not currently dealt with: these should be
@@ -35,10 +37,18 @@ Note that in the case of multiband rasters, only the first band is used as the
 input DEM.
 
 As well as creating terrain tiles, the tool can also be used for generating
-tiles in GDAL supported formats using the `--output-format` option.  Tiles can
-be created in either Web Mercator or Global Geodetic projections using the
-`--profile` option.  Note that when generating terrain tiles for use in Cesium
-the defaults should not be changed!
+tiles in GDAL supported formats using the `--output-format` option.  This
+provides similar functionality to the
+[`gdal2tiles.py`](http://www.gdal.org/gdal2tiles.html) script. Tiles can be
+created in either Web Mercator or Global Geodetic projections using the
+`--profile` option.  e.g.
+
+    terrain-build --output-format JPEG --profile mercator \
+      --output-dir ./jpeg-tiles RGB-image.tif
+
+An interesting variation on this is to specify `--output-format VRT` in order to
+generate GDAL Virtual Rasters: these can be useful for debugging and are easily
+modified programatically.
 
 ```
 Usage: terrain-build [options] GDAL_DATASOURCE
@@ -57,22 +67,48 @@ Options:
 
 #### Recommendations
 
-* For performance reasons it is recommended that the input raster be in the
+* For performance reasons it is recommended that the input raster be in the same
+  spatial reference system as the output tile grid in order to bypass the need
+  to reproject the data.  For terrain data this is
   [World Geodetic System](http://en.wikipedia.org/wiki/World_Geodetic_System)
-  (WGS 84).  If it is in another spatial reference system, however, the tool
-  will attempt to reproject the data to WGS 84 but with an associated
-  performance penalty.
+  (WGS 84).  If the source data is in another spatial reference system, however,
+  the tool will attempt to reproject the data but with an associated performance
+  penalty.
 
-* For large rasters it is recommended that a format that supports overviews is
-  used and overviews are implemented for resolutions corresponding to the
+* For large rasters a tile based format (as opposed to scanline based) will
+  drastically speed up processing.  A block size that is similar to the tile
+  output size (i.e. 65x65 for terrain tiles) should be chosen.  Additionally a
+  format that supports overviews can be chosen with overviews being implemented
+  for resolutions corresponding to the
   [Global Geodetic Profile](http://wiki.osgeo.org/wiki/Tile_Map_Service_Specification#global-geodetic)
   in the Tile Mapping Service specification.  See the
   [`gdaladdo`](http://www.gdal.org/gdaladdo.html) tool for creating overviews.
 
 * DEM datasets composed of multiple files can be composited into a single GDAL
   [Virtual Raster](http://www.gdal.org/gdal_vrttut.html) (VRT) dataset for use
-  as input to CTB.  See the
+  as input to `terrain-build` and `terrain-extents`.  See the
   [`gdalbuildvrt`](http://www.gdal.org/gdalbuildvrt.html) tool.
+
+* Setting
+  [GDAL runtime configuration](http://trac.osgeo.org/gdal/wiki/ConfigOptions)
+  options will also affect Cesium Terrain Builder.  Specifically the
+  [`GDAL_CACHEMAX`](http://trac.osgeo.org/gdal/wiki/ConfigOptions#GDAL_CACHEMAX)
+  environment variable should be set as high as your system supports it.
+
+* `terrain-build` will resample data from the source dataset when generating
+  tilesets for the various zoom levels.  This can lead to performance issues and
+  datatype overflows at lower zoom levels (e.g. level 0) when the source dataset
+  is very large.  To overcome this the tool can be used on the original dataset
+  to only create the tile set at the highest zoom level (e.g. level 18) using
+  the `--start-zoom` and `--end-zoom` options.  Once this tileset is generated
+  it can be turned into a GDAL Virtual Raster dataset for creating the next zoom
+  level down (e.g. level 17).  Repeating this process until the lowest zoom
+  level is created means that the resampling is much more efficient (e.g. level
+  0 would be created from a VRT representation of level 1).  Because terrain
+  tiles are not a format supported by VRT datasets you will need to perform this
+  process in order to create tiles in a GDAL DEM format as an intermediate step.
+  VRT representations of these intermediate tilesets can then be used to create
+  the final terrain tile output.
 
 ### `terrain-info`
 
@@ -158,17 +194,26 @@ at `doc/html/index.html`.
 
 ### Implementation overview
 
-The TMS Global Geodetic Profile is modelled by the `GlobalGeodetic` class.  The
-`GDALTiler` class composes an instance of this class with a GDAL raster dataset
-allowing it to find which zoom levels and tilesets are represented by the
-raster.  For each valid tile it can then generate a GDAL
-[Virtual Raster](http://www.gdal.org/gdal_vrttut.html) (VRT).  This is a
-lightweight representation of the relevant underlying data necessary to create
-a terrain tile.  The VRT can then be used to generate an actual `TerrainTile`
-instance which can then be stored as required by the application.
+The concept of a grid is implemented in the `Grid` class.  The TMS Global
+Geodetic and Global Merdcator profiles are specialisations of the grid
+implemented in the `GlobalGeodetic` and `GlobalMercator` classes.  These classes
+define the tiling scheme which is then used to cut up GDAL rasters into the
+output tiles.
 
-The `TileIterator` class provides a simple interface for iterating over all
-valid tiles represented by a `GDALTiler`.
+The `GDALTiler` and `TerrainTiler` classes composes an instance of a grid with a
+GDAL raster dataset.  They use the dataset to determine the native raster
+resolution and extent.  Once this is known the appropriate zoom levels and tile
+coverage can be calculated from the grid.  For each tile an in memory GDAL
+[Virtual Raster](http://www.gdal.org/gdal_vrttut.html) (VRT) can then be
+generated.  This is a lightweight representation of the relevant underlying data
+necessary to create populate the tile.  The VRT can then be used to generate an
+actual `TerrainTile` instance or raster dataset which can then be stored as
+required by the application.
+
+There are various iterator classes providing convenient iteration over tilesets
+created by grids and tilers.  For instance, the `TerrainIterator` class provides
+a simple interface for iterating over all valid tiles represented by a
+`TerrainTiler`, and likewise the `RasterIterator` over a `GDALTiler` instance.
 
 ## Status
 
@@ -177,17 +222,19 @@ tile sets currently in production use, it should be considered alpha quality
 software: it needs broader testing, a comprehensive test harness and the API is
 liable to change.
 
-To date the software has only been developed and deployed on a Linux OS,
-although porting it to other systems should be relatively painless as the
-library dependencies have been ported and the code itself is standard C++.
+The software has primarily been developed and deployed on a Linux OS.  Porting
+it to other systems should be relatively painless as the library dependencies
+have been ported to numerous systems and the code itself is standard C++.  In
+fact it has been reported as compiling on Windows using Visual Studio 2010 with
+minor tweaks.
 
 ## Requirements
 
 ### Runtime requirements
 
 Ensure [GDAL](http://www.gdal.org) >= 2.0.0 is installed.  At the time of
-writing this is not a stable release so you may need a nightly build or build
-the source directly from version control.
+writing this is not a stable release so you may need to use a nightly build or
+to build the source directly from version control.
 
 ### Build requirements
 
@@ -246,13 +293,20 @@ installation issues are encapsulated in the image.
   algorithm, deciding whether an approximate warp is acceptable, using the
   multi-threading warp functionality etc.
 
-* Enable a zoom level range to be specified in the `terrain-build` tool (and
-  the underlying `TileIterator` class): at the moment tiles are automatically
-  generated from the maximum zoom level supported by the native raster
-  resolution to zoom level `0`.
+* Parallelise the tile generation, most likely using threads to create batches
+  of tiles.  Implementing this would probably need the `GridIterator` to be
+  extended to support setting start and stop points using `TileCoordinate`s.
 
-* Add support for creating water masks to tiles could be useful: at the moment
-  all tiles are flagged as being of type 'land'.
+* One of the `terrain-build` recommendations above illustrates a process for
+  efficiently creating tilesets at lower zoom levels by resampling an already
+  generated tileset at the next highest zoom level.  This could be built
+  directly into the `terrain-build` tool.  An implementation could create a
+  read-only GDAL `TiledDataset` class (or use a VRT, if it efficiently supports
+  the large number of tile files) which accesses the already generated tileset;
+  this dataset could then be used as an input to the tiler.
+
+* Adding support for creating water masks to tiles could be useful: at the
+  moment all tiles are flagged as being of type 'land'.
 
 ## Issues and Contributing
 
