@@ -20,6 +20,7 @@
  */
 
 #include <algorithm>            // std::minmax
+#include <string.h>             // strlen
 
 #include "ogr_spatialref.h"
 #include "ogr_srs_api.h"
@@ -42,28 +43,48 @@ GDALTiler::GDALTiler(GDALDataset *poDataset, const Grid &grid):
     double adfGeoTransform[6];
     CRSBounds bounds;
 
-    if( poDataset->GetGeoTransform( adfGeoTransform ) == CE_None ) {
+    if (poDataset->GetGeoTransform(adfGeoTransform) == CE_None) {
       bounds = CRSBounds(adfGeoTransform[0],
                          adfGeoTransform[3] + (poDataset->GetRasterYSize() * adfGeoTransform[5]),
                          adfGeoTransform[0] + (poDataset->GetRasterXSize() * adfGeoTransform[1]),
                          adfGeoTransform[3]);
     } else {
-      throw TerrainException("Could not get transformation information from dataset");
+      throw TerrainException("Could not get transformation information from source dataset");
     }
 
     // Find out whether the dataset SRS matches that of the grid
-    OGRSpatialReference srcSRS = OGRSpatialReference(poDataset->GetProjectionRef());
+    const char *srcWKT = poDataset->GetProjectionRef();
+    if (!strlen(srcWKT))
+      throw TerrainException("The source dataset does not have a spatial reference system assigned");
+
+    OGRSpatialReference srcSRS = OGRSpatialReference(srcWKT);
     OGRSpatialReference gridSRS = mGrid.getSRS();
 
-      if (!srcSRS.IsSame(&gridSRS)) { // it doesn't match
+    if (!srcSRS.IsSame(&gridSRS)) { // it doesn't match
+      // Check the srs is valid
+      switch(srcSRS.Validate()) {
+      case OGRERR_NONE:
+        break;
+      case OGRERR_CORRUPT_DATA:
+        throw TerrainException("The source spatial reference system appears to be corrupted");
+        break;
+      case OGRERR_UNSUPPORTED_SRS:
+        throw TerrainException("The source spatial reference system is not supported");
+        break;
+      default:
+        throw TerrainException("There is an unhandled return value from `srcSRS.Validate()`");
+      }
+
       // We need to transform the bounds to the grid SRS
       double x[4] = { bounds.getMinX(), bounds.getMaxX(), bounds.getMaxX(), bounds.getMinX() };
       double y[4] = { bounds.getMinY(), bounds.getMinY(), bounds.getMaxY(), bounds.getMaxY() };
 
       OGRCoordinateTransformation *transformer = OGRCreateCoordinateTransformation(&srcSRS, &gridSRS);
-      if (transformer->Transform(4, x, y) != true) {
+      if (transformer == NULL) {
+        throw TerrainException("The source dataset to tile grid coordinate transformation could not be created");
+      } else if (transformer->Transform(4, x, y) != true) {
         delete transformer;
-        throw TerrainException("Could not transform dataset bounds to EPSG:4326 spatial reference system");
+        throw TerrainException("Could not transform dataset bounds to tile spatial reference system");
       }
       delete transformer;
 
@@ -171,9 +192,9 @@ GDALTiler::createRasterTile(const TileCoordinate &coord) const {
  * @details This method is the heart of the tiler.  A `TileCoordinate` is used
  * to obtain the geospatial extent associated with that tile as related to the
  * underlying GDAL dataset. This mapping may require a reprojection if the
- * underlying dataset is not in the EPSG:4326 projection.  This information is
- * then encapsulated as a GDAL virtual raster (VRT) dataset and returned to the
- * caller.
+ * underlying dataset is not in the tile projection system.  This information
+ * is then encapsulated as a GDAL virtual raster (VRT) dataset and returned to
+ * the caller.
  *
  * It is the caller's responsibility to call `GDALClose()` on the returned
  * dataset.
@@ -195,6 +216,9 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
   // Populate the SRS WKT strings if we need to reproject
   if (requiresReprojection()) {
     pszSrcWKT = GDALGetProjectionRef(hSrcDS);
+    if (!strlen(pszSrcWKT))
+      throw TerrainException("The source dataset no longer has a spatial reference system assigned");
+
     pszDstWKT = crsWKT.c_str();
   }
 
