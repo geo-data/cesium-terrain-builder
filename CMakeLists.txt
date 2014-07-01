@@ -3,7 +3,7 @@ project("Cesium Terrain Builder")
 
 # The version number
 set(TERRAIN_VERSION_MAJOR 0)
-set(TERRAIN_VERSION_MINOR 1)
+set(TERRAIN_VERSION_MINOR 2)
 set(TERRAIN_VERSION_PATCH 0)
 
 # The tile size (width and height). According to the spec this should always be
