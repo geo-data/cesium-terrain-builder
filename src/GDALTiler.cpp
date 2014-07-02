@@ -209,17 +209,18 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
   GDALDatasetH hSrcDS = (GDALDatasetH) dataset();
   GDALDatasetH hDstDS;
 
-  // The source and sink srs
-  const char *pszSrcWKT = NULL;
-  const char *pszDstWKT = NULL;
+  // The source, sink and grid srs
+  const char *pszSrcWKT = NULL,
+    *pszDstWKT = NULL,
+    *pszGridWKT = GDALGetProjectionRef(hSrcDS);
+
+  if (!strlen(pszGridWKT))
+    throw TerrainException("The source dataset no longer has a spatial reference system assigned");
 
   // Populate the SRS WKT strings if we need to reproject
   if (requiresReprojection()) {
-    pszSrcWKT = GDALGetProjectionRef(hSrcDS);
-    if (!strlen(pszSrcWKT))
-      throw TerrainException("The source dataset no longer has a spatial reference system assigned");
-
-    pszDstWKT = crsWKT.c_str();
+    pszSrcWKT = pszGridWKT;
+    pszGridWKT = pszDstWKT = crsWKT.c_str();
   }
 
   // Set the warp options
@@ -258,8 +259,9 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
     throw TerrainException("Could not create warped VRT");
   }
 
-  // Set the projection information on the dataset
-  if (GDALSetProjection( hDstDS, pszDstWKT ) != CE_None) {
+  // Set the projection information on the dataset. This will always be the grid
+  // SRS.
+  if (GDALSetProjection( hDstDS, pszGridWKT ) != CE_None) {
     GDALClose(hDstDS);
     throw TerrainException("Could not set projection on VRT");
   }
