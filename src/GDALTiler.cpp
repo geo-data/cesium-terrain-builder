@@ -251,6 +251,10 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
   // Specify the destination geotransform
   GDALSetGenImgProjTransformerDstGeoTransform( psWarpOptions->pTransformerArg, adfGeoTransform );
 
+  // Specify a multi threaded warp operation using all CPU cores
+  psWarpOptions->papszWarpOptions =
+    CSLSetNameValue(psWarpOptions->papszWarpOptions, "NUM_THREADS", "ALL_CPUS");
+
   // The raster tile is represented as a VRT dataset
   hDstDS = GDALCreateWarpedVRT(hSrcDS, mGrid.tileSize(), mGrid.tileSize(), adfGeoTransform, psWarpOptions);
   GDALDestroyWarpOptions( psWarpOptions );
