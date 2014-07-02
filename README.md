@@ -290,8 +290,12 @@ installation issues are encapsulated in the image.
   intercept GDAL errors.
 
 * Enable more options to be passed to the VRT warper, such as the resampling
-  algorithm, deciding whether an approximate warp is acceptable, using the
-  multi-threading warp functionality etc.
+  algorithm, deciding whether an approximate warp is acceptable etc. Some of
+  this can be achieved by passing options to `GDALWarpOptions::papszWarpOptions`
+  in `GDALTiler::createRasterTile`.
+
+* Enable dataset creation options to be specified when creating tiles in a GDAL
+  format.
 
 * Parallelise the tile generation, most likely using threads to create batches
   of tiles.  Implementing this would probably need the `GridIterator` to be
