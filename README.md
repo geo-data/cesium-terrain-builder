@@ -305,9 +305,15 @@ installation issues are encapsulated in the image.
   efficiently creating tilesets at lower zoom levels by resampling an already
   generated tileset at the next highest zoom level.  This could be built
   directly into the `terrain-build` tool.  An implementation could create a
-  read-only GDAL `TiledDataset` class (or use a VRT, if it efficiently supports
+  read-only GDAL `TiledDataset` driver (or use a VRT, if it efficiently supports
   the large number of tile files) which accesses the already generated tileset;
   this dataset could then be used as an input to the tiler.
+
+* Add support for interpolating out `NODATA` values.  This could be done using
+  either `GDALFillNodata()` or `GDALGridCreate()`.
+
+* Add support for a progress meter, possibly incorporating the GDAL progress
+  hooks where appropriate.
 
 * Adding support for creating water masks to tiles could be useful: at the
   moment all tiles are flagged as being of type 'land'.
