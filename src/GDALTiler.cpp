@@ -209,18 +209,21 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
   GDALDatasetH hSrcDS = (GDALDatasetH) dataset();
   GDALDatasetH hDstDS;
 
-  // The source, sink and grid srs
-  const char *pszSrcWKT = NULL,
-    *pszDstWKT = NULL,
-    *pszGridWKT = GDALGetProjectionRef(hSrcDS);
+  // The transformation option list
+  CPLStringList transformOptions;
 
-  if (!strlen(pszGridWKT))
+  // The source, sink and grid srs
+  const char *pszSrcWKT = GDALGetProjectionRef(hSrcDS),
+    *pszGridWKT = pszSrcWKT;
+
+  if (!strlen(pszSrcWKT))
     throw TerrainException("The source dataset no longer has a spatial reference system assigned");
 
   // Populate the SRS WKT strings if we need to reproject
   if (requiresReprojection()) {
-    pszSrcWKT = pszGridWKT;
-    pszGridWKT = pszDstWKT = crsWKT.c_str();
+    pszGridWKT = crsWKT.c_str();
+    transformOptions.SetNameValue("SRC_SRS", pszSrcWKT);
+    transformOptions.SetNameValue("DST_SRS", pszGridWKT);
   }
 
   // Set the warp options
@@ -237,11 +240,10 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
     psWarpOptions->panDstBands[i] = psWarpOptions->panSrcBands[i] = i + 1;
   }
 
+  // Create the image to image transformer
   psWarpOptions->pfnTransformer = GDALGenImgProjTransform;
   psWarpOptions->pTransformerArg =
-        GDALCreateGenImgProjTransformer( hSrcDS, pszSrcWKT,
-                                         NULL, pszDstWKT,
-                                         FALSE, 0.0, 1 );
+    GDALCreateGenImgProjTransformer2(hSrcDS, NULL, transformOptions.List());
 
   if( psWarpOptions->pTransformerArg == NULL ) {
     GDALDestroyWarpOptions( psWarpOptions );
@@ -252,8 +254,9 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
   GDALSetGenImgProjTransformerDstGeoTransform( psWarpOptions->pTransformerArg, adfGeoTransform );
 
   // Specify a multi threaded warp operation using all CPU cores
-  psWarpOptions->papszWarpOptions =
-    CSLSetNameValue(psWarpOptions->papszWarpOptions, "NUM_THREADS", "ALL_CPUS");
+  CPLStringList warpOptions(psWarpOptions->papszWarpOptions, false);
+  warpOptions.SetNameValue("NUM_THREADS", "ALL_CPUS");
+  psWarpOptions->papszWarpOptions = warpOptions.StealList();
 
   // The raster tile is represented as a VRT dataset
   hDstDS = GDALCreateWarpedVRT(hSrcDS, mGrid.tileSize(), mGrid.tileSize(), adfGeoTransform, psWarpOptions);

@@ -292,7 +292,7 @@ installation issues are encapsulated in the image.
 * Enable more options to be passed to the VRT warper, such as the resampling
   algorithm, deciding whether an approximate warp is acceptable etc. Some of
   this can be achieved by passing options to `GDALWarpOptions::papszWarpOptions`
-  in `GDALTiler::createRasterTile`.
+  and `GDALCreateGenImgProjTransformer2` in `GDALTiler::createRasterTile`.
 
 * Enable dataset creation options to be specified when creating tiles in a GDAL
   format.
