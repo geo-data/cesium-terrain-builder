@@ -60,6 +60,7 @@ Options:
   -o, --output-dir <dir>        specify the output directory for the tiles (defaults to working directory)
   -f, --output-format <format>  specify the output format for the tiles. This is either `Terrain` (the default) or any format listed by `gdalinfo --formats`
   -p, --profile <profile>       specify the TMS profile for the tiles. This is either `geodetic` (the default) or `mercator`
+  -c, --thread-count <count>    specify the number of threads to use for tile generation. On multicore machines this defaults to the number of CPUs
   -t, --tile-size <size>        specify the size of the tiles in pixels. This defaults to 65 for terrain tiles and 256 for other GDAL formats
   -s, --start-zoom <zoom>       specify the zoom level to start at. This should be greater than the end zoom level
   -e, --end-zoom <zoom>         specify the zoom level to end at. This should be less than the start zoom level and >= 0
@@ -297,9 +298,9 @@ installation issues are encapsulated in the image.
 * Enable dataset creation options to be specified when creating tiles in a GDAL
   format.
 
-* Parallelise the tile generation, most likely using threads to create batches
-  of tiles.  Implementing this would probably need the `GridIterator` to be
-  extended to support setting start and stop points using `TileCoordinate`s.
+* Encapsulate the multithreading tile generation functionality currently
+  implemented in `terrain-build` within the library to make it more widely
+  available.
 
 * One of the `terrain-build` recommendations above illustrates a process for
   efficiently creating tilesets at lower zoom levels by resampling an already
