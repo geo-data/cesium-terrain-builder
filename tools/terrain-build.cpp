@@ -37,7 +37,11 @@
 #include <sstream>
 #include <string.h>             // for strcmp
 #include <stdlib.h>             // for atoi
+#include <thread>
+#include <mutex>
+#include <vector>
 
+#include "cpl_multiproc.h"      // for CPLGetNumCPUs
 #include "gdal_priv.h"
 #include "commander.hpp"
 
@@ -66,6 +70,7 @@ public:
     outputDir("."),
     outputFormat("Terrain"),
     profile("geodetic"),
+    threadCount(-1),
     tileSize(0),
     startZoom(-1),
     endZoom(-1)
@@ -103,6 +108,11 @@ public:
   }
 
   static void
+  setThreadCount(command_t *command) {
+    static_cast<TerrainBuild *>(Command::self(command))->threadCount = atoi(command->arg);
+  }
+
+  static void
   setTileSize(command_t *command) {
     static_cast<TerrainBuild *>(Command::self(command))->tileSize = atoi(command->arg);
   }
@@ -123,15 +133,18 @@ public:
     return  (command->argc == 1) ? command->argv[0] : NULL;
   }
 
-  const char *outputDir;
-  const char *outputFormat;
-  const char *profile;
-  int tileSize;
-  int startZoom;
-  int endZoom;
+  const char *outputDir,
+    *outputFormat,
+    *profile;
+
+  int threadCount,
+    tileSize,
+    startZoom,
+    endZoom;
 };
 
-string
+/// Create a filename for a tile coordinate
+static string
 getTileFilename(const TileCoordinate &coord, const string dirname, const char *extension) {
   string filename = dirname + static_cast<ostringstream*>
     (
@@ -151,10 +164,45 @@ getTileFilename(const TileCoordinate &coord, const string dirname, const char *e
   return filename;
 }
 
+/**
+ * Increment a TilerIterator whilst cooperating between threads
+ *
+ * This function maintains an global index on an iterator and when called
+ * ensures the iterator is incremented to point to the next global index.  This
+ * can therefore be called with different tiler iterators by different threads
+ * to ensure all tiles are iterated over consecutively.  It assumes individual
+ * tile iterators point to the same source GDAL dataset.
+ */
+template<typename T> int
+incrementIterator(T &iter, int currentIndex) {
+  static int globalIteratorIndex = 0; // keep track of where we are globally
+  static mutex mutex;        // ensure iterations occur serially between threads
+
+  mutex.lock();
+
+  while (currentIndex < globalIteratorIndex) {
+    ++iter;
+    ++currentIndex;
+  }
+  ++globalIteratorIndex;
+
+  mutex.unlock();
+
+  return currentIndex;
+}
+
+/// In a thread safe manner describe the file currently being created
+static void
+outputFilename(string filename) {
+  stringstream stream;
+  stream << "creating " << filename << " in thread " << this_thread::get_id() << endl;
+  cout << stream.str();
+}
+
 /// Output GDAL tiles represented by a tiler to a directory
-void
-buildGDAL(const GDALTiler &tiler, const TerrainBuild &command) {
-  GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName(command.outputFormat);
+static void
+buildGDAL(const GDALTiler &tiler, TerrainBuild *command) {
+  GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName(command->outputFormat);
 
   if (poDriver == NULL) {
     throw TerrainException("Could not retrieve GDAL driver");
@@ -165,19 +213,21 @@ buildGDAL(const GDALTiler &tiler, const TerrainBuild &command) {
   }
 
   const char *extension = poDriver->GetMetadataItem(GDAL_DMD_EXTENSION);
-  const string dirname = string(command.outputDir) + osDirSep;
-  i_zoom startZoom = (command.startZoom < 0) ? tiler.maxZoomLevel() : command.startZoom,
-    endZoom = (command.endZoom < 0) ? 0 : command.endZoom;
+  const string dirname = string(command->outputDir) + osDirSep;
+  i_zoom startZoom = (command->startZoom < 0) ? tiler.maxZoomLevel() : command->startZoom,
+    endZoom = (command->endZoom < 0) ? 0 : command->endZoom;
 
-  for (RasterIterator iter(tiler, startZoom, endZoom); !iter.exhausted(); ++iter) {
+  RasterIterator iter(tiler, startZoom, endZoom);
+  int currentIndex = incrementIterator(iter, 0);
+
+  while (!iter.exhausted()) {
     std::pair<const TileCoordinate &, GDALDataset *> result = *iter;
     const TileCoordinate &coord = result.first;
     GDALDataset *poSrcDS = result.second;
     GDALDataset *poDstDS;
     const string filename = getTileFilename(coord, dirname, extension);
 
-    cout << "creating " << filename << endl;
-
+    outputFilename(filename);
     poDstDS = poDriver->CreateCopy(filename.c_str(), poSrcDS, FALSE,
                                    NULL, NULL, NULL );
     GDALClose(poSrcDS);
@@ -188,34 +238,73 @@ buildGDAL(const GDALTiler &tiler, const TerrainBuild &command) {
     }
 
     GDALClose(poDstDS);
+
+    currentIndex = incrementIterator(iter, currentIndex);
   }
 }
 
 /// Output terrain tiles represented by a tiler to a directory
-void
-buildTerrain(const TerrainTiler &tiler, const TerrainBuild &command) {
-  const string dirname = string(command.outputDir) + osDirSep;
-  i_zoom startZoom = (command.startZoom < 0) ? tiler.maxZoomLevel() : command.startZoom,
-    endZoom = (command.endZoom < 0) ? 0 : command.endZoom;
+static void
+buildTerrain(const TerrainTiler &tiler, TerrainBuild *command) {
+  const string dirname = string(command->outputDir) + osDirSep;
+  i_zoom startZoom = (command->startZoom < 0) ? tiler.maxZoomLevel() : command->startZoom,
+    endZoom = (command->endZoom < 0) ? 0 : command->endZoom;
 
-  for (TerrainIterator iter(tiler, startZoom, endZoom); !iter.exhausted(); ++iter) {
+  TerrainIterator iter(tiler, startZoom, endZoom);
+  int currentIndex = incrementIterator(iter, 0);
+
+  while (!iter.exhausted()) {
     const TerrainTile terrainTile = *iter;
     const TileCoordinate &coord = terrainTile.getCoordinate();
     const string filename = getTileFilename(coord, dirname, "terrain");
 
-    cout << "creating " << filename << endl;
-
+    outputFilename(filename);
     terrainTile.writeFile(filename.c_str());
+
+    currentIndex = incrementIterator(iter, currentIndex);
   }
+}
+
+/**
+ * Perform a tile building operation
+ *
+ * This function is designed to be run in a separate thread.
+ */
+static int
+runTiler(TerrainBuild *command, Grid *grid) {
+  GDALDataset  *poDataset = (GDALDataset *) GDALOpen(command->getInputFilename(), GA_ReadOnly);
+  if (poDataset == NULL) {
+    cerr << "Error: could not open GDAL dataset" << endl;
+    return 1;
+  }
+
+  try {
+    if (strcmp(command->outputFormat, "Terrain") == 0) {
+      const TerrainTiler tiler(poDataset, *grid);
+      buildTerrain(tiler, command);
+    } else {                    // it's a GDAL format
+      const GDALTiler tiler(poDataset, *grid);
+      buildGDAL(tiler, command);
+    }
+
+  } catch (TerrainException &e) {
+    cerr << "Error: " << e.what() << endl;
+  }
+
+  GDALClose(poDataset);
+
+  return 0;
 }
 
 int
 main(int argc, char *argv[]) {
+  // Specify the command line interface
   TerrainBuild command = TerrainBuild(argv[0], version.cstr);
   command.setUsage("[options] GDAL_DATASOURCE");
   command.option("-o", "--output-dir <dir>", "specify the output directory for the tiles (defaults to working directory)", TerrainBuild::setOutputDir);
   command.option("-f", "--output-format <format>", "specify the output format for the tiles. This is either `Terrain` (the default) or any format listed by `gdalinfo --formats`", TerrainBuild::setOutputFormat);
   command.option("-p", "--profile <profile>", "specify the TMS profile for the tiles. This is either `geodetic` (the default) or `mercator`", TerrainBuild::setProfile);
+  command.option("-c", "--thread-count <count>", "specify the number of threads to use for tile generation. On multicore machines this defaults to the number of CPUs", TerrainBuild::setThreadCount);
   command.option("-t", "--tile-size <size>", "specify the size of the tiles in pixels. This defaults to 65 for terrain tiles and 256 for other GDAL formats", TerrainBuild::setTileSize);
   command.option("-s", "--start-zoom <zoom>", "specify the zoom level to start at. This should be greater than the end zoom level", TerrainBuild::setStartZoom);
   command.option("-e", "--end-zoom <zoom>", "specify the zoom level to end at. This should be less than the start zoom level and >= 0", TerrainBuild::setEndZoom);
@@ -226,6 +315,7 @@ main(int argc, char *argv[]) {
 
   GDALAllRegister();
 
+  // Define the grid we are going to use
   Grid grid;
   if (strcmp(command.profile, "geodetic") == 0) {
     int tileSize = (command.tileSize < 1) ? 65 : command.tileSize;
@@ -238,26 +328,18 @@ main(int argc, char *argv[]) {
     return 1;
   }
 
-  GDALDataset  *poDataset = (GDALDataset *) GDALOpen(command.getInputFilename(), GA_ReadOnly);
-  if (poDataset == NULL) {
-    cerr << "Error: could not open GDAL dataset" << endl;
-    return 1;
+  vector<thread> threads;
+  int threadCount = (command.threadCount > 0) ? command.threadCount : CPLGetNumCPUs();
+
+  // Instantiate the threads
+  for (int i = 0; i < threadCount ; ++i) {
+    threads.push_back(thread(runTiler, &command, &grid));
   }
 
-  try {
-    if (strcmp(command.outputFormat, "Terrain") == 0) {
-      const TerrainTiler tiler(poDataset, grid);
-      buildTerrain(tiler, command);
-    } else {                    // it's a GDAL format
-      const GDALTiler tiler(poDataset, grid);
-      buildGDAL(tiler, command);
-    }
-
-  } catch (TerrainException &e) {
-    cerr << "Error: " << e.what() << endl;
+  // Synchronise the completion of the threads
+  for (auto &thread : threads) {
+    thread.join();
   }
-
-  GDALClose(poDataset);
 
   return 0;
 }
