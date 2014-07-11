@@ -1,5 +1,5 @@
-#ifndef TERRAINTYPES_HPP
-#define TERRAINTYPES_HPP
+#ifndef CTBTYPES_HPP
+#define CTBTYPES_HPP
 
 /*******************************************************************************
  * Copyright 2014 GeoData <geodata@soton.ac.uk>
@@ -19,13 +19,13 @@
 
 /**
  * @file types.hpp
- * @brief This declares basic types used by libterrain
+ * @brief This declares basic types used by libctb
  */
 
 #include "Bounds.hpp"
 
 /// All terrain related data types reside in this namespace
-namespace terrain {
+namespace ctb {
 
   // Simple types
   typedef unsigned int i_pixel;       ///< A pixel value
@@ -42,4 +42,4 @@ namespace terrain {
 
 }
 
-#endif /* TERRAINTYPES_HPP */
+#endif /* CTBTYPES_HPP */

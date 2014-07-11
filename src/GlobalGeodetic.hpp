@@ -25,7 +25,7 @@
 #include "config.hpp"
 #include "Grid.hpp"
 
-namespace terrain {
+namespace ctb {
   class GlobalGeodetic;
 }
 
@@ -35,7 +35,7 @@ namespace terrain {
  * This class models the [Tile Mapping Service Global Geodetic
  * Profile](http://wiki.osgeo.org/wiki/Tile_Map_Service_Specification#global-geodetic).
  */
-class terrain::GlobalGeodetic:
+class ctb::GlobalGeodetic:
   public Grid {
 public:
 

@@ -33,7 +33,7 @@
 #include "TerrainTile.hpp"
 #include "Bounds.hpp"
 
-namespace terrain {
+namespace ctb {
   class GDALTiler;
 }
 
@@ -53,7 +53,7 @@ namespace terrain {
  * the reference count is decremented and, if it reaches `0`, the dataset is
  * closed.
  */
-class terrain::GDALTiler {
+class ctb::GDALTiler {
 public:
 
   /// Instantiate a tiler with an empty GDAL dataset

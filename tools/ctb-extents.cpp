@@ -15,7 +15,7 @@
  *******************************************************************************/
 
 /**
- * @file terrain-extents.cpp
+ * @file ctb-extents.cpp
  * @brief A tool to write tile extents covered by a GDAL raster to GeoJSON
  *
  * This tool takes a GDAL raster as input, calculates the appropriate maximum
@@ -39,7 +39,7 @@
 #include "GDALTiler.hpp"
 
 using namespace std;
-using namespace terrain;
+using namespace ctb;
 
 #ifdef _WIN32
 static const char *osDirSep = "\\";

@@ -15,7 +15,7 @@
  *******************************************************************************/
 
 /**
- * @file terrain-export.cpp
+ * @file ctb-export.cpp
  * @brief The terrain export tool
  *
  * This tool takes a terrain file with associated tile coordinate information
@@ -31,12 +31,12 @@
 #include "commander.hpp"
 
 #include "config.hpp"
-#include "TerrainException.hpp"
+#include "CTBException.hpp"
 #include "TerrainTile.hpp"
 #include "GlobalGeodetic.hpp"
 
 using namespace std;
-using namespace terrain;
+using namespace ctb;
 
 /// Handle the terrain export CLI options
 class TerrainExport : public Command {
@@ -170,7 +170,7 @@ main(int argc, char *argv[]) {
   // Read the data into the tile from the filesystem
   try {
     terrain.readFile(command.inputFilename);
-  } catch (TerrainException &e) {
+  } catch (CTBException &e) {
     cerr << "Error: " << e.what() << endl;
   }
 

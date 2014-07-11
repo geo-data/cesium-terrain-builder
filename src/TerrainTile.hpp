@@ -29,7 +29,7 @@
 #include "config.hpp"
 #include "TileCoordinate.hpp"
 
-namespace terrain {
+namespace ctb {
   class Terrain;
   class TerrainTile;
   class GDALTiler;
@@ -41,7 +41,7 @@ namespace terrain {
  * This aims to implement the Cesium [heightmap-1.0 terrain
  * format](http://cesiumjs.org/data-and-assets/terrain/formats/heightmap-1.0.html).
  */
-class terrain::Terrain {
+class ctb::Terrain {
 public:
 
   /// Create an empty terrain object
@@ -180,7 +180,7 @@ private:
  * Associating terrain data with a tile coordinate allows the tile to be
  * converted to a geo-referenced raster (see `TerrainTile::heightsToRaster`).
  */
-class terrain::TerrainTile :
+class ctb::TerrainTile :
   public Terrain
 {
   friend class TerrainTiler;

@@ -1,5 +1,5 @@
-#ifndef TERRAINCONFIG_HPP
-#define TERRAINCONFIG_HPP
+#ifndef CTBCONFIG_HPP
+#define CTBCONFIG_HPP
 
 /*******************************************************************************
  * Copyright 2014 GeoData <geodata@soton.ac.uk>
@@ -28,7 +28,7 @@
 #include <string>
 #include <sstream>
 
-namespace terrain {
+namespace ctb {
 
   /**
    * @brief Versioning object
@@ -47,10 +47,10 @@ namespace terrain {
     const char *cstr;
 
   } version = {
-    @TERRAIN_VERSION_MAJOR@,
-    @TERRAIN_VERSION_MINOR@,
-    @TERRAIN_VERSION_PATCH@,
-    "@TERRAIN_VERSION_MAJOR@.@TERRAIN_VERSION_MINOR@.@TERRAIN_VERSION_PATCH@"
+    @CTB_VERSION_MAJOR@,
+    @CTB_VERSION_MINOR@,
+    @CTB_VERSION_PATCH@,
+    "@CTB_VERSION_MAJOR@.@CTB_VERSION_MINOR@.@CTB_VERSION_PATCH@"
   };
 
   /// The width and height of height data in a tile
@@ -60,4 +60,4 @@ namespace terrain {
   const unsigned short int MASK_SIZE = @TERRAIN_MASK_SIZE@;
 }
 
-#endif /* TERRAINCONFIG_HPP */
+#endif /* CTBCONFIG_HPP */

@@ -19,13 +19,13 @@
  * @brief This defines the `TerrainTiler` class
  */
 
-#include "TerrainException.hpp"
+#include "CTBException.hpp"
 #include "TerrainTiler.hpp"
 
-using namespace terrain;
+using namespace ctb;
 
 TerrainTile
-terrain::TerrainTiler::createTerrainTile(const TileCoordinate &coord) const {
+ctb::TerrainTiler::createTerrainTile(const TileCoordinate &coord) const {
   TerrainTile terrainTile(coord); // a terrain tile represented by the tile coordinate
   GDALDataset *rasterTile = (GDALDataset *) createRasterTile(coord); // the raster associated with this tile coordinate
   GDALRasterBand *heightsBand = rasterTile->GetRasterBand(1);
@@ -36,7 +36,7 @@ terrain::TerrainTiler::createTerrainTile(const TileCoordinate &coord) const {
                             (void *) rasterHeights, TILE_SIZE, TILE_SIZE, GDT_Float32,
                             0, 0) != CE_None) {
     GDALClose(rasterTile);
-    throw TerrainException("Could not read heights from raster");
+    throw CTBException("Could not read heights from raster");
   }
 
   // Copy the raster data into the terrain tile heights
@@ -83,10 +83,10 @@ terrain::TerrainTiler::createTerrainTile(const TileCoordinate &coord) const {
  * caller.
  */
 GDALDatasetH
-terrain::TerrainTiler::createRasterTile(const TileCoordinate &coord) const {
+ctb::TerrainTiler::createRasterTile(const TileCoordinate &coord) const {
   // Ensure we have some data from which to create a tile
   if (poDataset && poDataset->GetRasterCount() < 1) {
-    throw TerrainException("At least one band must be present in the GDAL dataset");
+    throw CTBException("At least one band must be present in the GDAL dataset");
   }
 
   // Get the bounds and resolution for a tile coordinate which represents the
@@ -120,14 +120,14 @@ terrain::TerrainTiler::createRasterTile(const TileCoordinate &coord) const {
   // Set the shifted geo transform to the VRT
   if (GDALSetGeoTransform( hDstDS, adfGeoTransform ) != CE_None) {
     GDALClose(hDstDS);
-    throw TerrainException("Could not set geo transform on VRT");
+    throw CTBException("Could not set geo transform on VRT");
   }
 
   return hDstDS;
 }
 
 TerrainTiler &
-terrain::TerrainTiler::operator=(const TerrainTiler &other) {
+ctb::TerrainTiler::operator=(const TerrainTiler &other) {
   GDALTiler::operator=(other);
 
   return *this;

@@ -15,9 +15,9 @@ does *not* provide a way of serving up those tilesets to the browser.
 
 ## Command Line Tools
 
-The following tools are built on top of the C++ `libterrain` library:
+The following tools are built on top of the C++ `libctb` library:
 
-### `terrain-build`
+### `ctb-tile`
 
 This creates gzipped terrain tiles from a GDAL raster representing a
 [Digital Elevation Model](http://en.wikipedia.org/wiki/Digital_elevation_model)
@@ -27,7 +27,7 @@ tiles for all zoom levels between that maximum and zoom level `0` where the
 tile extents overlap the raster extents, resampling and subsetting the data as
 necessary. E.g.
 
-    terrain-build --output-dir ./terrain-tiles dem.tif
+    ctb-tile --output-dir ./terrain-tiles dem.tif
 
 The input raster should contain data representing elevations relative to sea
 level. `NODATA` (null) values are not currently dealt with: these should be
@@ -43,7 +43,7 @@ provides similar functionality to the
 created in either Web Mercator or Global Geodetic projections using the
 `--profile` option.  e.g.
 
-    terrain-build --output-format JPEG --profile mercator \
+    ctb-tile --output-format JPEG --profile mercator \
       --output-dir ./jpeg-tiles RGB-image.tif
 
 An interesting variation on this is to specify `--output-format VRT` in order to
@@ -51,7 +51,7 @@ generate GDAL Virtual Rasters: these can be useful for debugging and are easily
 modified programatically.
 
 ```
-Usage: terrain-build [options] GDAL_DATASOURCE
+Usage: ctb-tile [options] GDAL_DATASOURCE
 
 Options:
 
@@ -87,7 +87,7 @@ Options:
 
 * DEM datasets composed of multiple files can be composited into a single GDAL
   [Virtual Raster](http://www.gdal.org/gdal_vrttut.html) (VRT) dataset for use
-  as input to `terrain-build` and `terrain-extents`.  See the
+  as input to `ctb-tile` and `ctb-extents`.  See the
   [`gdalbuildvrt`](http://www.gdal.org/gdalbuildvrt.html) tool.
 
 * Setting
@@ -96,7 +96,7 @@ Options:
   [`GDAL_CACHEMAX`](http://trac.osgeo.org/gdal/wiki/ConfigOptions#GDAL_CACHEMAX)
   environment variable should be set as high as your system supports it.
 
-* `terrain-build` will resample data from the source dataset when generating
+* `ctb-tile` will resample data from the source dataset when generating
   tilesets for the various zoom levels.  This can lead to performance issues and
   datatype overflows at lower zoom levels (e.g. level 0) when the source dataset
   is very large.  To overcome this the tool can be used on the original dataset
@@ -111,13 +111,13 @@ Options:
   VRT representations of these intermediate tilesets can then be used to create
   the final terrain tile output.
 
-### `terrain-info`
+### `ctb-info`
 
 This provides various information on a terrain tile, mainly useful for
 debugging purposes.
 
 ```
-Usage: terrain-info [options] TERRAIN_FILE
+Usage: ctb-info [options] TERRAIN_FILE
 
 Options:
 
@@ -128,7 +128,7 @@ Options:
   -t, --no-type                 hide information about the tile type (i.e. water/land)
 ```
 
-### `terrain-export`
+### `ctb-export`
 
 This exports a terrain tile to [GeoTiff](http://en.wikipedia.org/wiki/GeoTIFF)
 format for use in GIS software.  Terrain tiles do not contain information
@@ -139,7 +139,7 @@ Note that the tool does not normalise the terrain data to sea level but
 displays it exactly as it is found in the terrain data.
 
 ```
-Usage: terrain-export -i TERRAIN_FILE -z ZOOM_LEVEL -x TILE_X -y TILE_Y -o OUTPUT_FILE
+Usage: ctb-export -i TERRAIN_FILE -z ZOOM_LEVEL -x TILE_X -y TILE_Y -o OUTPUT_FILE
 
 Options:
 
@@ -152,7 +152,7 @@ Options:
   -o, --output-filename <filename> the output file to create
 ```
 
-### `terrain-extents`
+### `ctb-extents`
 
 Sometimes it is useful to see the extent of coverage of terrain tilesets that
 would be produced from a raster.  This tool does this by outputting each zoom
@@ -160,7 +160,7 @@ level as a [GeoJSON](http://geojson.org/) file containing the tile extents for
 that particular zoom level.
 
 ```
-Usage: terrain-extents GDAL_DATASET
+Usage: ctb-extents GDAL_DATASET
 
 Options:
 
@@ -175,7 +175,7 @@ Options:
 
 ## LibTerrain
 
-The C++ library is called `libterrain`.  It is capable of creating terrain
+The C++ library is called `libctb`.  It is capable of creating terrain
 tiles according to the
 [heightmap-1.0 terrain format](http://cesiumjs.org/data-and-assets/terrain/formats/heightmap-1.0.html). It
 does not provide a way of serving up or storing the resulting tiles: this is
@@ -184,7 +184,7 @@ application specific. Instead its aim is simply to take a
 Terrain Model (DTM) and convert this to terrain tiles.
 
 See the source code for the tools provided with the library
-(e.g. `terrain-build`) for examples on how the library is used to achieve
+(e.g. `ctb-tile`) for examples on how the library is used to achieve
 this.
 
 ### Documentation
@@ -281,7 +281,7 @@ installation issues are encapsulated in the image.
 * Add support for the new
   [quantized-mesh-1.0 terrain format](http://cesiumjs.org/data-and-assets/terrain/formats/quantized-mesh-1.0.html).
 
-* The `terrain-build` command currently only outputs files to a directory and
+* The `ctb-tile` command currently only outputs files to a directory and
   as such is subjected to filesystem limits (e.g. inode limits): it should be
   able to output tiles in a format that overcomes these limits and which is
   still portable and accessible.  [SQLite](http://www.sqlite.org/) would appear
@@ -299,13 +299,13 @@ installation issues are encapsulated in the image.
   format.
 
 * Encapsulate the multithreading tile generation functionality currently
-  implemented in `terrain-build` within the library to make it more widely
+  implemented in `ctb-tile` within the library to make it more widely
   available.
 
-* One of the `terrain-build` recommendations above illustrates a process for
+* One of the `ctb-tile` recommendations above illustrates a process for
   efficiently creating tilesets at lower zoom levels by resampling an already
   generated tileset at the next highest zoom level.  This could be built
-  directly into the `terrain-build` tool.  An implementation could create a
+  directly into the `ctb-tile` tool.  An implementation could create a
   read-only GDAL `TiledDataset` driver (or use a VRT, if it efficiently supports
   the large number of tile files) which accesses the already generated tileset;
   this dataset could then be used as an input to the tiler.

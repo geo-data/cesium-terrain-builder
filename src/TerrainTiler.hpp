@@ -31,7 +31,7 @@
 
 #include "GDALTiler.hpp"
 
-namespace terrain {
+namespace ctb {
   class TerrainTiler;
 }
 
@@ -42,7 +42,7 @@ namespace terrain {
  * `GDALTiler::createTerrainTile` method enabling `TerrainTile`s to be created
  * for a specific `TileCoordinate`.
  */
-class terrain::TerrainTiler :
+class ctb::TerrainTiler :
   public GDALTiler
 {
 public:

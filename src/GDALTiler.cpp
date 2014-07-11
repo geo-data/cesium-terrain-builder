@@ -26,10 +26,10 @@
 #include "ogr_srs_api.h"
 
 #include "config.hpp"
-#include "TerrainException.hpp"
+#include "CTBException.hpp"
 #include "GDALTiler.hpp"
 
-using namespace terrain;
+using namespace ctb;
 
 GDALTiler::GDALTiler(GDALDataset *poDataset, const Grid &grid):
   mGrid(grid),
@@ -49,13 +49,13 @@ GDALTiler::GDALTiler(GDALDataset *poDataset, const Grid &grid):
                          adfGeoTransform[0] + (poDataset->GetRasterXSize() * adfGeoTransform[1]),
                          adfGeoTransform[3]);
     } else {
-      throw TerrainException("Could not get transformation information from source dataset");
+      throw CTBException("Could not get transformation information from source dataset");
     }
 
     // Find out whether the dataset SRS matches that of the grid
     const char *srcWKT = poDataset->GetProjectionRef();
     if (!strlen(srcWKT))
-      throw TerrainException("The source dataset does not have a spatial reference system assigned");
+      throw CTBException("The source dataset does not have a spatial reference system assigned");
 
     OGRSpatialReference srcSRS = OGRSpatialReference(srcWKT);
     OGRSpatialReference gridSRS = mGrid.getSRS();
@@ -66,13 +66,13 @@ GDALTiler::GDALTiler(GDALDataset *poDataset, const Grid &grid):
       case OGRERR_NONE:
         break;
       case OGRERR_CORRUPT_DATA:
-        throw TerrainException("The source spatial reference system appears to be corrupted");
+        throw CTBException("The source spatial reference system appears to be corrupted");
         break;
       case OGRERR_UNSUPPORTED_SRS:
-        throw TerrainException("The source spatial reference system is not supported");
+        throw CTBException("The source spatial reference system is not supported");
         break;
       default:
-        throw TerrainException("There is an unhandled return value from `srcSRS.Validate()`");
+        throw CTBException("There is an unhandled return value from `srcSRS.Validate()`");
       }
 
       // We need to transform the bounds to the grid SRS
@@ -81,10 +81,10 @@ GDALTiler::GDALTiler(GDALDataset *poDataset, const Grid &grid):
 
       OGRCoordinateTransformation *transformer = OGRCreateCoordinateTransformation(&srcSRS, &gridSRS);
       if (transformer == NULL) {
-        throw TerrainException("The source dataset to tile grid coordinate transformation could not be created");
+        throw CTBException("The source dataset to tile grid coordinate transformation could not be created");
       } else if (transformer->Transform(4, x, y) != true) {
         delete transformer;
-        throw TerrainException("Could not transform dataset bounds to tile spatial reference system");
+        throw CTBException("Could not transform dataset bounds to tile spatial reference system");
       }
       delete transformer;
 
@@ -102,7 +102,7 @@ GDALTiler::GDALTiler(GDALDataset *poDataset, const Grid &grid):
       char *srsWKT = NULL;
       if (gridSRS.exportToWkt(&srsWKT) != OGRERR_NONE) {
         CPLFree(srsWKT);
-        throw TerrainException("Could not create grid WKT string");
+        throw CTBException("Could not create grid WKT string");
       }
       crsWKT = srsWKT;
       CPLFree(srsWKT);
@@ -182,7 +182,7 @@ GDALTiler::createRasterTile(const TileCoordinate &coord) const {
   // Set the shifted geo transform to the VRT
   if (GDALSetGeoTransform( hDstDS, adfGeoTransform ) != CE_None) {
     GDALClose(hDstDS);
-    throw TerrainException("Could not set geo transform on VRT");
+    throw CTBException("Could not set geo transform on VRT");
   }
 
   return hDstDS;
@@ -202,7 +202,7 @@ GDALTiler::createRasterTile(const TileCoordinate &coord) const {
 GDALDatasetH
 GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
   if (poDataset == NULL) {
-    throw TerrainException("No GDAL dataset is set");
+    throw CTBException("No GDAL dataset is set");
   }
 
   // The source and sink datasets
@@ -217,7 +217,7 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
     *pszGridWKT = pszSrcWKT;
 
   if (!strlen(pszSrcWKT))
-    throw TerrainException("The source dataset no longer has a spatial reference system assigned");
+    throw CTBException("The source dataset no longer has a spatial reference system assigned");
 
   // Populate the SRS WKT strings if we need to reproject
   if (requiresReprojection()) {
@@ -247,7 +247,7 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
 
   if( psWarpOptions->pTransformerArg == NULL ) {
     GDALDestroyWarpOptions( psWarpOptions );
-    throw TerrainException("Could not create image to image transformer");
+    throw CTBException("Could not create image to image transformer");
   }
 
   // Specify the destination geotransform
@@ -263,14 +263,14 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
   GDALDestroyWarpOptions( psWarpOptions );
 
   if (hDstDS == NULL) {
-    throw TerrainException("Could not create warped VRT");
+    throw CTBException("Could not create warped VRT");
   }
 
   // Set the projection information on the dataset. This will always be the grid
   // SRS.
   if (GDALSetProjection( hDstDS, pszGridWKT ) != CE_None) {
     GDALClose(hDstDS);
-    throw TerrainException("Could not set projection on VRT");
+    throw CTBException("Could not set projection on VRT");
   }
 
   // If uncommenting the following line for debug purposes, you must also `#include "vrtdataset.h"`

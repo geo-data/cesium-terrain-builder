@@ -16,9 +16,9 @@ else()
 endif()
 
 # The version number
-set(TERRAIN_VERSION_MAJOR 0)
-set(TERRAIN_VERSION_MINOR 2)
-set(TERRAIN_VERSION_PATCH 2)
+set(CTB_VERSION_MAJOR 0)
+set(CTB_VERSION_MINOR 2)
+set(CTB_VERSION_PATCH 2)
 
 # The tile size (width and height). According to the spec this should always be
 # 65
@@ -38,14 +38,14 @@ configure_file(
 include_directories("${PROJECT_BINARY_DIR}")
 
 # Ensure the configuration is installed
-install(FILES ${PROJECT_BINARY_DIR}/config.hpp DESTINATION include/terrain)
+install(FILES ${PROJECT_BINARY_DIR}/config.hpp DESTINATION include/ctb)
 
 # Perform as many checks as possible on debug builds:
 #    cmake -DCMAKE_BUILD_TYPE=Debug ..
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra --pedantic")
 #set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Wextra --pedantic")
 
-# Build and install libterrain
+# Build and install libctb
 include_directories("${PROJECT_SOURCE_DIR}/src")
 add_subdirectory(src)
 

@@ -21,7 +21,7 @@
 
 #include "GlobalGeodetic.hpp"
 
-using namespace terrain;
+using namespace ctb;
 
 // Set the spatial reference
 static OGRSpatialReference

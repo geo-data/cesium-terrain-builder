@@ -26,12 +26,12 @@
 
 #include "GridIterator.hpp"
 
-namespace terrain {
+namespace ctb {
   class CRSBoundsIterator;
 }
 
 /// Forward iterate over tiles in a `Grid` where tiles are `CRSBounds`
-class terrain::CRSBoundsIterator :
+class ctb::CRSBoundsIterator :
   public GridIterator< std::pair<TileCoordinate, CRSBounds> >
 {
 public:

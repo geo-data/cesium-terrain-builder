@@ -27,7 +27,7 @@
 #include "TileCoordinate.hpp"
 #include "Grid.hpp"
 
-namespace terrain {
+namespace ctb {
   template <class T> class GridIterator;
 }
 
@@ -51,7 +51,7 @@ namespace terrain {
  * a spatial filter.
  */
 template <class T>
-class terrain::GridIterator :
+class ctb::GridIterator :
   public std::iterator<std::input_iterator_tag, T>
 {
 public:
@@ -66,7 +66,7 @@ public:
     currentTile(TileCoordinate(startZoom, bounds.getLowerLeft())) // the initial tile coordinate
   {
     if (startZoom < endZoom)
-      throw TerrainException("Iterating from a starting zoom level that is less than the end zoom level");
+      throw CTBException("Iterating from a starting zoom level that is less than the end zoom level");
   }
 
   /// Instantiate an iterator with a grid and separate bounds
@@ -77,7 +77,7 @@ public:
     gridExtent(extent)
   {
     if (startZoom < endZoom)
-      throw TerrainException("Iterating from a starting zoom level that is less than the end zoom level");
+      throw CTBException("Iterating from a starting zoom level that is less than the end zoom level");
 
     currentTile.zoom = startZoom;
     setTileBounds();
@@ -163,7 +163,7 @@ public:
   void
   reset(i_zoom start, i_zoom end) {
     if (start < end)
-      throw TerrainException("Starting zoom level cannot be less than the end zoom level");
+      throw CTBException("Starting zoom level cannot be less than the end zoom level");
 
     currentTile.zoom = startZoom = start;
     endZoom = end;

@@ -24,7 +24,7 @@
 
 #include "types.hpp"
 
-namespace terrain {
+namespace ctb {
   class TileCoordinate;
 }
 
@@ -34,7 +34,7 @@ namespace terrain {
  * An instance of this class is composed of a tile point and a zoom level:
  * together this identifies an individual tile.
  */
-class terrain::TileCoordinate:
+class ctb::TileCoordinate:
   public TilePoint {
 public:
 

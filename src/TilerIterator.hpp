@@ -24,7 +24,7 @@
 
 #include "GridIterator.hpp"
 
-namespace terrain {
+namespace ctb {
   template <class T1, class T2> class TilerIterator;
 }
 
@@ -35,7 +35,7 @@ namespace terrain {
  * constructor and are used to forward iterate over all tiles in the tiler.
  */
 template <class T1, class T2>
-class terrain::TilerIterator :
+class ctb::TilerIterator :
   public GridIterator<T1>
 {
 public:

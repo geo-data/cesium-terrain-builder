@@ -21,13 +21,13 @@
  * @brief This defines the `TerrainIterator` class
  */
 
-using namespace terrain;
+using namespace ctb;
 
-terrain::TerrainIterator::TerrainIterator(const TerrainTiler &tiler):
+ctb::TerrainIterator::TerrainIterator(const TerrainTiler &tiler):
   TilerIterator(tiler)
 {}
 
-terrain::TerrainIterator::TerrainIterator(const TerrainTiler &tiler, i_zoom startZoom, i_zoom endZoom):
+ctb::TerrainIterator::TerrainIterator(const TerrainTiler &tiler, i_zoom startZoom, i_zoom endZoom):
   TilerIterator(tiler, startZoom, endZoom)
 {}
 
@@ -36,6 +36,6 @@ terrain::TerrainIterator::TerrainIterator(const TerrainTiler &tiler, i_zoom star
  * `TileCoordinate` currently pointed to by the iterator.
  */
 TerrainTile
-terrain::TerrainIterator::operator*() const {
+ctb::TerrainIterator::operator*() const {
   return tiler.createTerrainTile(currentTile);
 }

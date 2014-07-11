@@ -1,5 +1,5 @@
-#ifndef TERRAINGRID_HPP
-#define TERRAINGRID_HPP
+#ifndef CTBGRID_HPP
+#define CTBGRID_HPP
 
 /*******************************************************************************
  * Copyright 2014 GeoData <geodata@soton.ac.uk>
@@ -29,7 +29,7 @@
 #include "types.hpp"
 #include "TileCoordinate.hpp"
 
-namespace terrain {
+namespace ctb {
   class Grid;
 }
 
@@ -48,7 +48,7 @@ namespace terrain {
  * The code here generalises the logic in the `gdal2tiles.py` script available
  * with the GDAL library.
  */
-class terrain::Grid {
+class ctb::Grid {
 public:
 
   /// An empty grid
@@ -211,4 +211,4 @@ protected:
   float mZoomFactor;
 };
 
-#endif /* TERRAINGRID_HPP */
+#endif /* CTBGRID_HPP */

@@ -1,5 +1,5 @@
-#ifndef TERRAINEXCEPTION_HPP
-#define TERRAINEXCEPTION_HPP
+#ifndef CTBEXCEPTION_HPP
+#define CTBEXCEPTION_HPP
 
 /*******************************************************************************
  * Copyright 2014 GeoData <geodata@soton.ac.uk>
@@ -18,24 +18,24 @@
  *******************************************************************************/
 
 /**
- * @file TerrainException.hpp
- * @brief This declares and defines the `TerrainException` class
+ * @file CTBException.hpp
+ * @brief This declares and defines the `CTBException` class
  */
 
 #include <stdexcept>
 
-namespace terrain {
-  class TerrainException;
+namespace ctb {
+  class CTBException;
 }
 
-/// This represents a terrain runtime error
-class terrain::TerrainException:
+/// This represents a CTB runtime error
+class ctb::CTBException:
   public std::runtime_error
 { 
 public:
-  TerrainException(const char *message):
+  CTBException(const char *message):
     std::runtime_error(message)
   {}
 };
 
-#endif /* TERRAINEXCEPTION_HPP */
+#endif /* CTBEXCEPTION_HPP */

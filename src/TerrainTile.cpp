@@ -24,12 +24,12 @@
 #include "zlib.h"
 #include "ogr_spatialref.h"
 
-#include "TerrainException.hpp"
+#include "CTBException.hpp"
 #include "TerrainTile.hpp"
 #include "GlobalGeodetic.hpp"
 #include "Bounds.hpp"
 
-using namespace terrain;
+using namespace ctb;
 
 Terrain::Terrain():
   mHeights(TILE_CELL_SIZE),
@@ -65,12 +65,12 @@ Terrain::Terrain(FILE *fp):
 
   // Check we have the expected amound of height data
   if (count+1 != TILE_CELL_SIZE) {
-    throw TerrainException("Not enough height data");
+    throw CTBException("Not enough height data");
   }
 
   // Get the child flag
   if ( fread(&(mChildren), 1, 1, fp) != 1 ) {
-    throw TerrainException("Could not read child tile byte");
+    throw CTBException("Could not read child tile byte");
   }
 
   // Get the water mask
@@ -81,7 +81,7 @@ Terrain::Terrain(FILE *fp):
   case 1:
     break;
   default:
-    throw TerrainException("Not contain enough water mask data");
+    throw CTBException("Not contain enough water mask data");
   }
 }
 
@@ -95,14 +95,14 @@ Terrain::readFile(const char *fileName) {
   gzFile terrainFile = gzopen(fileName, "rb");
 
   if (terrainFile == NULL) {
-    throw TerrainException("Failed to open file");
+    throw CTBException("Failed to open file");
   }
 
   // Uncompress the file into the buffer
   inflatedBytes = gzread(terrainFile, inflateBuffer, MAX_TERRAIN_SIZE);
   if (gzread(terrainFile, inflateBuffer, 1) != 0) {
     gzclose(terrainFile);
-    throw TerrainException("File has too many bytes to be a valid terrain");
+    throw CTBException("File has too many bytes to be a valid terrain");
   }
   gzclose(terrainFile);
 
@@ -115,7 +115,7 @@ Terrain::readFile(const char *fileName) {
     mMaskLength = 1;
     break;
   default:                    // it can't be a terrain file
-    throw TerrainException("File has wrong file size to be a valid terrain");
+    throw CTBException("File has wrong file size to be a valid terrain");
   }
 
   // Get the height data
@@ -149,25 +149,25 @@ Terrain::writeFile(const char *fileName) const {
   gzFile terrainFile = gzopen(fileName, "wb");
 
   if (terrainFile == NULL) {
-    throw TerrainException("Failed to open file");
+    throw CTBException("Failed to open file");
   }
 
   // Write the height data
   if (gzwrite(terrainFile, mHeights.data(), TILE_CELL_SIZE * 2) == 0) {
     gzclose(terrainFile);
-    throw TerrainException("Failed to write height data");
+    throw CTBException("Failed to write height data");
   }
 
   // Write the child flags
   if (gzputc(terrainFile, mChildren) == -1) {
     gzclose(terrainFile);
-    throw TerrainException("Failed to write child flags");
+    throw CTBException("Failed to write child flags");
   }
 
   // Write the water mask
   if (gzwrite(terrainFile, mMask, mMaskLength) == 0) {
     gzclose(terrainFile);
-    throw TerrainException("Failed to write water mask");
+    throw CTBException("Failed to write water mask");
   }
 
   // Try and close the file
@@ -179,7 +179,7 @@ Terrain::writeFile(const char *fileName) const {
   case Z_MEM_ERROR:
   case Z_BUF_ERROR:
   default:
-    throw TerrainException("Failed to close file");
+    throw CTBException("Failed to close file");
   }
 }
 
@@ -334,13 +334,13 @@ TerrainTile::heightsToRaster() const {
   // Create the spatial reference system for the raster
   OGRSpatialReference oSRS;
   if (oSRS.importFromEPSG(4326) != OGRERR_NONE) {
-    throw TerrainException("Could not create EPSG:4326 spatial reference");
+    throw CTBException("Could not create EPSG:4326 spatial reference");
   }
 
   char *pszDstWKT = NULL;
   if (oSRS.exportToWkt( &pszDstWKT ) != OGRERR_NONE) {
     CPLFree( pszDstWKT );
-    throw TerrainException("Could not create EPSG:4326 WKT string");
+    throw CTBException("Could not create EPSG:4326 WKT string");
   }
 
   // Create an 'In Memory' raster
@@ -351,21 +351,21 @@ TerrainTile::heightsToRaster() const {
   hDstDS = GDALCreate(hDriver, "", tileSize, tileSize, 1, GDT_Int16, NULL );
   if (hDstDS == NULL) {
     CPLFree( pszDstWKT );
-    throw TerrainException("Could not create in memory raster");
+    throw CTBException("Could not create in memory raster");
   }
 
   // Set the projection
   if (GDALSetProjection( hDstDS, pszDstWKT ) != CE_None) {
     GDALClose(hDstDS);
     CPLFree( pszDstWKT );
-    throw TerrainException("Could not set projection on in memory raster");
+    throw CTBException("Could not set projection on in memory raster");
   }
   CPLFree( pszDstWKT );
 
   // Apply the geo transform
   if (GDALSetGeoTransform( hDstDS, adfGeoTransform ) != CE_None) {
     GDALClose(hDstDS);
-    throw TerrainException("Could not set projection on VRT");
+    throw CTBException("Could not set projection on VRT");
   }
 
   // Finally write the height data
@@ -373,7 +373,7 @@ TerrainTile::heightsToRaster() const {
   if (GDALRasterIO( hBand, GF_Write, 0, 0, tileSize, tileSize,
                     (void *) mHeights.data(), tileSize, tileSize, GDT_Int16, 0, 0 ) != CE_None) {
     GDALClose(hDstDS);
-    throw TerrainException("Could not write heights to in memory raster");
+    throw CTBException("Could not write heights to in memory raster");
   }
 
   return hDstDS;

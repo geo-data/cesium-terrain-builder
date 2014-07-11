@@ -29,7 +29,7 @@
 #include "TilerIterator.hpp"
 #include "GDALTiler.hpp"
 
-namespace terrain {
+namespace ctb {
   class RasterIterator;
 }
 
@@ -41,7 +41,7 @@ namespace terrain {
  * when dereferenced.  It is the caller's responsibility to call `GDALClose()`
  * on the returned dataset.
  */
-class terrain::RasterIterator :
+class ctb::RasterIterator :
   public TilerIterator< std::pair<const TileCoordinate &, GDALDataset *>, const GDALTiler & >
 {
 public:

@@ -24,12 +24,12 @@
 
 #include "GridIterator.hpp"
 
-namespace terrain {
+namespace ctb {
   class TileCoordinateIterator;
 }
 
 /// A `GridIterator` which forward iterates over `TileCoordinates` in a `Grid`
-class terrain::TileCoordinateIterator :
+class ctb::TileCoordinateIterator :
   public GridIterator<TileCoordinate>
 {
 public:

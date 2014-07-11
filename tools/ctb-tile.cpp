@@ -15,7 +15,7 @@
  *******************************************************************************/
 
 /**
- * @file terrain-build.cpp
+ * @file ctb-tile.cpp
  * @brief Convert a GDAL raster to a tile format
  *
  * This tool takes a GDAL raster and by default converts it to gzip compressed
@@ -48,13 +48,13 @@
 #include "config.hpp"
 #include "GlobalGeodetic.hpp"
 #include "GlobalMercator.hpp"
-#include "TerrainException.hpp"
+#include "CTBException.hpp"
 #include "TerrainTiler.hpp"
 #include "RasterIterator.hpp"
 #include "TerrainIterator.hpp"
 
 using namespace std;
-using namespace terrain;
+using namespace ctb;
 
 #ifdef _WIN32
 static const char *osDirSep = "\\";
@@ -205,11 +205,11 @@ buildGDAL(const GDALTiler &tiler, TerrainBuild *command) {
   GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName(command->outputFormat);
 
   if (poDriver == NULL) {
-    throw TerrainException("Could not retrieve GDAL driver");
+    throw CTBException("Could not retrieve GDAL driver");
   }
 
   if (poDriver->pfnCreateCopy == NULL) {
-    throw TerrainException("The GDAL driver must be write enabled, specifically supporting 'CreateCopy'");
+    throw CTBException("The GDAL driver must be write enabled, specifically supporting 'CreateCopy'");
   }
 
   const char *extension = poDriver->GetMetadataItem(GDAL_DMD_EXTENSION);
@@ -234,7 +234,7 @@ buildGDAL(const GDALTiler &tiler, TerrainBuild *command) {
 
     // Close the datasets, flushing data to destination
     if (poDstDS == NULL) {
-      throw TerrainException("Could not create GDAL tile");
+      throw CTBException("Could not create GDAL tile");
     }
 
     GDALClose(poDstDS);
@@ -287,7 +287,7 @@ runTiler(TerrainBuild *command, Grid *grid) {
       buildGDAL(tiler, command);
     }
 
-  } catch (TerrainException &e) {
+  } catch (CTBException &e) {
     cerr << "Error: " << e.what() << endl;
   }
 

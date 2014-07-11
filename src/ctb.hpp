@@ -1,5 +1,5 @@
-#ifndef TERRAIN_HPP
-#define TERRAIN_HPP
+#ifndef CTB_HPP
+#define CTB_HPP
 
 /*******************************************************************************
  * Copyright 2014 GeoData <geodata@soton.ac.uk>
@@ -18,12 +18,12 @@
  *******************************************************************************/
 
 /**
- * @file terrain.hpp
- * @brief All required definitions for working with `libterrain`
+ * @file ctb.hpp
+ * @brief All required definitions for working with `libctb`
  *
- * @mainpage Cesium Terrain Builder Library (libterrain)
+ * @mainpage Cesium Terrain Builder Library (libctb)
  *
- * `libterrain` is a C++ library used to create terrain tiles for use in the
+ * `libctb` is a C++ library used to create terrain tiles for use in the
  * [Cesium JavaScript library](http://cesiumjs.org).  Terrain tiles are created
  * according to the [heightmap-1.0 terrain
  * format](http://cesiumjs.org/data-and-assets/terrain/formats/heightmap-1.0.html).
@@ -31,23 +31,23 @@
  * tiles: this is application specific.  Its aim is simply to take a
  * [GDAL](http://www.gdal.org) compatible raster representing a Digital Terrain
  * Model (DTM) and convert this to terrain tiles.  See the tools provided with
- * the library (e.g. `terrain-build`) for an example on how the the library is
- * used to achieve this.
+ * the library (e.g. `ctb-tile`) for an example on how the the library is used
+ * to achieve this.
  *
- * To use the library include `terrain.hpp` e.g.
+ * To use the library include `ctb.hpp` e.g.
  *
  * \code
  * #include <iostream>
- * #include "terrain.hpp"
+ * #include "ctb.hpp"
  *
  * using namespace std;
  *
  * int main() {
  *
- *   cout << "Using libterrain version "
- *        << terrain::version.major << "."
- *        << terrain::version.minor << "."
- *        << terrain::version.patch << endl;
+ *   cout << "Using libctb version "
+ *        << ctb::version.major << "."
+ *        << ctb::version.minor << "."
+ *        << ctb::version.patch << endl;
  *
  *   return 0;
  * }
@@ -64,22 +64,22 @@
  * details.
  */
 
-#include "terrain/Bounds.hpp"
-#include "terrain/Coordinate.hpp"
-#include "terrain/CRSBoundsIterator.hpp"
-#include "terrain/GDALTiler.hpp"
-#include "terrain/GlobalGeodetic.hpp"
-#include "terrain/GlobalMercator.hpp"
-#include "terrain/Grid.hpp"
-#include "terrain/GridIterator.hpp"
-#include "terrain/RasterIterator.hpp"
-#include "terrain/TerrainException.hpp"
-#include "terrain/TerrainIterator.hpp"
-#include "terrain/TerrainTile.hpp"
-#include "terrain/TerrainTiler.hpp"
-#include "terrain/TileCoordinate.hpp"
-#include "terrain/TileCoordinateIterator.hpp"
-#include "terrain/TilerIterator.hpp"
-#include "terrain/types.hpp"
+#include "ctb/Bounds.hpp"
+#include "ctb/Coordinate.hpp"
+#include "ctb/CRSBoundsIterator.hpp"
+#include "ctb/GDALTiler.hpp"
+#include "ctb/GlobalGeodetic.hpp"
+#include "ctb/GlobalMercator.hpp"
+#include "ctb/Grid.hpp"
+#include "ctb/GridIterator.hpp"
+#include "ctb/RasterIterator.hpp"
+#include "ctb/CTBException.hpp"
+#include "ctb/TerrainIterator.hpp"
+#include "ctb/TerrainTile.hpp"
+#include "ctb/TerrainTiler.hpp"
+#include "ctb/TileCoordinate.hpp"
+#include "ctb/TileCoordinateIterator.hpp"
+#include "ctb/TilerIterator.hpp"
+#include "ctb/types.hpp"
 
-#endif /* TERRAIN_HPP */
+#endif /* CTB_HPP */

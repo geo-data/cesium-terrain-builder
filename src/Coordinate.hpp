@@ -22,13 +22,13 @@
  * @brief This declares and defines the `Coordinate` class
  */
 
-namespace terrain {
+namespace ctb {
   template <class T> class Coordinate;
 }
 
 /// A representation of a point coordinate
 template <class T>
-class terrain::Coordinate {
+class ctb::Coordinate {
 public:
 
   /// Create an empty coordinate

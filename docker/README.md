@@ -3,7 +3,7 @@
 This is an Ubuntu derived image containing Cesium Terrain Builder compiled
 against a GDAL installation bundled with a broad range of drivers.  It is
 suitable for getting up and running quickly with the Cesium Terrain Builder
-command line tools and/or coding with `libterrain`.
+command line tools and/or coding with `libctb`.
 
 ## Usage
 
@@ -14,7 +14,7 @@ Cesium Terrain Builder available:
 
 You can run the command line utilities from there e.g.
 
-    terrain-build --version
+    ctb-tile --version
 
 You will most likely want to work with data on the host system from within the
 docker container, in which case run the container with the -v option. This
@@ -28,6 +28,6 @@ following command entered at the prompt provided with the previous command will
 build a terrain tileset.  This assumes `/tmp/source.tiff` is present on the
 host system:
 
-    mkdir /data/tiles && terrain-build -o /data/tiles /data/source.tiff
+    mkdir /data/tiles && ctb-tile -o /data/tiles /data/source.tiff
 
 You should now have the tiles available on your host system in `/tmp/tiles`.

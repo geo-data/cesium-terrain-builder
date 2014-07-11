@@ -23,7 +23,7 @@
 
 #include "GlobalMercator.hpp"
 
-using namespace terrain;
+using namespace ctb;
 
 // Set the class level properties
 const unsigned int GlobalMercator::cSemiMajorAxis = 6378137;

@@ -15,7 +15,7 @@
  *******************************************************************************/
 
 /**
- * @file terrain-info.cpp
+ * @file ctb-info.cpp
  * @brief A tool to extract information from the terrain tile
  *
  * This tool takes a terrain file and optionally extracts height, child tile
@@ -28,11 +28,11 @@
 #include "commander.hpp"
 
 #include "config.hpp"
-#include "TerrainException.hpp"
+#include "CTBException.hpp"
 #include "TerrainTile.hpp"
 
 using namespace std;
-using namespace terrain;
+using namespace ctb;
 
 /// Handle the terrain info CLI options
 class TerrainInfo : public Command {
@@ -104,16 +104,16 @@ main(int argc, char *argv[]) {
   Terrain terrain;
   try {
     terrain = Terrain(command.getInputFilename());
-  } catch (TerrainException &e) {
+  } catch (CTBException &e) {
     cerr << "Error: " << e.what() << endl;
     return 1;
   }
 
   // Print out the heights if required
   if (command.mShowHeights) {
-    const std::vector<terrain::i_terrain_height> & heights = terrain.getHeights();
+    const std::vector<ctb::i_terrain_height> & heights = terrain.getHeights();
     cout << "Heights:";
-    for (std::vector<terrain::i_terrain_height>::const_iterator iter = heights.begin(); iter != heights.end(); ++iter) {
+    for (std::vector<ctb::i_terrain_height>::const_iterator iter = heights.begin(); iter != heights.end(); ++iter) {
       if ((iter - heights.begin()) % TILE_SIZE == 0) cout << endl;
       cout << *iter << " ";
     }

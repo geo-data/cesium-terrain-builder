@@ -21,13 +21,13 @@
  * @brief This defines the `RasterIterator` class
  */
 
-using namespace terrain;
+using namespace ctb;
 
-terrain::RasterIterator::RasterIterator(const GDALTiler &tiler) :
+ctb::RasterIterator::RasterIterator(const GDALTiler &tiler) :
   TilerIterator(tiler)
 {}
 
-terrain::RasterIterator::RasterIterator(const GDALTiler &tiler, i_zoom startZoom, i_zoom endZoom):
+ctb::RasterIterator::RasterIterator(const GDALTiler &tiler, i_zoom startZoom, i_zoom endZoom):
   TilerIterator(tiler, startZoom, endZoom)
 {}
 
@@ -37,7 +37,7 @@ terrain::RasterIterator::RasterIterator(const GDALTiler &tiler, i_zoom startZoom
  * responsibility to call `GDALClose()` on the returned dataset.
  */
 std::pair<const TileCoordinate &, GDALDataset *>
-terrain::RasterIterator::operator*() const {
+ctb::RasterIterator::operator*() const {
   return std::pair<const TileCoordinate &, GDALDataset *>
     (
      currentTile,

@@ -23,15 +23,15 @@
  */
 
 #include "Coordinate.hpp"
-#include "TerrainException.hpp"
+#include "CTBException.hpp"
 
-namespace terrain {
+namespace ctb {
   template <class T> class Bounds;
 }
 
 /// A representation of an extent
 template <class T>
-class terrain::Bounds {
+class ctb::Bounds {
 public:
 
   /// Create an empty bounds
@@ -62,9 +62,9 @@ public:
   inline void
   setBounds(T minx, T miny, T maxx, T maxy) {
     if (minx > maxx) {
-      throw TerrainException("The minimum X value is greater than the maximum X value");
+      throw CTBException("The minimum X value is greater than the maximum X value");
     } else if (miny > maxy) {
-      throw TerrainException("The minimum Y value is greater than the maximum Y value");
+      throw CTBException("The minimum Y value is greater than the maximum Y value");
     }
 
     bounds[0] = minx;
@@ -107,7 +107,7 @@ public:
   inline void
   setMinX(T newValue) {
     if (newValue > getMaxX())
-      throw TerrainException("The value is greater than the maximum X value");
+      throw CTBException("The value is greater than the maximum X value");
 
     bounds[0] = newValue;
   }
@@ -116,7 +116,7 @@ public:
   inline void
   setMinY(T newValue) {
     if (newValue > getMaxY())
-      throw TerrainException("The value is greater than the maximum Y value");
+      throw CTBException("The value is greater than the maximum Y value");
 
     bounds[1] = newValue;
   }
@@ -125,7 +125,7 @@ public:
   inline void
   setMaxX(T newValue) {
     if (newValue < getMinX())
-      throw TerrainException("The value is less than the minimum X value");
+      throw CTBException("The value is less than the minimum X value");
 
     bounds[2] = newValue;
   }
@@ -134,7 +134,7 @@ public:
   inline void
   setMaxY(T newValue) {
     if (newValue < getMinY())
-      throw TerrainException("The value is less than the minimum Y value");
+      throw CTBException("The value is less than the minimum Y value");
 
     bounds[3] = newValue;
   }
