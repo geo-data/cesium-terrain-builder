@@ -39,7 +39,7 @@
 #include <stdlib.h>             // for atoi
 #include <thread>
 #include <mutex>
-#include <vector>
+#include <future>
 
 #include "cpl_multiproc.h"      // for CPLGetNumCPUs
 #include "gdal_priv.h"
@@ -328,17 +328,29 @@ main(int argc, char *argv[]) {
     return 1;
   }
 
-  vector<thread> threads;
+  // Run the tilers in separate threads
+  vector<future<int>> tasks;
   int threadCount = (command.threadCount > 0) ? command.threadCount : CPLGetNumCPUs();
 
-  // Instantiate the threads
+  // Instantiate the threads using futures from a packaged_task
   for (int i = 0; i < threadCount ; ++i) {
-    threads.push_back(thread(runTiler, &command, &grid));
+    packaged_task<int(TerrainBuild *, Grid *)> task(runTiler); // wrap the function
+    tasks.push_back(task.get_future());                        // get a future
+    thread(move(task), &command, &grid).detach(); // launch on a thread
   }
 
   // Synchronise the completion of the threads
-  for (auto &thread : threads) {
-    thread.join();
+  for (auto &task : tasks) {
+    task.wait();
+  }
+
+  // Get the value from the futures
+  for (auto &task : tasks) {
+    int retval = task.get();
+
+    // return on the first encountered problem
+    if (retval)
+      return retval;
   }
 
   return 0;
