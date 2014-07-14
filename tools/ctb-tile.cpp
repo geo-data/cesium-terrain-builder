@@ -73,7 +73,8 @@ public:
     threadCount(-1),
     tileSize(0),
     startZoom(-1),
-    endZoom(-1)
+    endZoom(-1),
+    verbosity(1)
   {}
 
   void
@@ -128,6 +129,16 @@ public:
     static_cast<TerrainBuild *>(Command::self(command))->endZoom = atoi(command->arg);
   }
 
+  static void
+  setQuiet(command_t *command) {
+    --(static_cast<TerrainBuild *>(Command::self(command))->verbosity);
+  }
+
+  static void
+  setVerbose(command_t *command) {
+    ++(static_cast<TerrainBuild *>(Command::self(command))->verbosity);
+  }
+
   const char *
   getInputFilename() const {
     return  (command->argc == 1) ? command->argv[0] : NULL;
@@ -140,7 +151,8 @@ public:
   int threadCount,
     tileSize,
     startZoom,
-    endZoom;
+    endZoom,
+    verbosity;
 };
 
 /// Create a filename for a tile coordinate
@@ -191,12 +203,55 @@ incrementIterator(T &iter, int currentIndex) {
   return currentIndex;
 }
 
-/// In a thread safe manner describe the file currently being created
-static void
-outputFilename(string filename) {
+/// Get a handle on the total number of tiles to be created
+static int iteratorSize = 0;    // the total number of tiles
+template<typename T> void
+setIteratorSize(T &iter) {
+  static mutex mutex;
+
+  mutex.lock();
+
+  if (iteratorSize == 0) {
+    iteratorSize = iter.getSize();
+  }
+
+  mutex.unlock();
+}
+
+/// A thread safe wrapper around `GDALTermProgress`
+static int
+termProgress(double dfComplete, const char *pszMessage, void *pProgressArg) {
+  static mutex mutex;          // GDALTermProgress isn't thread safe, so lock it
+  int status;
+
+  mutex.lock();
+  status = GDALTermProgress(dfComplete, pszMessage, pProgressArg);
+  mutex.unlock();
+
+  return status;
+}
+
+/// In a thread safe manner describe the file just created
+static int
+verboseProgress(double dfComplete, const char *pszMessage, void *pProgressArg) {
   stringstream stream;
-  stream << "creating " << filename << " in thread " << this_thread::get_id() << endl;
+  stream << "[" << (int) (dfComplete*100) << "%] " << pszMessage << endl;
   cout << stream.str();
+
+  return TRUE;
+}
+
+// Default to outputting using the GDAL progress meter
+static GDALProgressFunc progressFunc = termProgress;
+
+/// Output the progress of the tiling operation
+int
+showProgress(int currentIndex, string filename) {
+  stringstream stream;
+  stream << "created " << filename << " in thread " << this_thread::get_id();
+  string message = stream.str();
+
+  return progressFunc(currentIndex / (double) iteratorSize, message.c_str(), NULL);
 }
 
 /// Output GDAL tiles represented by a tiler to a directory
@@ -219,6 +274,7 @@ buildGDAL(const GDALTiler &tiler, TerrainBuild *command) {
 
   RasterIterator iter(tiler, startZoom, endZoom);
   int currentIndex = incrementIterator(iter, 0);
+  setIteratorSize(iter);
 
   while (!iter.exhausted()) {
     std::pair<const TileCoordinate &, GDALDataset *> result = *iter;
@@ -227,7 +283,6 @@ buildGDAL(const GDALTiler &tiler, TerrainBuild *command) {
     GDALDataset *poDstDS;
     const string filename = getTileFilename(coord, dirname, extension);
 
-    outputFilename(filename);
     poDstDS = poDriver->CreateCopy(filename.c_str(), poSrcDS, FALSE,
                                    NULL, NULL, NULL );
     GDALClose(poSrcDS);
@@ -240,6 +295,7 @@ buildGDAL(const GDALTiler &tiler, TerrainBuild *command) {
     GDALClose(poDstDS);
 
     currentIndex = incrementIterator(iter, currentIndex);
+    showProgress(currentIndex, filename);
   }
 }
 
@@ -252,16 +308,17 @@ buildTerrain(const TerrainTiler &tiler, TerrainBuild *command) {
 
   TerrainIterator iter(tiler, startZoom, endZoom);
   int currentIndex = incrementIterator(iter, 0);
+  setIteratorSize(iter);
 
   while (!iter.exhausted()) {
     const TerrainTile terrainTile = *iter;
     const TileCoordinate &coord = terrainTile.getCoordinate();
     const string filename = getTileFilename(coord, dirname, "terrain");
 
-    outputFilename(filename);
     terrainTile.writeFile(filename.c_str());
 
     currentIndex = incrementIterator(iter, currentIndex);
+    showProgress(currentIndex, filename);
   }
 }
 
@@ -308,12 +365,21 @@ main(int argc, char *argv[]) {
   command.option("-t", "--tile-size <size>", "specify the size of the tiles in pixels. This defaults to 65 for terrain tiles and 256 for other GDAL formats", TerrainBuild::setTileSize);
   command.option("-s", "--start-zoom <zoom>", "specify the zoom level to start at. This should be greater than the end zoom level", TerrainBuild::setStartZoom);
   command.option("-e", "--end-zoom <zoom>", "specify the zoom level to end at. This should be less than the start zoom level and >= 0", TerrainBuild::setEndZoom);
+  command.option("-q", "--quiet", "only output errors", TerrainBuild::setQuiet);
+  command.option("-v", "--verbose", "be more noisy", TerrainBuild::setVerbose);
 
   // Parse and check the arguments
   command.parse(argc, argv);
   command.check();
 
   GDALAllRegister();
+
+  // Set the output type
+  if (command.verbosity > 1) {
+    progressFunc = verboseProgress; // noisy
+  } else if (command.verbosity < 1) {
+    progressFunc = GDALDummyProgress; // quiet
+  }
 
   // Define the grid we are going to use
   Grid grid;

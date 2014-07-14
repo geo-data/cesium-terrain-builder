@@ -171,6 +171,21 @@ public:
     setTileBounds();
   }
 
+  /// Get the total number of elements in the iterator
+  i_tile
+  getSize() const {
+    i_tile size = 0;
+    for (i_zoom zoom = endZoom; zoom <= startZoom; ++zoom) {
+      TileCoordinate ll = grid.crsToTile(gridExtent.getLowerLeft(), zoom),
+        ur = grid.crsToTile(gridExtent.getUpperRight(), zoom);
+
+      TileBounds zoomBound(ll, ur);
+      size += (zoomBound.getWidth() + 1) * (zoomBound.getHeight() + 1);
+    }
+
+    return size;
+  }
+
 protected:
 
   /// Set the tile bounds of the grid for the current zoom level
