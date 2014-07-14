@@ -64,6 +64,8 @@ Options:
   -t, --tile-size <size>        specify the size of the tiles in pixels. This defaults to 65 for terrain tiles and 256 for other GDAL formats
   -s, --start-zoom <zoom>       specify the zoom level to start at. This should be greater than the end zoom level
   -e, --end-zoom <zoom>         specify the zoom level to end at. This should be less than the start zoom level and >= 0
+  -q, --quiet                   only output errors
+  -v, --verbose                 be more noisy
 ```
 
 #### Recommendations
@@ -171,8 +173,6 @@ Options:
   -t, --tile-size <size>        specify the size of the tiles in pixels. This defaults to 65 for terrain tiles and 256 for other GDAL formats
   -s, --start-zoom <zoom>       specify the zoom level to start at. This should be greater than the end zoom level
   -e, --end-zoom <zoom>         specify the zoom level to end at. This should be less than the start zoom level and >= 0
-  -q, --quiet                   only output errors
-  -v, --verbose                 be more noisy
 ```
 
 ## LibCTB
