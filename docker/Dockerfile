@@ -10,8 +10,15 @@
 FROM homme/gdal:latest
 MAINTAINER Homme Zwaagstra <hrz@geodata.soton.ac.uk>
 
-# Ensure `cmake` is present
+# Upgrade from gcc 4.6 to 4.7 (see
+# http://askubuntu.com/questions/113291/how-do-i-install-gcc-4-7)
+RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test
 RUN apt-get update -y
+RUN apt-get install -y gcc-4.7 g++-4.7
+RUN apt-get remove -y gcc-4.6
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.7 40 --slave /usr/bin/g++ g++ /usr/bin/g++-4.7
+
+# Ensure `cmake` is present
 RUN apt-get install -y cmake
 
 # Install Cesium Terrain Builder itself

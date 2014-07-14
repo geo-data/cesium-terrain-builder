@@ -8,11 +8,21 @@ CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
 CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
 
 if(COMPILER_SUPPORTS_CXX11)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 elseif(COMPILER_SUPPORTS_CXX0X)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 else()
-    message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+  message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+endif()
+
+# We need g++ >= version 4.7 (see
+# http://stackoverflow.com/questions/4058565/check-gcc-minor-in-cmake)
+if (CMAKE_COMPILER_IS_GNUCXX)
+  execute_process(COMMAND ${CMAKE_CXX_COMPILER} -dumpversion
+    OUTPUT_VARIABLE GCXX_VERSION)
+  if (GCXX_VERSION VERSION_LESS 4.7)
+    message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} is version ${GCXX_VERSION} which is not supported. Please use version 4.7 or greater.")
+  endif()
 endif()
 
 # The version number
@@ -29,9 +39,9 @@ set(TERRAIN_MASK_SIZE 256)
 
 # Configure a header file to pass some of the CMake settings to the source code
 configure_file(
-    "${PROJECT_SOURCE_DIR}/src/config.hpp.in"
-    "${PROJECT_BINARY_DIR}/config.hpp"
-)
+  "${PROJECT_SOURCE_DIR}/src/config.hpp.in"
+  "${PROJECT_BINARY_DIR}/config.hpp"
+  )
 
 # Add the binary tree to the search path for include files so that we will find
 # `config.hpp`
