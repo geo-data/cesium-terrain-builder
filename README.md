@@ -171,12 +171,14 @@ Options:
   -t, --tile-size <size>        specify the size of the tiles in pixels. This defaults to 65 for terrain tiles and 256 for other GDAL formats
   -s, --start-zoom <zoom>       specify the zoom level to start at. This should be greater than the end zoom level
   -e, --end-zoom <zoom>         specify the zoom level to end at. This should be less than the start zoom level and >= 0
+  -q, --quiet                   only output errors
+  -v, --verbose                 be more noisy
 ```
 
-## LibTerrain
+## LibCTB
 
-The C++ library is called `libctb`.  It is capable of creating terrain
-tiles according to the
+The C++ library is called `libctb`.  It is capable of creating terrain tiles
+according to the
 [heightmap-1.0 terrain format](http://cesiumjs.org/data-and-assets/terrain/formats/heightmap-1.0.html). It
 does not provide a way of serving up or storing the resulting tiles: this is
 application specific. Instead its aim is simply to take a
@@ -312,9 +314,6 @@ installation issues are encapsulated in the image.
 
 * Add support for interpolating out `NODATA` values.  This could be done using
   either `GDALFillNodata()` or `GDALGridCreate()`.
-
-* Add support for a progress meter, possibly incorporating the GDAL progress
-  hooks where appropriate.
 
 * Adding support for creating water masks to tiles could be useful: at the
   moment all tiles are flagged as being of type 'land'.
