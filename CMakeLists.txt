@@ -27,8 +27,8 @@ endif()
 
 # The version number
 set(CTB_VERSION_MAJOR 0)
-set(CTB_VERSION_MINOR 2)
-set(CTB_VERSION_PATCH 2)
+set(CTB_VERSION_MINOR 3)
+set(CTB_VERSION_PATCH 0)
 
 # The tile size (width and height). According to the spec this should always be
 # 65
