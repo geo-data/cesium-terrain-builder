@@ -43,7 +43,7 @@
 
 #include "cpl_multiproc.h"      // for CPLGetNumCPUs
 #include "gdal_priv.h"
-#include "commander.hpp"
+#include "commander.hpp"        // for cli parsing
 
 #include "config.hpp"
 #include "GlobalGeodetic.hpp"
@@ -190,15 +190,13 @@ incrementIterator(T &iter, int currentIndex) {
   static int globalIteratorIndex = 0; // keep track of where we are globally
   static mutex mutex;        // ensure iterations occur serially between threads
 
-  mutex.lock();
+  lock_guard<std::mutex> lock(mutex);
 
   while (currentIndex < globalIteratorIndex) {
     ++iter;
     ++currentIndex;
   }
   ++globalIteratorIndex;
-
-  mutex.unlock();
 
   return currentIndex;
 }
@@ -209,13 +207,11 @@ template<typename T> void
 setIteratorSize(T &iter) {
   static mutex mutex;
 
-  mutex.lock();
+  lock_guard<std::mutex> lock(mutex);
 
   if (iteratorSize == 0) {
     iteratorSize = iter.getSize();
   }
-
-  mutex.unlock();
 }
 
 /// A thread safe wrapper around `GDALTermProgress`
@@ -224,9 +220,8 @@ termProgress(double dfComplete, const char *pszMessage, void *pProgressArg) {
   static mutex mutex;          // GDALTermProgress isn't thread safe, so lock it
   int status;
 
-  mutex.lock();
+  lock_guard<std::mutex> lock(mutex);
   status = GDALTermProgress(dfComplete, pszMessage, pProgressArg);
-  mutex.unlock();
 
   return status;
 }
