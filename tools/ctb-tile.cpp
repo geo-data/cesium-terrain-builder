@@ -42,6 +42,7 @@
 #include <future>
 
 #include "cpl_multiproc.h"      // for CPLGetNumCPUs
+#include "cpl_vsi.h"            // for virtual filesystem
 #include "gdal_priv.h"
 #include "commander.hpp"        // for cli parsing
 
@@ -155,19 +156,50 @@ public:
     verbosity;
 };
 
-/// Create a filename for a tile coordinate
+/**
+ * Create a filename for a tile coordinate
+ *
+ * This also creates the tile directory structure.
+ */
 static string
 getTileFilename(const TileCoordinate &coord, const string dirname, const char *extension) {
+  static mutex mutex;
+  VSIStatBufL stat;
   string filename = dirname + static_cast<ostringstream*>
     (
      &(ostringstream()
        << coord.zoom
-       << "-"
-       << coord.x
-       << "-"
-       << coord.y)
+       << osDirSep
+       << coord.x)
      )->str();
 
+  lock_guard<std::mutex> lock(mutex);
+
+  // Check whether the `{zoom}/{x}` directory exists or not
+  if (VSIStatExL(filename.c_str(), &stat, VSI_STAT_EXISTS_FLAG | VSI_STAT_NATURE_FLAG)) {
+    filename = dirname + static_cast<ostringstream*>(&(ostringstream() << coord.zoom))->str();
+
+    // Check whether the `{zoom}` directory exists or not
+    if (VSIStatExL(filename.c_str(), &stat, VSI_STAT_EXISTS_FLAG | VSI_STAT_NATURE_FLAG)) {
+      // Create the `{zoom}` directory
+      if (VSIMkdir(filename.c_str(), 0666))
+        throw CTBException("Could not create the zoom level directory");
+
+    } else if (!VSI_ISDIR(stat.st_mode)) {
+      throw CTBException("Zoom level file path is not a directory");
+    }
+
+    // Create the `{zoom}/{x}` directory
+    filename += static_cast<ostringstream*>(&(ostringstream() << osDirSep << coord.x))->str();
+    if (VSIMkdir(filename.c_str(), 0666))
+      throw CTBException("Could not create the x level directory");
+
+  } else if (!VSI_ISDIR(stat.st_mode)) {
+    throw CTBException("X level file path is not a directory");
+  }
+
+  // Create the filename itself, adding the extension if required
+  filename += static_cast<ostringstream*>(&(ostringstream() << osDirSep << coord.y))->str();
   if (extension != NULL) {
     filename += ".";
     filename += extension;
@@ -374,6 +406,16 @@ main(int argc, char *argv[]) {
     progressFunc = verboseProgress; // noisy
   } else if (command.verbosity < 1) {
     progressFunc = GDALDummyProgress; // quiet
+  }
+
+  // Check whether or not the output directory exists
+  VSIStatBufL stat;
+  if (VSIStatExL(command.outputDir, &stat, VSI_STAT_EXISTS_FLAG | VSI_STAT_NATURE_FLAG)) {
+    cerr << "Error: The output directory does not exist: " << command.outputDir << endl;
+    return 1;
+  } else if (!VSI_ISDIR(stat.st_mode)) {
+    cerr << "Error: The output filepath is not a directory: " << command.outputDir << endl;
+    return 1;
   }
 
   // Define the grid we are going to use
