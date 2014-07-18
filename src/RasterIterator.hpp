@@ -22,8 +22,6 @@
  * @brief This declares the `RasterIterator` class
  */
 
-#include <utility>              // for std::pair
-
 #include "gdal_priv.h"
 
 #include "TilerIterator.hpp"
@@ -42,7 +40,7 @@ namespace ctb {
  * on the returned dataset.
  */
 class ctb::RasterIterator :
-  public TilerIterator< std::pair<const TileCoordinate &, GDALTile *>, const GDALTiler & >
+  public TilerIterator< GDALTile *, const GDALTiler & >
 {
 public:
 
@@ -52,7 +50,7 @@ public:
   RasterIterator(const GDALTiler &tiler, i_zoom startZoom, i_zoom endZoom = 0);
 
   /// Override the dereference operator to return a `GDALDataset *`
-  std::pair<const TileCoordinate &, GDALTile *>
+  GDALTile *
   operator*() const;
 };
 

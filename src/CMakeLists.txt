@@ -45,6 +45,7 @@ set(HEADERS
     TerrainIterator.hpp
     TerrainTile.hpp
     TerrainTiler.hpp
+    Tile.hpp
     TileCoordinate.hpp
     TileCoordinateIterator.hpp
     TilerIterator.hpp

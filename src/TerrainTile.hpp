@@ -27,12 +27,12 @@
 #include "gdal_priv.h"
 
 #include "config.hpp"
+#include "Tile.hpp"
 #include "TileCoordinate.hpp"
 
 namespace ctb {
   class Terrain;
   class TerrainTile;
-  class GDALTiler;
 }
 
 /**
@@ -181,7 +181,7 @@ private:
  * converted to a geo-referenced raster (see `TerrainTile::heightsToRaster`).
  */
 class ctb::TerrainTile :
-  public Terrain
+  public Terrain, public Tile
 {
   friend class TerrainTiler;
 
@@ -199,22 +199,6 @@ public:
   /// Get the height data as an in memory GDAL raster
   GDALDatasetH
   heightsToRaster() const;
-
-  /// Get the tile coordinate associated with this tile
-  inline TileCoordinate &
-  getCoordinate() {
-    return coord;
-  }
-
-  /// Get the const coordinate associated with this tile
-  inline const TileCoordinate &
-  getCoordinate() const {
-    return const_cast<const TileCoordinate &>(coord);
-  }
-
-private:
-
-  TileCoordinate coord;         ///< The coordinate for this terrain tile
 };
 
 #endif /* TERRAINTILE_HPP */

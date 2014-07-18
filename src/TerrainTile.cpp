@@ -302,17 +302,18 @@ Terrain::getHeights() {
 }
 
 TerrainTile::TerrainTile(TileCoordinate coord):
-  coord(coord) 
+  Terrain(),
+  Tile(coord)
 {}
 
 TerrainTile::TerrainTile(const char *fileName, TileCoordinate coord):
   Terrain(fileName),
-  coord(coord)
+  Tile(coord)
 {}
 
 TerrainTile::TerrainTile(const Terrain &terrain, TileCoordinate coord):
   Terrain(terrain),
-  coord(coord)
+  Tile(coord)
 {}
 
 GDALDatasetH

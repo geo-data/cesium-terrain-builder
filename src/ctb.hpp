@@ -77,6 +77,7 @@
 #include "ctb/TerrainIterator.hpp"
 #include "ctb/TerrainTile.hpp"
 #include "ctb/TerrainTiler.hpp"
+#include "ctb/Tile.hpp"
 #include "ctb/TileCoordinate.hpp"
 #include "ctb/TileCoordinateIterator.hpp"
 #include "ctb/TilerIterator.hpp"

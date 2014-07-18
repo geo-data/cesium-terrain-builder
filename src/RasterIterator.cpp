@@ -36,11 +36,7 @@ ctb::RasterIterator::RasterIterator(const GDALTiler &tiler, i_zoom startZoom, i_
  * raster](http://www.gdal.org/gdal_vrttut.html). It is the caller's
  * responsibility to call `GDALClose()` on the returned dataset.
  */
-std::pair<const TileCoordinate &, GDALTile *>
+GDALTile *
 ctb::RasterIterator::operator*() const {
-  return std::pair<const TileCoordinate &, GDALTile *>
-    (
-     currentTile,
-     tiler.createRasterTile(currentTile)
-     );
+  return tiler.createRasterTile(currentTile);
 }

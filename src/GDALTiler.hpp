@@ -43,16 +43,19 @@ namespace ctb {
  * A representation of a tile with a GDAL datasource
  *
  * This is composed of a GDAL VRT datasource and optionally a GDAL image
- * transformer.  This is necessary in cases where the VRT is warped using a
- * linear approximation (`GDALApproxTransform`). In this case there is the top
- * level transformer (the linear approximation) which wraps an image
- * transformer.  The VRT owns any top level transformer, but we are responsible
- * for the wrapped image transformer.
+ * transformer, along with a `TileCoordinate`.  The transformer handle is
+ * necessary in cases where the VRT is warped using a linear approximation
+ * (`GDALApproxTransform`). In this case there is the top level transformer (the
+ * linear approximation) which wraps an image transformer.  The VRT owns any top
+ * level transformer, but we are responsible for the wrapped image transformer.
  */
-class ctb::GDALTile {
+class ctb::GDALTile :
+  public Tile
+{
 public:
   /// Take ownership of a dataset and optional transformer
-  GDALTile(GDALDataset *dataset, void *transformer = NULL):
+  GDALTile(GDALDataset *dataset, void *transformer):
+    Tile(),
     dataset(dataset),
     transformer(transformer)
   {}
@@ -70,6 +73,8 @@ public:
   GDALDataset *dataset;
 
 protected:
+  friend class GDALTiler;
+
   /// The image to image transformer
   void *transformer;
 };

@@ -322,11 +322,9 @@ buildGDAL(const GDALTiler &tiler, TerrainBuild *command) {
   setIteratorSize(iter);
 
   while (!iter.exhausted()) {
-    std::pair<const TileCoordinate &, GDALTile *> result = *iter;
-    const TileCoordinate &coord = result.first;
-    GDALTile *tile = result.second;
+    GDALTile *tile = *iter;
     GDALDataset *poDstDS;
-    const string filename = getTileFilename(coord, dirname, extension);
+    const string filename = getTileFilename(tile->getCoordinate(), dirname, extension);
 
     poDstDS = poDriver->CreateCopy(filename.c_str(), tile->dataset, FALSE,
                                    command->creationOptions.List(), NULL, NULL );
