@@ -294,9 +294,9 @@ installation issues are encapsulated in the image.
   intercept GDAL errors.
 
 * Enable more options to be passed to the VRT warper, such as the resampling
-  algorithm, deciding whether an approximate warp is acceptable etc. Some of
-  this can be achieved by passing options to `GDALWarpOptions::papszWarpOptions`
-  and `GDALCreateGenImgProjTransformer2` in `GDALTiler::createRasterTile`.
+  algorithm. Some of this can be achieved by passing options to
+  `GDALWarpOptions::papszWarpOptions` and `GDALCreateGenImgProjTransformer2` in
+  `GDALTiler::createRasterTile`.
 
 * Encapsulate the multithreading tile generation functionality currently
   implemented in `ctb-tile` within the library to make it more widely

@@ -31,9 +31,10 @@
 
 using namespace ctb;
 
-GDALTiler::GDALTiler(GDALDataset *poDataset, const Grid &grid):
+GDALTiler::GDALTiler(GDALDataset *poDataset, const Grid &grid, const TilerOptions &options):
   mGrid(grid),
-  poDataset(poDataset)
+  poDataset(poDataset),
+  options(options)
 {
   // if the dataset is set we need to initialise the tile bounds and raster
   // resolution from it.
@@ -163,7 +164,7 @@ GDALTiler::~GDALTiler() {
   closeDataset();
 }
 
-GDALDatasetH
+GDALTile *
 GDALTiler::createRasterTile(const TileCoordinate &coord) const {
   // Convert the tile bounds into a geo transform
   double adfGeoTransform[6],
@@ -177,15 +178,14 @@ GDALTiler::createRasterTile(const TileCoordinate &coord) const {
   adfGeoTransform[4] = 0;
   adfGeoTransform[5] = -resolution;
 
-  GDALDatasetH hDstDS = createRasterTile(adfGeoTransform);
+  GDALTile *tile = createRasterTile(adfGeoTransform);
 
   // Set the shifted geo transform to the VRT
-  if (GDALSetGeoTransform( hDstDS, adfGeoTransform ) != CE_None) {
-    GDALClose(hDstDS);
+  if (GDALSetGeoTransform(tile->dataset, adfGeoTransform) != CE_None) {
     throw CTBException("Could not set geo transform on VRT");
   }
 
-  return hDstDS;
+  return tile;
 }
 
 /**
@@ -199,7 +199,7 @@ GDALTiler::createRasterTile(const TileCoordinate &coord) const {
  * It is the caller's responsibility to call `GDALClose()` on the returned
  * dataset.
  */
-GDALDatasetH
+GDALTile *
 GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
   if (poDataset == NULL) {
     throw CTBException("No GDAL dataset is set");
@@ -241,17 +241,34 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
   }
 
   // Create the image to image transformer
-  psWarpOptions->pfnTransformer = GDALGenImgProjTransform;
-  psWarpOptions->pTransformerArg =
-    GDALCreateGenImgProjTransformer2(hSrcDS, NULL, transformOptions.List());
-
-  if( psWarpOptions->pTransformerArg == NULL ) {
-    GDALDestroyWarpOptions( psWarpOptions );
+  void *transformerArg = GDALCreateGenImgProjTransformer2(hSrcDS, NULL, transformOptions.List());
+  if(transformerArg == NULL) {
+    GDALDestroyWarpOptions(psWarpOptions);
     throw CTBException("Could not create image to image transformer");
   }
 
   // Specify the destination geotransform
-  GDALSetGenImgProjTransformerDstGeoTransform( psWarpOptions->pTransformerArg, adfGeoTransform );
+  GDALSetGenImgProjTransformerDstGeoTransform(transformerArg, adfGeoTransform );
+
+  // Decide if we are doing an approximate or exact transformation
+  if (options.errorThreshold) {
+    // approximate: wrap the transformer with a linear approximator
+    psWarpOptions->pTransformerArg =
+      GDALCreateApproxTransformer(GDALGenImgProjTransform, transformerArg, options.errorThreshold);
+
+    if (psWarpOptions->pTransformerArg == NULL) {
+      GDALDestroyWarpOptions(psWarpOptions);
+      GDALDestroyGenImgProjTransformer(transformerArg);
+      throw CTBException("Could not create linear approximator");
+    }
+
+    psWarpOptions->pfnTransformer = GDALApproxTransform;
+
+  } else {
+    // exact: no wrapping required
+    psWarpOptions->pTransformerArg = transformerArg;
+    psWarpOptions->pfnTransformer = GDALGenImgProjTransform;
+  }
 
   // Specify a multi threaded warp operation using all CPU cores
   CPLStringList warpOptions(psWarpOptions->papszWarpOptions, false);
@@ -263,6 +280,7 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
   GDALDestroyWarpOptions( psWarpOptions );
 
   if (hDstDS == NULL) {
+    GDALDestroyGenImgProjTransformer(transformerArg);
     throw CTBException("Could not create warped VRT");
   }
 
@@ -270,13 +288,20 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
   // SRS.
   if (GDALSetProjection( hDstDS, pszGridWKT ) != CE_None) {
     GDALClose(hDstDS);
+    if (transformerArg != NULL) {
+      GDALDestroyGenImgProjTransformer(transformerArg);
+    }
     throw CTBException("Could not set projection on VRT");
   }
 
   // If uncommenting the following line for debug purposes, you must also `#include "vrtdataset.h"`
   //std::cout << "VRT: " << CPLSerializeXMLTree(((VRTWarpedDataset *) hDstDS)->SerializeToXML(NULL)) << std::endl;
 
-  return hDstDS;
+  // Create the tile, passing it the base image transformer to manage if this is
+  // an approximate transform
+  return new GDALTile((GDALDataset *) hDstDS,
+                      (psWarpOptions->pfnTransformer == GDALApproxTransform)
+                      ? transformerArg : NULL);
 }
 
 /**

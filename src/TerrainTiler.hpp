@@ -47,32 +47,24 @@ class ctb::TerrainTiler :
 {
 public:
 
+  /// Instantiate a tiler with all required arguments
+  TerrainTiler(GDALDataset *poDataset, const Grid &grid, const TilerOptions &options):
+    GDALTiler(poDataset, grid, options) {}
+
   /// Instantiate a tiler with an empty GDAL dataset
   TerrainTiler():
-    GDALTiler()
-  {}
+    TerrainTiler(NULL, GlobalGeodetic()) {}
 
-  /// Instantiate a tiler with a GDAL dataset
-  TerrainTiler(GDALDataset *poDataset, const Grid &grid) :
-    GDALTiler(poDataset, grid)
-  {}
-
-  /// The const copy constructor
-  TerrainTiler(const TerrainTiler &other) :
-    GDALTiler(other)
-  {}
-
-  /// The non const copy constructor
-  TerrainTiler(TerrainTiler &other) :
-    GDALTiler(other)
-  {}
+  /// Instantiate a tiler with a dataset and grid but no options
+  TerrainTiler(GDALDataset *poDataset, const Grid &grid):
+    TerrainTiler(poDataset, grid, TilerOptions()) {}
 
   /// Overload the assignment operator
   TerrainTiler &
   operator=(const TerrainTiler &other);
 
   /// Override `GDALTiler::createRasterTile`
-  GDALDatasetH
+  GDALTile *
   createRasterTile(const TileCoordinate &coord) const;
 
   /// Create a terrain tile from a tile coordinate

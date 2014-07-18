@@ -145,6 +145,11 @@ public:
     static_cast<TerrainBuild *>(Command::self(command))->creationOptions.AddString(command->arg);
   }
 
+  static void
+  setErrorThreshold(command_t *command) {
+    static_cast<TerrainBuild *>(Command::self(command))->tilerOptions.errorThreshold = atof(command->arg);
+  }
+
   const char *
   getInputFilename() const {
     return  (command->argc == 1) ? command->argv[0] : NULL;
@@ -161,6 +166,7 @@ public:
     verbosity;
 
   CPLStringList creationOptions;
+  TilerOptions tilerOptions;
 };
 
 /**
@@ -311,15 +317,15 @@ buildGDAL(const GDALTiler &tiler, TerrainBuild *command) {
   setIteratorSize(iter);
 
   while (!iter.exhausted()) {
-    std::pair<const TileCoordinate &, GDALDataset *> result = *iter;
+    std::pair<const TileCoordinate &, GDALTile *> result = *iter;
     const TileCoordinate &coord = result.first;
-    GDALDataset *poSrcDS = result.second;
+    GDALTile *tile = result.second;
     GDALDataset *poDstDS;
     const string filename = getTileFilename(coord, dirname, extension);
 
-    poDstDS = poDriver->CreateCopy(filename.c_str(), poSrcDS, FALSE,
+    poDstDS = poDriver->CreateCopy(filename.c_str(), tile->dataset, FALSE,
                                    command->creationOptions.List(), NULL, NULL );
-    GDALClose(poSrcDS);
+    delete tile;
 
     // Close the datasets, flushing data to destination
     if (poDstDS == NULL) {
@@ -374,7 +380,7 @@ runTiler(TerrainBuild *command, Grid *grid) {
       const TerrainTiler tiler(poDataset, *grid);
       buildTerrain(tiler, command);
     } else {                    // it's a GDAL format
-      const GDALTiler tiler(poDataset, *grid);
+      const GDALTiler tiler(poDataset, *grid, command->tilerOptions);
       buildGDAL(tiler, command);
     }
 
@@ -400,6 +406,7 @@ main(int argc, char *argv[]) {
   command.option("-s", "--start-zoom <zoom>", "specify the zoom level to start at. This should be greater than the end zoom level", TerrainBuild::setStartZoom);
   command.option("-e", "--end-zoom <zoom>", "specify the zoom level to end at. This should be less than the start zoom level and >= 0", TerrainBuild::setEndZoom);
   command.option("-n", "--creation-option <option>", "specify a GDAL creation option for the output dataset in the form NAME=VALUE. Can be specified multiple times. Not valid for Terrain tiles.", TerrainBuild::addCreationOption);
+  command.option("-z", "--error-threshold <threshold>", "specify the error threshold in pixel units for transformation approximation. Larger values should mean faster transforms. Defaults to 0.125", TerrainBuild::setErrorThreshold);
   command.option("-q", "--quiet", "only output errors", TerrainBuild::setQuiet);
   command.option("-v", "--verbose", "be more noisy", TerrainBuild::setVerbose);
 

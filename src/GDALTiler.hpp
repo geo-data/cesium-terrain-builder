@@ -34,8 +34,50 @@
 #include "Bounds.hpp"
 
 namespace ctb {
+  class GDALTile;
+  struct TilerOptions;
   class GDALTiler;
 }
+
+/**
+ * A representation of a tile with a GDAL datasource
+ *
+ * This is composed of a GDAL VRT datasource and optionally a GDAL image
+ * transformer.  This is necessary in cases where the VRT is warped using a
+ * linear approximation (`GDALApproxTransform`). In this case there is the top
+ * level transformer (the linear approximation) which wraps an image
+ * transformer.  The VRT owns any top level transformer, but we are responsible
+ * for the wrapped image transformer.
+ */
+class ctb::GDALTile {
+public:
+  /// Take ownership of a dataset and optional transformer
+  GDALTile(GDALDataset *dataset, void *transformer = NULL):
+    dataset(dataset),
+    transformer(transformer)
+  {}
+
+  ~GDALTile() {
+    if (dataset != NULL) {
+      GDALClose(dataset);
+
+      if (transformer != NULL) {
+        GDALDestroyGenImgProjTransformer(transformer);
+      }
+    }
+  }
+
+  GDALDataset *dataset;
+
+protected:
+  /// The image to image transformer
+  void *transformer;
+};
+
+/// Options passed to a `GDALTiler`
+struct ctb::TilerOptions {
+  float errorThreshold = 0.125;
+};
 
 /**
  * @brief Create raster tiles from a GDAL Dataset
@@ -56,14 +98,16 @@ namespace ctb {
 class ctb::GDALTiler {
 public:
 
+  /// Instantiate a tiler with all required arguments
+  GDALTiler(GDALDataset *poDataset, const Grid &grid, const TilerOptions &options);
+
   /// Instantiate a tiler with an empty GDAL dataset
   GDALTiler():
-    mGrid(GlobalGeodetic()),
-    poDataset(NULL)
-  {}
+    GDALTiler(NULL, GlobalGeodetic()) {}
 
-  /// Instantiate a tiler with a GDAL dataset
-  GDALTiler(GDALDataset *poDataset, const Grid &grid);
+  /// Instantiate a tiler with a dataset and grid but no options
+  GDALTiler(GDALDataset *poDataset, const Grid &grid):
+    GDALTiler(poDataset, grid, TilerOptions()) {}
 
   /// The const copy constructor
   GDALTiler(const GDALTiler &other);
@@ -79,7 +123,7 @@ public:
   ~GDALTiler();
 
   /// Create a raster tile from a tile coordinate
-  virtual GDALDatasetH
+  virtual GDALTile *
   createRasterTile(const TileCoordinate &coord) const;
 
   /// Get the maximum zoom level for the dataset
@@ -144,7 +188,7 @@ protected:
   void closeDataset();
 
   /// Create a raster tile from a tile coordinate and geo transform
-  GDALDatasetH
+  virtual GDALTile *
   createRasterTile(double (&adfGeoTransform)[6]) const;
 
   /// The grid used for generating tiles
@@ -152,6 +196,8 @@ protected:
 
   /// The dataset from which to generate tiles
   GDALDataset *poDataset;
+
+  TilerOptions options;
 
   /// The extent of the underlying dataset in latitude and longitude
   CRSBounds mBounds;

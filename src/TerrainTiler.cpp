@@ -27,17 +27,18 @@ using namespace ctb;
 TerrainTile
 ctb::TerrainTiler::createTerrainTile(const TileCoordinate &coord) const {
   TerrainTile terrainTile(coord); // a terrain tile represented by the tile coordinate
-  GDALDataset *rasterTile = (GDALDataset *) createRasterTile(coord); // the raster associated with this tile coordinate
-  GDALRasterBand *heightsBand = rasterTile->GetRasterBand(1);
+  GDALTile *rasterTile = createRasterTile(coord); // the raster associated with this tile coordinate
+  GDALRasterBand *heightsBand = rasterTile->dataset->GetRasterBand(1);
 
   // Copy the raster data into an array
   float rasterHeights[TerrainTile::TILE_CELL_SIZE];
   if (heightsBand->RasterIO(GF_Read, 0, 0, TILE_SIZE, TILE_SIZE,
                             (void *) rasterHeights, TILE_SIZE, TILE_SIZE, GDT_Float32,
                             0, 0) != CE_None) {
-    GDALClose(rasterTile);
     throw CTBException("Could not read heights from raster");
   }
+
+  delete rasterTile;
 
   // Copy the raster data into the terrain tile heights
   // TODO: try doing this using a VRT derived band:
@@ -45,8 +46,6 @@ ctb::TerrainTiler::createTerrainTile(const TileCoordinate &coord) const {
   for (unsigned short int i = 0; i < TerrainTile::TILE_CELL_SIZE; i++) {
     terrainTile.mHeights[i] = (i_terrain_height) ((rasterHeights[i] + 1000) * 5);
   }
-
-  GDALClose(rasterTile);
 
   // If we are not at the maximum zoom level we need to set child flags on the
   // tile where child tiles overlap the dataset bounds.
@@ -82,7 +81,7 @@ ctb::TerrainTiler::createTerrainTile(const TileCoordinate &coord) const {
  * then encapsulated as a GDAL virtual raster (VRT) dataset and returned to the
  * caller.
  */
-GDALDatasetH
+GDALTile *
 ctb::TerrainTiler::createRasterTile(const TileCoordinate &coord) const {
   // Ensure we have some data from which to create a tile
   if (poDataset && poDataset->GetRasterCount() < 1) {
@@ -103,7 +102,7 @@ ctb::TerrainTiler::createRasterTile(const TileCoordinate &coord) const {
   adfGeoTransform[4] = 0;
   adfGeoTransform[5] = -resolution;
 
-  GDALDatasetH hDstDS = GDALTiler::createRasterTile(adfGeoTransform);
+  GDALTile *tile = GDALTiler::createRasterTile(adfGeoTransform);
 
   // The previous geotransform represented the data with an overlap as required
   // by the terrain specification.  This now needs to be overwritten so that
@@ -118,12 +117,11 @@ ctb::TerrainTiler::createRasterTile(const TileCoordinate &coord) const {
   adfGeoTransform[5] = -resolution;
 
   // Set the shifted geo transform to the VRT
-  if (GDALSetGeoTransform( hDstDS, adfGeoTransform ) != CE_None) {
-    GDALClose(hDstDS);
+  if (GDALSetGeoTransform(tile->dataset, adfGeoTransform) != CE_None) {
     throw CTBException("Could not set geo transform on VRT");
   }
 
-  return hDstDS;
+  return tile;
 }
 
 TerrainTiler &
