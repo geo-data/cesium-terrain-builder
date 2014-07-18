@@ -76,7 +76,10 @@ protected:
 
 /// Options passed to a `GDALTiler`
 struct ctb::TilerOptions {
-  float errorThreshold = 0.125;
+  /// The error threshold in pixels passed to the approximation transformer
+  float errorThreshold = 0.125; // the `gdalwarp` default
+  /// The memory limit of the warper in bytes
+  double warpMemoryLimit = 0.0; // default to GDAL internal setting
 };
 
 /**

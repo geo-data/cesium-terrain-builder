@@ -64,6 +64,9 @@ Options:
   -t, --tile-size <size>        specify the size of the tiles in pixels. This defaults to 65 for terrain tiles and 256 for other GDAL formats
   -s, --start-zoom <zoom>       specify the zoom level to start at. This should be greater than the end zoom level
   -e, --end-zoom <zoom>         specify the zoom level to end at. This should be less than the start zoom level and >= 0
+  -n, --creation-option <option> specify a GDAL creation option for the output dataset in the form NAME=VALUE. Can be specified multiple times. Not valid for Terrain tiles.
+  -z, --error-threshold <threshold> specify the error threshold in pixel units for transformation approximation. Larger values should mean faster transforms. Defaults to 0.125
+  -m, --warp-memory <bytes>     The memory limit in bytes used for warp operations. Higher settings should be faster. Defaults to a conservative GDAL internal setting.
   -q, --quiet                   only output errors
   -v, --verbose                 be more noisy
 ```
@@ -96,7 +99,13 @@ Options:
   [GDAL runtime configuration](http://trac.osgeo.org/gdal/wiki/ConfigOptions)
   options will also affect Cesium Terrain Builder.  Specifically the
   [`GDAL_CACHEMAX`](http://trac.osgeo.org/gdal/wiki/ConfigOptions#GDAL_CACHEMAX)
-  environment variable should be set as high as your system supports it.
+  environment variable should be set to a relatively high value, in conjunction
+  with the warp memory, if required (see next recommendation).
+  
+* If warping the source dataset then set the warp memory to a relatively high
+  value.  The correct value is system dependent but try starting your benchmarks
+  from a value where the combined value of `GDAL_CACHEMAX` and the warp memory
+  represents about 2/3 of your available RAM.
 
 * `ctb-tile` will resample data from the source dataset when generating
   tilesets for the various zoom levels.  This can lead to performance issues and

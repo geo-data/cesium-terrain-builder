@@ -150,6 +150,11 @@ public:
     static_cast<TerrainBuild *>(Command::self(command))->tilerOptions.errorThreshold = atof(command->arg);
   }
 
+  static void
+  setWarpMemory(command_t *command) {
+    static_cast<TerrainBuild *>(Command::self(command))->tilerOptions.warpMemoryLimit = atof(command->arg);
+  }
+
   const char *
   getInputFilename() const {
     return  (command->argc == 1) ? command->argv[0] : NULL;
@@ -407,6 +412,7 @@ main(int argc, char *argv[]) {
   command.option("-e", "--end-zoom <zoom>", "specify the zoom level to end at. This should be less than the start zoom level and >= 0", TerrainBuild::setEndZoom);
   command.option("-n", "--creation-option <option>", "specify a GDAL creation option for the output dataset in the form NAME=VALUE. Can be specified multiple times. Not valid for Terrain tiles.", TerrainBuild::addCreationOption);
   command.option("-z", "--error-threshold <threshold>", "specify the error threshold in pixel units for transformation approximation. Larger values should mean faster transforms. Defaults to 0.125", TerrainBuild::setErrorThreshold);
+  command.option("-m", "--warp-memory <bytes>", "The memory limit in bytes used for warp operations. Higher settings should be faster. Defaults to a conservative GDAL internal setting.", TerrainBuild::setWarpMemory);
   command.option("-q", "--quiet", "only output errors", TerrainBuild::setQuiet);
   command.option("-v", "--verbose", "be more noisy", TerrainBuild::setVerbose);
 
