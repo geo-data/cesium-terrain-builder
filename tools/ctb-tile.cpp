@@ -140,6 +140,11 @@ public:
     ++(static_cast<TerrainBuild *>(Command::self(command))->verbosity);
   }
 
+  static void
+  addCreationOption(command_t *command) {
+    static_cast<TerrainBuild *>(Command::self(command))->creationOptions.AddString(command->arg);
+  }
+
   const char *
   getInputFilename() const {
     return  (command->argc == 1) ? command->argv[0] : NULL;
@@ -154,6 +159,8 @@ public:
     startZoom,
     endZoom,
     verbosity;
+
+  CPLStringList creationOptions;
 };
 
 /**
@@ -311,7 +318,7 @@ buildGDAL(const GDALTiler &tiler, TerrainBuild *command) {
     const string filename = getTileFilename(coord, dirname, extension);
 
     poDstDS = poDriver->CreateCopy(filename.c_str(), poSrcDS, FALSE,
-                                   NULL, NULL, NULL );
+                                   command->creationOptions.List(), NULL, NULL );
     GDALClose(poSrcDS);
 
     // Close the datasets, flushing data to destination
@@ -392,6 +399,7 @@ main(int argc, char *argv[]) {
   command.option("-t", "--tile-size <size>", "specify the size of the tiles in pixels. This defaults to 65 for terrain tiles and 256 for other GDAL formats", TerrainBuild::setTileSize);
   command.option("-s", "--start-zoom <zoom>", "specify the zoom level to start at. This should be greater than the end zoom level", TerrainBuild::setStartZoom);
   command.option("-e", "--end-zoom <zoom>", "specify the zoom level to end at. This should be less than the start zoom level and >= 0", TerrainBuild::setEndZoom);
+  command.option("-n", "--creation-option <option>", "specify a GDAL creation option for the output dataset in the form NAME=VALUE. Can be specified multiple times. Not valid for Terrain tiles.", TerrainBuild::addCreationOption);
   command.option("-q", "--quiet", "only output errors", TerrainBuild::setQuiet);
   command.option("-v", "--verbose", "be more noisy", TerrainBuild::setVerbose);
 

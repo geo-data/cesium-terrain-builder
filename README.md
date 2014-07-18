@@ -277,7 +277,8 @@ installation issues are encapsulated in the image.
 
 ## Limitations and TODO
 
-* Create a comprehensive test harness, including code coverage and valgrind
+* Create a comprehensive test harness (possibly using
+  [Bandit](http://banditcpp.org/), including code coverage and valgrind
   analysis.
 
 * Add support for the new
@@ -296,9 +297,6 @@ installation issues are encapsulated in the image.
   algorithm, deciding whether an approximate warp is acceptable etc. Some of
   this can be achieved by passing options to `GDALWarpOptions::papszWarpOptions`
   and `GDALCreateGenImgProjTransformer2` in `GDALTiler::createRasterTile`.
-
-* Enable dataset creation options to be specified when creating tiles in a GDAL
-  format.
 
 * Encapsulate the multithreading tile generation functionality currently
   implemented in `ctb-tile` within the library to make it more widely
