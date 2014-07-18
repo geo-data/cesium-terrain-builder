@@ -34,10 +34,10 @@ namespace ctb {
 /**
  * @brief This forward iterates over all tiles in a `GDALTiler`
  *
- * Instances of this class take a `GDALTiler` in the constructor and are used
- * to forward iterate over all tiles in the tiler returning a `GDALDataset *`
- * when dereferenced.  It is the caller's responsibility to call `GDALClose()`
- * on the returned dataset.
+ * Instances of this class take a `GDALTiler` in the constructor and are used to
+ * forward iterate over all tiles in the tiler, returning a `Tile *` when
+ * dereferenced.  This can be cast to a `GDALTile`.  It is the caller's
+ * responsibility to call `delete` on the tile.
  */
 class ctb::RasterIterator :
   public TilerIterator< GDALTile *, const GDALTiler & >
@@ -45,13 +45,11 @@ class ctb::RasterIterator :
 public:
 
   /// Instantiate an iterator with a tiler
-  RasterIterator(const GDALTiler &tiler);
+  RasterIterator(const GDALTiler &tiler):
+    TilerIterator< GDALTile *, const GDALTiler & >(tiler) {}
 
-  RasterIterator(const GDALTiler &tiler, i_zoom startZoom, i_zoom endZoom = 0);
-
-  /// Override the dereference operator to return a `GDALDataset *`
-  GDALTile *
-  operator*() const;
+  RasterIterator(const GDALTiler &tiler, i_zoom startZoom, i_zoom endZoom = 0):
+    TilerIterator< GDALTile *, const GDALTiler & >(tiler, startZoom, endZoom) {}
 };
 
 #endif /* RASTERITERATOR_HPP */

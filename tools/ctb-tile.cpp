@@ -322,7 +322,7 @@ buildGDAL(const GDALTiler &tiler, TerrainBuild *command) {
   setIteratorSize(iter);
 
   while (!iter.exhausted()) {
-    GDALTile *tile = *iter;
+    GDALTile *tile = static_cast<GDALTile *>(*iter);
     GDALDataset *poDstDS;
     const string filename = getTileFilename(tile->getCoordinate(), dirname, extension);
 
@@ -354,11 +354,11 @@ buildTerrain(const TerrainTiler &tiler, TerrainBuild *command) {
   setIteratorSize(iter);
 
   while (!iter.exhausted()) {
-    const TerrainTile terrainTile = *iter;
-    const TileCoordinate &coord = terrainTile.getCoordinate();
-    const string filename = getTileFilename(coord, dirname, "terrain");
+    TerrainTile *tile = static_cast<TerrainTile *>(*iter);
+    const string filename = getTileFilename(tile->getCoordinate(), dirname, "terrain");
 
-    terrainTile.writeFile(filename.c_str());
+    tile->writeFile(filename.c_str());
+    delete tile;
 
     currentIndex = incrementIterator(iter, currentIndex);
     showProgress(currentIndex, filename);

@@ -64,14 +64,14 @@ public:
   operator=(const TerrainTiler &other);
 
   /// Override `GDALTiler::createRasterTile`
-  GDALTile *
-  createRasterTile(const TileCoordinate &coord) const;
-
-  /// Create a terrain tile from a tile coordinate
-  TerrainTile
-  createTerrainTile(const TileCoordinate &coord) const;
+  Tile *
+  createTile(const TileCoordinate &coord) const;
 
 protected:
+
+  /// Create a `GDALTile` representing the required terrain tile data
+  GDALTile *
+  createRasterTile(const TileCoordinate &coord) const;
 
   /**
    * @brief Get terrain bounds shifted to introduce a pixel overlap

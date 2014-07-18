@@ -131,8 +131,8 @@ public:
   ~GDALTiler();
 
   /// Create a raster tile from a tile coordinate
-  virtual GDALTile *
-  createRasterTile(const TileCoordinate &coord) const;
+  virtual Tile *
+  createTile(const TileCoordinate &coord) const;
 
   /// Get the maximum zoom level for the dataset
   inline i_zoom

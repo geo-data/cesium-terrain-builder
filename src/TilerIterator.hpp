@@ -23,6 +23,7 @@
  */
 
 #include "GridIterator.hpp"
+#include "Tile.hpp"
 
 namespace ctb {
   template <class T1, class T2> class TilerIterator;
@@ -32,7 +33,9 @@ namespace ctb {
  * @brief Forward iterate over tiles in a `GDALTiler`
  *
  * Instances of this class take a `GDALTiler` (or derived class) in the
- * constructor and are used to forward iterate over all tiles in the tiler.
+ * constructor and are used to forward iterate over all tiles in the tiler,
+ * returning a `Tile *` when dereferenced.  It is the caller's responsibility to
+ * call `delete` on the tile.
  */
 template <class T1, class T2>
 class ctb::TilerIterator :
@@ -50,6 +53,12 @@ public:
     GridIterator<T1>(tiler.grid(), tiler.bounds(), startZoom, endZoom),
     tiler(tiler)
   {}
+
+  /// Override the dereference operator to return a `GDALDataset *`
+  Tile *
+  operator*() const {
+    return tiler.createTile(GridIterator<T1>::currentTile);
+  }
 
 protected:
 

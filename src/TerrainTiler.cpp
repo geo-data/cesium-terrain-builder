@@ -24,9 +24,10 @@
 
 using namespace ctb;
 
-TerrainTile
-ctb::TerrainTiler::createTerrainTile(const TileCoordinate &coord) const {
-  TerrainTile terrainTile(coord); // a terrain tile represented by the tile coordinate
+Tile *
+ctb::TerrainTiler::createTile(const TileCoordinate &coord) const {
+  // Get a terrain tile represented by the tile coordinate
+  TerrainTile *terrainTile = new TerrainTile(coord);
   GDALTile *rasterTile = createRasterTile(coord); // the raster associated with this tile coordinate
   GDALRasterBand *heightsBand = rasterTile->dataset->GetRasterBand(1);
 
@@ -44,7 +45,7 @@ ctb::TerrainTiler::createTerrainTile(const TileCoordinate &coord) const {
   // TODO: try doing this using a VRT derived band:
   // (http://www.gdal.org/gdal_vrttut.html)
   for (unsigned short int i = 0; i < TerrainTile::TILE_CELL_SIZE; i++) {
-    terrainTile.mHeights[i] = (i_terrain_height) ((rasterHeights[i] + 1000) * 5);
+    terrainTile->mHeights[i] = (i_terrain_height) ((rasterHeights[i] + 1000) * 5);
   }
 
   // If we are not at the maximum zoom level we need to set child flags on the
@@ -53,34 +54,26 @@ ctb::TerrainTiler::createTerrainTile(const TileCoordinate &coord) const {
     CRSBounds tileBounds = mGrid.tileBounds(coord);
 
     if (! (bounds().overlaps(tileBounds))) {
-      terrainTile.setAllChildren(false);
+      terrainTile->setAllChildren(false);
     } else {
       if (bounds().overlaps(tileBounds.getSW())) {
-        terrainTile.setChildSW();
+        terrainTile->setChildSW();
       }
       if (bounds().overlaps(tileBounds.getNW())) {
-        terrainTile.setChildNW();
+        terrainTile->setChildNW();
       }
       if (bounds().overlaps(tileBounds.getNE())) {
-        terrainTile.setChildNE();
+        terrainTile->setChildNE();
       }
       if (bounds().overlaps(tileBounds.getSE())) {
-        terrainTile.setChildSE();
+        terrainTile->setChildSE();
       }
     }
   }
 
-  return terrainTile;
+  return static_cast<Tile *>(terrainTile);
 }
 
-/**
- * @details This method is the heart of the tiler.  A `TileCoordinate` is used
- * to obtain the geospatial extent associated with that tile as related to the
- * underlying GDAL dataset. This mapping may require a reprojection if the
- * underlying dataset is not in the EPSG:4326 projection.  This information is
- * then encapsulated as a GDAL virtual raster (VRT) dataset and returned to the
- * caller.
- */
 GDALTile *
 ctb::TerrainTiler::createRasterTile(const TileCoordinate &coord) const {
   // Ensure we have some data from which to create a tile

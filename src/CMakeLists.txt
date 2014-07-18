@@ -24,8 +24,6 @@ add_library(ctb SHARED
     GDALTiler.cpp
     TerrainTiler.cpp
     TerrainTile.cpp
-    RasterIterator.cpp
-    TerrainIterator.cpp
     GlobalMercator.cpp
     GlobalGeodetic.cpp)
 target_link_libraries(ctb ${GDAL_LIBRARIES} ${ZLIB_LIBRARIES})

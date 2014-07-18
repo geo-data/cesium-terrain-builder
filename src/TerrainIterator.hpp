@@ -24,7 +24,7 @@
 
 #include "TerrainTile.hpp"
 #include "TerrainTiler.hpp"
-#include "TilerIterator.hpp"
+#include "RasterIterator.hpp"
 
 namespace ctb {
   class TerrainIterator;
@@ -33,23 +33,22 @@ namespace ctb {
 /**
  * @brief This forward iterates over all `TerrainTile`s in a `TerrainTiler`
  *
- * Instances of this class take a `TerrainTiler` in the constructor to provide
- * a collection of `TerrainTile`s.  Deriving from `TileIterator`, the class
- * overrides the `operator*` method to return a `TerrainTile`.
+ * Instances of this class take a `TerrainTiler` in the constructor to provide a
+ * collection of `TerrainTile`s.  Deriving from `TileIterator`, this returns a
+ * `Tile *` when dereferenced.  This can be cast to a `TerrainTile`.  It is the
+ * caller's responsibility to call `delete` on the tile.
  */
 class ctb::TerrainIterator :
-  public TilerIterator< TerrainTile, const TerrainTiler & >
+  public RasterIterator
 {
 public:
 
   /// Instantiate an iterator with a tiler
-  TerrainIterator(const TerrainTiler &tiler);
+  TerrainIterator(const TerrainTiler &tiler):
+    RasterIterator(tiler) {}
 
-  TerrainIterator(const TerrainTiler &tiler, i_zoom startZoom, i_zoom endZoom = 0);
-
-  /// Override the dereference operator to return a `TerrainTile`
-  TerrainTile
-  operator*() const;
+  TerrainIterator(const TerrainTiler &tiler, i_zoom startZoom, i_zoom endZoom = 0):
+    RasterIterator(tiler, startZoom, endZoom) {}
 };
 
 #endif /* TERRAINITERATOR_HPP */

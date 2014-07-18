@@ -164,8 +164,8 @@ GDALTiler::~GDALTiler() {
   closeDataset();
 }
 
-GDALTile *
-GDALTiler::createRasterTile(const TileCoordinate &coord) const {
+Tile *
+GDALTiler::createTile(const TileCoordinate &coord) const {
   // Convert the tile bounds into a geo transform
   double adfGeoTransform[6],
     resolution = mGrid.resolution(coord.zoom);
@@ -186,7 +186,7 @@ GDALTiler::createRasterTile(const TileCoordinate &coord) const {
     throw CTBException("Could not set geo transform on VRT");
   }
 
-  return tile;
+  return static_cast<Tile *>(tile);
 }
 
 /**
