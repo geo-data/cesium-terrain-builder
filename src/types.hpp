@@ -22,6 +22,8 @@
  * @brief This declares basic types used by libctb
  */
 
+#include <cstdint>              // uint16_t
+
 #include "Bounds.hpp"
 
 /// All terrain related data types reside in this namespace
@@ -31,7 +33,7 @@ namespace ctb {
   typedef unsigned int i_pixel;       ///< A pixel value
   typedef unsigned int i_tile;        ///< A tile coordinate
   typedef unsigned short int i_zoom;  ///< A zoom level
-  typedef unsigned short int i_terrain_height; ///< A terrain tile height
+  typedef uint16_t i_terrain_height;  ///< A terrain tile height
 
   // Complex types
   typedef Bounds<i_tile> TileBounds;      ///< Tile extents in tile coordinates
