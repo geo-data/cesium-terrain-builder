@@ -25,31 +25,39 @@
 #include "gdal_priv.h"
 
 #include "TilerIterator.hpp"
-#include "GDALTiler.hpp"
+#include "RasterTiler.hpp"
 
 namespace ctb {
   class RasterIterator;
 }
 
 /**
- * @brief This forward iterates over all tiles in a `GDALTiler`
+ * @brief This forward iterates over all tiles in a `RasterTiler`
  *
- * Instances of this class take a `GDALTiler` in the constructor and are used to
- * forward iterate over all tiles in the tiler, returning a `Tile *` when
- * dereferenced.  This can be cast to a `GDALTile`.  It is the caller's
- * responsibility to call `delete` on the tile.
+ * Instances of this class take a `RasterTiler` in the constructor and are used
+ * to forward iterate over all tiles in the tiler, returning a `GDALTile *` when
+ * dereferenced.  It is the caller's responsibility to call `delete` on the
+ * tile.
  */
 class ctb::RasterIterator :
-  public TilerIterator< GDALTile *, const GDALTiler & >
+  public TilerIterator
 {
 public:
 
   /// Instantiate an iterator with a tiler
-  RasterIterator(const GDALTiler &tiler):
-    TilerIterator< GDALTile *, const GDALTiler & >(tiler) {}
+  RasterIterator(const RasterTiler &tiler):
+    RasterIterator(tiler, tiler.maxZoomLevel(), 0)
+  {}
 
-  RasterIterator(const GDALTiler &tiler, i_zoom startZoom, i_zoom endZoom = 0):
-    TilerIterator< GDALTile *, const GDALTiler & >(tiler, startZoom, endZoom) {}
+  /// The target constructor
+  RasterIterator(const RasterTiler &tiler, i_zoom startZoom, i_zoom endZoom):
+    TilerIterator(tiler, startZoom, endZoom)
+  {}
+
+  virtual GDALTile *
+  operator*() const override {
+    return static_cast<GDALTile *>(TilerIterator::operator*());
+  }
 };
 
 #endif /* RASTERITERATOR_HPP */

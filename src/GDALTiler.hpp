@@ -23,61 +23,16 @@
  */
 
 #include <string>
-#include <cmath>                // for `abs()`
-
-#include "gdal_priv.h"
-#include "gdalwarper.h"
 
 #include "TileCoordinate.hpp"
 #include "GlobalGeodetic.hpp"
-#include "TerrainTile.hpp"
+#include "GDALTile.hpp"
 #include "Bounds.hpp"
 
 namespace ctb {
-  class GDALTile;
   struct TilerOptions;
   class GDALTiler;
 }
-
-/**
- * A representation of a tile with a GDAL datasource
- *
- * This is composed of a GDAL VRT datasource and optionally a GDAL image
- * transformer, along with a `TileCoordinate`.  The transformer handle is
- * necessary in cases where the VRT is warped using a linear approximation
- * (`GDALApproxTransform`). In this case there is the top level transformer (the
- * linear approximation) which wraps an image transformer.  The VRT owns any top
- * level transformer, but we are responsible for the wrapped image transformer.
- */
-class ctb::GDALTile :
-  public Tile
-{
-public:
-  /// Take ownership of a dataset and optional transformer
-  GDALTile(GDALDataset *dataset, void *transformer):
-    Tile(),
-    dataset(dataset),
-    transformer(transformer)
-  {}
-
-  ~GDALTile() {
-    if (dataset != NULL) {
-      GDALClose(dataset);
-
-      if (transformer != NULL) {
-        GDALDestroyGenImgProjTransformer(transformer);
-      }
-    }
-  }
-
-  GDALDataset *dataset;
-
-protected:
-  friend class GDALTiler;
-
-  /// The image to image transformer
-  void *transformer;
-};
 
 /// Options passed to a `GDALTiler`
 struct ctb::TilerOptions {
@@ -90,12 +45,13 @@ struct ctb::TilerOptions {
 /**
  * @brief Create raster tiles from a GDAL Dataset
  *
- * This class is associated with a GDAL dataset from which it determines the
- * maximum zoom level (see `GDALTiler::maxZoomLevel`) and tile extents for a
- * particular zoom level (see `GDALTiler::tileBoundsForZoom`).  This
- * information can be used to create `TileCoordinate` instances which can be
- * used to create raster representations of a tile coverage (see
- * `GDALTiler::createRasterTile`).
+ * This abstract base class is associated with a GDAL dataset from which it
+ * determines the maximum zoom level (see `GDALTiler::maxZoomLevel`) and tile
+ * extents for a particular zoom level (see `GDALTiler::tileBoundsForZoom`).
+ * This information can be used to create `TileCoordinate` instances which in
+ * turn can be used to create raster representations of a tile coverage (see
+ * `GDALTiler::createRasterTile`).  This mechanism is intended to be leveraged
+ * by derived classes to override the `GDALTiler::createTile` method.
  *
  * The GDAL dataset assigned to the tiler has its reference count incremented
  * when a tiler is instantiated or copied, meaning that the dataset is shared
@@ -130,9 +86,9 @@ public:
   /// The destructor
   ~GDALTiler();
 
-  /// Create a raster tile from a tile coordinate
+  /// Create a tile from a tile coordinate
   virtual Tile *
-  createTile(const TileCoordinate &coord) const;
+  createTile(const TileCoordinate &coord) const = 0;
 
   /// Get the maximum zoom level for the dataset
   inline i_zoom
@@ -195,11 +151,15 @@ protected:
   /// Close the underlying dataset
   void closeDataset();
 
-  /// Create a raster tile from a tile coordinate and geo transform
+  /// Create a raster tile from a tile coordinate
+  virtual GDALTile *
+  createRasterTile(const TileCoordinate &coord) const;
+
+  /// Create a raster tile from a geo transform
   virtual GDALTile *
   createRasterTile(double (&adfGeoTransform)[6]) const;
 
-  /// The grid used for generating tiles
+ /// The grid used for generating tiles
   Grid mGrid;
 
   /// The dataset from which to generate tiles

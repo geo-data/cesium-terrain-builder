@@ -18,17 +18,11 @@
  *******************************************************************************/
 
 /**
- * @file GDALTiler.hpp
- * @brief This declares the `GDALTiler` class
+ * @file TerrainTiler.hpp
+ * @brief This declares the `TerrainTiler` class
  */
 
-#include <string>
-#include <cmath>                // for `abs()`
-
-#include "gdal_priv.h"
-#include "ogr_spatialref.h"
-#include "gdalwarper.h"
-
+#include "TerrainTile.hpp"
 #include "GDALTiler.hpp"
 
 namespace ctb {
@@ -53,7 +47,7 @@ public:
 
   /// Instantiate a tiler with an empty GDAL dataset
   TerrainTiler():
-    TerrainTiler(NULL, GlobalGeodetic()) {}
+    GDALTiler() {}
 
   /// Instantiate a tiler with a dataset and grid but no options
   TerrainTiler(GDALDataset *poDataset, const Grid &grid):
@@ -63,15 +57,15 @@ public:
   TerrainTiler &
   operator=(const TerrainTiler &other);
 
-  /// Override `GDALTiler::createRasterTile`
-  Tile *
-  createTile(const TileCoordinate &coord) const;
+  /// Override to return a covariant data type
+  TerrainTile *
+  createTile(const TileCoordinate &coord) const override;
 
 protected:
 
   /// Create a `GDALTile` representing the required terrain tile data
-  GDALTile *
-  createRasterTile(const TileCoordinate &coord) const;
+  virtual GDALTile *
+  createRasterTile(const TileCoordinate &coord) const override;
 
   /**
    * @brief Get terrain bounds shifted to introduce a pixel overlap

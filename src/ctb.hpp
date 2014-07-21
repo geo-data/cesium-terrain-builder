@@ -57,7 +57,7 @@
  * compiler, the above can be compiled using:
  *
  * \code{.sh}
- * g++ -lterrain -o test test.cpp
+ * g++ -lctb -o test test.cpp
  * \endcode
  *
  * See the `README.md` file distributed with the source code for further
@@ -67,6 +67,7 @@
 #include "ctb/Bounds.hpp"
 #include "ctb/Coordinate.hpp"
 #include "ctb/CRSBoundsIterator.hpp"
+#include "ctb/GDALTile.hpp"
 #include "ctb/GDALTiler.hpp"
 #include "ctb/GlobalGeodetic.hpp"
 #include "ctb/GlobalMercator.hpp"
@@ -74,6 +75,7 @@
 #include "ctb/GridIterator.hpp"
 #include "ctb/RasterIterator.hpp"
 #include "ctb/CTBException.hpp"
+#include "ctb/RasterTiler.hpp"
 #include "ctb/TerrainIterator.hpp"
 #include "ctb/TerrainTile.hpp"
 #include "ctb/TerrainTiler.hpp"

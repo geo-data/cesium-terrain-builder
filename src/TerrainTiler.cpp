@@ -24,7 +24,7 @@
 
 using namespace ctb;
 
-Tile *
+TerrainTile *
 ctb::TerrainTiler::createTile(const TileCoordinate &coord) const {
   // Get a terrain tile represented by the tile coordinate
   TerrainTile *terrainTile = new TerrainTile(coord);
@@ -71,7 +71,7 @@ ctb::TerrainTiler::createTile(const TileCoordinate &coord) const {
     }
   }
 
-  return static_cast<Tile *>(terrainTile);
+  return terrainTile;
 }
 
 GDALTile *

@@ -46,11 +46,7 @@
 #include "gdal_priv.h"
 #include "commander.hpp"        // for cli parsing
 
-#include "config.hpp"
-#include "GlobalGeodetic.hpp"
 #include "GlobalMercator.hpp"
-#include "CTBException.hpp"
-#include "TerrainTiler.hpp"
 #include "RasterIterator.hpp"
 #include "TerrainIterator.hpp"
 
@@ -301,7 +297,7 @@ showProgress(int currentIndex, string filename) {
 
 /// Output GDAL tiles represented by a tiler to a directory
 static void
-buildGDAL(const GDALTiler &tiler, TerrainBuild *command) {
+buildGDAL(const RasterTiler &tiler, TerrainBuild *command) {
   GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName(command->outputFormat);
 
   if (poDriver == NULL) {
@@ -322,7 +318,7 @@ buildGDAL(const GDALTiler &tiler, TerrainBuild *command) {
   setIteratorSize(iter);
 
   while (!iter.exhausted()) {
-    GDALTile *tile = static_cast<GDALTile *>(*iter);
+    GDALTile *tile = *iter;
     GDALDataset *poDstDS;
     const string filename = getTileFilename(tile->getCoordinate(), dirname, extension);
 
@@ -354,7 +350,7 @@ buildTerrain(const TerrainTiler &tiler, TerrainBuild *command) {
   setIteratorSize(iter);
 
   while (!iter.exhausted()) {
-    TerrainTile *tile = static_cast<TerrainTile *>(*iter);
+    TerrainTile *tile = *iter;
     const string filename = getTileFilename(tile->getCoordinate(), dirname, "terrain");
 
     tile->writeFile(filename.c_str());
@@ -383,7 +379,7 @@ runTiler(TerrainBuild *command, Grid *grid) {
       const TerrainTiler tiler(poDataset, *grid);
       buildTerrain(tiler, command);
     } else {                    // it's a GDAL format
-      const GDALTiler tiler(poDataset, *grid, command->tilerOptions);
+      const RasterTiler tiler(poDataset, *grid, command->tilerOptions);
       buildGDAL(tiler, command);
     }
 

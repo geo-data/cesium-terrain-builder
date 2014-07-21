@@ -32,11 +32,9 @@
 #include "gdal_priv.h"
 #include "commander.hpp"
 
-#include "config.hpp"
-#include "GlobalGeodetic.hpp"
 #include "GlobalMercator.hpp"
 #include "CRSBoundsIterator.hpp"
-#include "GDALTiler.hpp"
+#include "RasterTiler.hpp"
 
 using namespace std;
 using namespace ctb;
@@ -227,7 +225,7 @@ main(int argc, char *argv[]) {
   }
 
   GDALDataset  *poDataset = (GDALDataset *) GDALOpen(command.getInputFilename(), GA_ReadOnly);
-  GDALTiler tiler(poDataset, grid);
+  RasterTiler tiler(poDataset, grid);
 
   writeBounds(tiler, command.outputDir, command.startZoom, command.endZoom);
 

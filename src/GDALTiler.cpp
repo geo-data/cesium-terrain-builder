@@ -19,9 +19,12 @@
  * @brief This defines the `GDALTiler` class
  */
 
+#include <cmath>                // for `abs()`
 #include <algorithm>            // std::minmax
 #include <string.h>             // strlen
 
+#include "gdal_priv.h"
+#include "gdalwarper.h"
 #include "ogr_spatialref.h"
 #include "ogr_srs_api.h"
 
@@ -164,8 +167,8 @@ GDALTiler::~GDALTiler() {
   closeDataset();
 }
 
-Tile *
-GDALTiler::createTile(const TileCoordinate &coord) const {
+GDALTile *
+GDALTiler::createRasterTile(const TileCoordinate &coord) const {
   // Convert the tile bounds into a geo transform
   double adfGeoTransform[6],
     resolution = mGrid.resolution(coord.zoom);
@@ -186,7 +189,7 @@ GDALTiler::createTile(const TileCoordinate &coord) const {
     throw CTBException("Could not set geo transform on VRT");
   }
 
-  return static_cast<Tile *>(tile);
+  return tile;
 }
 
 /**

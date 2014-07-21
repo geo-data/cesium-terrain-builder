@@ -175,7 +175,7 @@ private:
 };
 
 /**
- * @brief `Terrain` data associated with a `TileCoordinate`
+ * @brief `Terrain` data associated with a `Tile`
  *
  * Associating terrain data with a tile coordinate allows the tile to be
  * converted to a geo-referenced raster (see `TerrainTile::heightsToRaster`).

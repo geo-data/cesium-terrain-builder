@@ -23,10 +23,10 @@
  */
 
 #include "GridIterator.hpp"
-#include "Tile.hpp"
+#include "GDALTiler.hpp"
 
 namespace ctb {
-  template <class T1, class T2> class TilerIterator;
+  class TilerIterator;
 }
 
 /**
@@ -37,32 +37,30 @@ namespace ctb {
  * returning a `Tile *` when dereferenced.  It is the caller's responsibility to
  * call `delete` on the tile.
  */
-template <class T1, class T2>
 class ctb::TilerIterator :
-  public GridIterator<T1>
+  public GridIterator<Tile *>
 {
 public:
 
   /// Instantiate an iterator with a tiler
-  TilerIterator(const T2 &tiler) :
-    GridIterator<T1>(tiler.grid(), tiler.bounds(), tiler.maxZoomLevel(), 0),
+  TilerIterator(const GDALTiler &tiler) :
+    TilerIterator(tiler, tiler.maxZoomLevel(), 0)
+  {}
+
+  TilerIterator(const GDALTiler &tiler, i_zoom startZoom, i_zoom endZoom = 0) :
+    GridIterator<Tile *>(tiler.grid(), tiler.bounds(), startZoom, endZoom),
     tiler(tiler)
   {}
 
-  TilerIterator(const T2 &tiler, i_zoom startZoom, i_zoom endZoom = 0) :
-    GridIterator<T1>(tiler.grid(), tiler.bounds(), startZoom, endZoom),
-    tiler(tiler)
-  {}
-
-  /// Override the dereference operator to return a `GDALDataset *`
-  Tile *
+  /// Override the dereference operator to return a Tile
+  virtual Tile *
   operator*() const {
-    return tiler.createTile(GridIterator<T1>::currentTile);
+    return tiler.createTile(GridIterator<Tile *>::currentTile);
   }
 
 protected:
 
-  const T2 &tiler;              ///< The tiler we are iterating over
+  const GDALTiler &tiler;              ///< The tiler we are iterating over
 };
 
 #endif /* TILERITERATOR_HPP */
