@@ -176,22 +176,22 @@ public:
  * This also creates the tile directory structure.
  */
 static string
-getTileFilename(const TileCoordinate &coord, const string dirname, const char *extension) {
+getTileFilename(const TileCoordinate *coord, const string dirname, const char *extension) {
   static mutex mutex;
   VSIStatBufL stat;
   string filename = dirname + static_cast<ostringstream*>
     (
      &(ostringstream()
-       << coord.zoom
+       << coord->zoom
        << osDirSep
-       << coord.x)
+       << coord->x)
      )->str();
 
   lock_guard<std::mutex> lock(mutex);
 
   // Check whether the `{zoom}/{x}` directory exists or not
   if (VSIStatExL(filename.c_str(), &stat, VSI_STAT_EXISTS_FLAG | VSI_STAT_NATURE_FLAG)) {
-    filename = dirname + static_cast<ostringstream*>(&(ostringstream() << coord.zoom))->str();
+    filename = dirname + static_cast<ostringstream*>(&(ostringstream() << coord->zoom))->str();
 
     // Check whether the `{zoom}` directory exists or not
     if (VSIStatExL(filename.c_str(), &stat, VSI_STAT_EXISTS_FLAG | VSI_STAT_NATURE_FLAG)) {
@@ -204,7 +204,7 @@ getTileFilename(const TileCoordinate &coord, const string dirname, const char *e
     }
 
     // Create the `{zoom}/{x}` directory
-    filename += static_cast<ostringstream*>(&(ostringstream() << osDirSep << coord.x))->str();
+    filename += static_cast<ostringstream*>(&(ostringstream() << osDirSep << coord->x))->str();
     if (VSIMkdir(filename.c_str(), 0666))
       throw CTBException("Could not create the x level directory");
 
@@ -213,7 +213,7 @@ getTileFilename(const TileCoordinate &coord, const string dirname, const char *e
   }
 
   // Create the filename itself, adding the extension if required
-  filename += static_cast<ostringstream*>(&(ostringstream() << osDirSep << coord.y))->str();
+  filename += static_cast<ostringstream*>(&(ostringstream() << osDirSep << coord->y))->str();
   if (extension != NULL) {
     filename += ".";
     filename += extension;
@@ -320,7 +320,7 @@ buildGDAL(const RasterTiler &tiler, TerrainBuild *command) {
   while (!iter.exhausted()) {
     GDALTile *tile = *iter;
     GDALDataset *poDstDS;
-    const string filename = getTileFilename(tile->getCoordinate(), dirname, extension);
+    const string filename = getTileFilename(tile, dirname, extension);
 
     poDstDS = poDriver->CreateCopy(filename.c_str(), tile->dataset, FALSE,
                                    command->creationOptions.List(), NULL, NULL );
@@ -351,7 +351,7 @@ buildTerrain(const TerrainTiler &tiler, TerrainBuild *command) {
 
   while (!iter.exhausted()) {
     TerrainTile *tile = *iter;
-    const string filename = getTileFilename(tile->getCoordinate(), dirname, "terrain");
+    const string filename = getTileFilename(tile, dirname, "terrain");
 
     tile->writeFile(filename.c_str());
     delete tile;

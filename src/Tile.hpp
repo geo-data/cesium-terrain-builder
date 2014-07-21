@@ -22,7 +22,6 @@
  * @brief This declares the `Tile` class
  */
 
-#include "config.hpp"
 #include "TileCoordinate.hpp"
 
 namespace ctb {
@@ -34,32 +33,19 @@ namespace ctb {
  *
  * This provides a way of associating a `TileCoordinate` with tile data.
  */
-class ctb::Tile {
+class ctb::Tile :
+  public TileCoordinate
+{
 public:
   virtual ~Tile () = 0;         // this is an abstract base class
 
   /// Create an empty tile
   Tile():
-    coord() {}
+    TileCoordinate() {}
 
   /// Create a tile from a tile coordinate
   Tile(TileCoordinate coord):
-    coord(coord) {}
-
-  /// Get the tile coordinate associated with this tile
-  inline TileCoordinate &
-  getCoordinate() {
-    return coord;
-  }
-
-  /// Get the const coordinate associated with this tile
-  inline const TileCoordinate &
-  getCoordinate() const {
-    return const_cast<const TileCoordinate &>(coord);
-  }
-
-protected:
-  TileCoordinate coord;         ///< The coordinate for this terrain tile
+    TileCoordinate(coord) {}
 };
 
 inline ctb::Tile::~Tile() { }   // prevents linker errors

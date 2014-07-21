@@ -182,7 +182,7 @@ GDALTiler::createRasterTile(const TileCoordinate &coord) const {
   adfGeoTransform[5] = -resolution;
 
   GDALTile *tile = createRasterTile(adfGeoTransform);
-  tile->coord = coord;
+  static_cast<TileCoordinate &>(*tile) = coord;
 
   // Set the shifted geo transform to the VRT
   if (GDALSetGeoTransform(tile->dataset, adfGeoTransform) != CE_None) {
