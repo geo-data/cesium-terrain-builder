@@ -38,7 +38,7 @@ namespace ctb {
  * call `delete` on the tile.
  */
 class ctb::TilerIterator :
-  public GridIterator<Tile *>
+  public GridIterator
 {
 public:
 
@@ -48,14 +48,14 @@ public:
   {}
 
   TilerIterator(const GDALTiler &tiler, i_zoom startZoom, i_zoom endZoom = 0) :
-    GridIterator<Tile *>(tiler.grid(), tiler.bounds(), startZoom, endZoom),
+    GridIterator(tiler.grid(), tiler.bounds(), startZoom, endZoom),
     tiler(tiler)
   {}
 
   /// Override the dereference operator to return a Tile
   virtual Tile *
   operator*() const {
-    return tiler.createTile(GridIterator<Tile *>::currentTile);
+    return tiler.createTile(*(GridIterator::operator*()));
   }
 
 protected:

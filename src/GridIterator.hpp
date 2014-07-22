@@ -28,7 +28,7 @@
 #include "Grid.hpp"
 
 namespace ctb {
-  template <class T> class GridIterator;
+  class GridIterator;
 }
 
 /**
@@ -50,9 +50,8 @@ namespace ctb {
  * grid, but alternative extents can be passed in to the constructor, acting as
  * a spatial filter.
  */
-template <class T>
 class ctb::GridIterator :
-  public std::iterator<std::input_iterator_tag, T>
+  public std::iterator<std::input_iterator_tag, TileCoordinate *>
 {
 public:
 
@@ -84,7 +83,7 @@ public:
   }
 
   /// Override the ++prefix operator
-  GridIterator<T> &
+  GridIterator &
   operator++() {
     // don't increment if exhausted
     if (exhausted())
@@ -129,16 +128,16 @@ public:
   }
 
   /// Override the postfix++ operator
-  GridIterator<T>
+  GridIterator
   operator++(int) {
-    GridIterator<T> result(*this);   // make a copy for returning
+    GridIterator result(*this);   // make a copy for returning
     ++(*this);                    // use the prefix version to do the work
     return result;                // return the copy (the old) value.
   }
 
   /// Override the equality operator
   bool
-  operator==(const GridIterator<T> &other) const {
+  operator==(const GridIterator &other) const {
     return currentTile == other.currentTile
       && startZoom == other.startZoom
       && endZoom == other.endZoom
@@ -149,8 +148,14 @@ public:
 
   /// Override the inequality operator
   bool
-  operator!=(const GridIterator<T> &other) const {
+  operator!=(const GridIterator &other) const {
     return !operator==(other);
+  }
+
+  /// Dereference the iterator to retrieve a `TileCoordinate`
+  virtual const TileCoordinate *
+  operator*() const {
+    return &currentTile;
   }
 
   /// Return `true` if the iterator is at the end
@@ -184,6 +189,12 @@ public:
     }
 
     return size;
+  }
+
+  /// Get the grid we are iterating over
+  const Grid &
+  getGrid() const {
+    return grid;
   }
 
 protected:

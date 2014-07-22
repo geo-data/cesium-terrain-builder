@@ -159,7 +159,7 @@ protected:
   virtual GDALTile *
   createRasterTile(double (&adfGeoTransform)[6]) const;
 
- /// The grid used for generating tiles
+  /// The grid used for generating tiles
   Grid mGrid;
 
   /// The dataset from which to generate tiles

@@ -33,7 +33,6 @@ target_link_libraries(ctb ${GDAL_LIBRARIES} ${ZLIB_LIBRARIES})
 set(HEADERS
   Bounds.hpp
   Coordinate.hpp
-  CRSBoundsIterator.hpp
   GDALTile.hpp
   GDALTiler.hpp
   GlobalGeodetic.hpp
@@ -48,7 +47,6 @@ set(HEADERS
   TerrainTiler.hpp
   Tile.hpp
   TileCoordinate.hpp
-  TileCoordinateIterator.hpp
   TilerIterator.hpp
   types.hpp)
 install(FILES ${HEADERS} DESTINATION include/ctb)

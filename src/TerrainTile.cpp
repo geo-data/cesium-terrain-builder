@@ -301,17 +301,17 @@ Terrain::getHeights() {
   return mHeights;
 }
 
-TerrainTile::TerrainTile(TileCoordinate coord):
+TerrainTile::TerrainTile(const TileCoordinate &coord):
   Terrain(),
   Tile(coord)
 {}
 
-TerrainTile::TerrainTile(const char *fileName, TileCoordinate coord):
+TerrainTile::TerrainTile(const char *fileName, const TileCoordinate &coord):
   Terrain(fileName),
   Tile(coord)
 {}
 
-TerrainTile::TerrainTile(const Terrain &terrain, TileCoordinate coord):
+TerrainTile::TerrainTile(const Terrain &terrain, const TileCoordinate &coord):
   Terrain(terrain),
   Tile(coord)
 {}

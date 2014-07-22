@@ -164,7 +164,7 @@ main(int argc, char *argv[]) {
   GDALAllRegister();
 
   // Instantiate an appropriate terrain tile
-  TileCoordinate coord(command.zoom, command.tx, command.ty);
+  const TileCoordinate coord(command.zoom, command.tx, command.ty);
   TerrainTile terrain(coord);
 
   // Read the data into the tile from the filesystem

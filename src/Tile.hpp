@@ -22,7 +22,7 @@
  * @brief This declares the `Tile` class
  */
 
-#include "TileCoordinate.hpp"
+#include "Grid.hpp"
 
 namespace ctb {
   class Tile;
@@ -39,13 +39,15 @@ class ctb::Tile :
 public:
   virtual ~Tile () = 0;         // this is an abstract base class
 
-  /// Create an empty tile
+  /// Create an empty tile from a grid
   Tile():
-    TileCoordinate() {}
+    TileCoordinate()
+  {}
 
   /// Create a tile from a tile coordinate
-  Tile(TileCoordinate coord):
-    TileCoordinate(coord) {}
+  Tile(const TileCoordinate &coord):
+    TileCoordinate(coord)
+  {}
 };
 
 inline ctb::Tile::~Tile() { }   // prevents linker errors

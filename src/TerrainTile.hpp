@@ -188,13 +188,13 @@ class ctb::TerrainTile :
 public:
 
   /// Create a terrain tile from a tile coordinate
-  TerrainTile(TileCoordinate coord);
+  TerrainTile(const TileCoordinate &coord);
 
   /// Create a terrain tile from a file
-  TerrainTile(const char *fileName, TileCoordinate coord);
+  TerrainTile(const char *fileName, const TileCoordinate &coord);
 
   /// Create a terrain tile from terrain data
-  TerrainTile(const Terrain &terrain, TileCoordinate coord);
+  TerrainTile(const Terrain &terrain, const TileCoordinate &coord);
 
   /// Get the height data as an in memory GDAL raster
   GDALDatasetH
