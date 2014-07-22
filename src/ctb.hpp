@@ -37,6 +37,7 @@
  * To use the library include `ctb.hpp` e.g.
  *
  * \code
+ * // test.cpp
  * #include <iostream>
  * #include "ctb.hpp"
  *
@@ -59,6 +60,30 @@
  * \code{.sh}
  * g++ -lctb -o test test.cpp
  * \endcode
+ *
+ * ## Implementation overview
+ * 
+ * The concept of a grid is implemented in the `ctb::Grid` class.  The TMS
+ * Global Geodetic and Global Merdcator profiles are specialisations of the grid
+ * implemented in the `ctb::GlobalGeodetic` and `ctb::GlobalMercator` classes.
+ * These classes define the tiling scheme which is then used to cut up GDAL
+ * rasters into the output tiles.
+ * 
+ * The `ctb::GDALTiler` and `ctb::TerrainTiler` classes composes an instance of
+ * a grid with a GDAL raster dataset.  They use the dataset to determine the
+ * native raster resolution and extent.  Once this is known the appropriate zoom
+ * levels and tile coverage can be calculated from the grid.  For each tile an
+ * in memory GDAL [Virtual Raster](http://www.gdal.org/gdal_vrttut.html) (VRT)
+ * can then be generated.  This is a lightweight representation of the relevant
+ * underlying data necessary to create populate the tile.  The VRT can then be
+ * used to generate an actual `ctb::TerrainTile` instance or raster dataset
+ * which can then be stored as required by the application.
+ * 
+ * There are various iterator classes providing convenient iteration over
+ * tilesets created by grids and tilers.  For instance, the
+ * `ctb::TerrainIterator` class provides a simple interface for iterating over
+ * all valid tiles represented by a `ctb::TerrainTiler`, and likewise the
+ * `ctb::RasterIterator` over a `ctb::GDALTiler` instance.
  *
  * See the `README.md` file distributed with the source code for further
  * details.

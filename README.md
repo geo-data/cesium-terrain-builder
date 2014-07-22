@@ -186,8 +186,8 @@ Options:
 
 ## LibCTB
 
-The C++ library is called `libctb`.  It is capable of creating terrain tiles
-according to the
+`libctb` is a library implemented in standard C++11.  It is capable of creating
+terrain tiles according to the
 [heightmap-1.0 terrain format](http://cesiumjs.org/data-and-assets/terrain/formats/heightmap-1.0.html). It
 does not provide a way of serving up or storing the resulting tiles: this is
 application specific. Instead its aim is simply to take a
@@ -204,29 +204,6 @@ this.
 code: run the `doxygen` command in the `doc/` directory and point your browser
 at `doc/html/index.html`.
 
-### Implementation overview
-
-The concept of a grid is implemented in the `Grid` class.  The TMS Global
-Geodetic and Global Merdcator profiles are specialisations of the grid
-implemented in the `GlobalGeodetic` and `GlobalMercator` classes.  These classes
-define the tiling scheme which is then used to cut up GDAL rasters into the
-output tiles.
-
-The `GDALTiler` and `TerrainTiler` classes composes an instance of a grid with a
-GDAL raster dataset.  They use the dataset to determine the native raster
-resolution and extent.  Once this is known the appropriate zoom levels and tile
-coverage can be calculated from the grid.  For each tile an in memory GDAL
-[Virtual Raster](http://www.gdal.org/gdal_vrttut.html) (VRT) can then be
-generated.  This is a lightweight representation of the relevant underlying data
-necessary to create populate the tile.  The VRT can then be used to generate an
-actual `TerrainTile` instance or raster dataset which can then be stored as
-required by the application.
-
-There are various iterator classes providing convenient iteration over tilesets
-created by grids and tilers.  For instance, the `TerrainIterator` class provides
-a simple interface for iterating over all valid tiles represented by a
-`TerrainTiler`, and likewise the `RasterIterator` over a `GDALTiler` instance.
-
 ## Status
 
 Although the software has been used to create a substantial number of terrain
@@ -236,7 +213,7 @@ liable to change.
 
 The software has primarily been developed and deployed on a Linux OS.  Porting
 it to other systems should be relatively painless as the library dependencies
-have been ported to numerous systems and the code itself is standard C++.  In
+have been ported to numerous systems and the code itself is standard C++11.  In
 fact it has been reported as compiling on Windows using Visual Studio 2010 with
 minor tweaks.
 
@@ -290,6 +267,11 @@ installation issues are encapsulated in the image.
   [Bandit](http://banditcpp.org/), including code coverage and valgrind
   analysis.
 
+* Add a `--resume` option to `ctb-tile` to resume a previously interrupted run.
+
+* Better coordination between threads in `ctb-tile` to enable graceful exits if
+  there is a fatal error or other interrupt.
+
 * Add support for the new
   [quantized-mesh-1.0 terrain format](http://cesiumjs.org/data-and-assets/terrain/formats/quantized-mesh-1.0.html).
 
@@ -301,6 +283,8 @@ installation issues are encapsulated in the image.
 
 * Provide hooks into the GDAL error handling mechanism to more gracefully
   intercept GDAL errors.
+
+* Expose tilers using a standard container api (map and/or vector).
 
 * Enable more options to be passed to the VRT warper, such as the resampling
   algorithm. Some of this can be achieved by passing options to

@@ -19,7 +19,7 @@
  * @brief This defines the `GDALTiler` class
  */
 
-#include <cmath>                // for `abs()`
+#include <cmath>                // std::abs
 #include <algorithm>            // std::minmax
 #include <string.h>             // strlen
 
@@ -92,8 +92,7 @@ GDALTiler::GDALTiler(GDALDataset *poDataset, const Grid &grid, const TilerOption
       }
       delete transformer;
 
-      // Get the min and max values of the transformed coordinates (this should
-      // be replaced using std::minmax in C++11).
+      // Get the min and max values of the transformed coordinates
       double minX = std::min(std::min(x[0], x[1]), std::min(x[2], x[3])),
         maxX = std::max(std::max(x[0], x[1]), std::max(x[2], x[3])),
         minY = std::min(std::min(y[0], y[1]), std::min(y[2], y[3])),
