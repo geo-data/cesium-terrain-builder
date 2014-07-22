@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 2.6)
 project("Cesium Terrain Builder")
 
+# The version number
+set(CTB_VERSION_MAJOR 0)
+set(CTB_VERSION_MINOR 4)
+set(CTB_VERSION_PATCH 0)
+
 # Ensure we have a C++11 compatible compiler (see
 # http://www.guyrutenberg.com/2014/01/05/enabling-c11-c0x-in-cmake/)
 include(CheckCXXCompilerFlag)
@@ -24,11 +29,6 @@ if (CMAKE_COMPILER_IS_GNUCXX)
     message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} is version ${GCXX_VERSION} which is not supported. Please use version 4.7 or greater.")
   endif()
 endif()
-
-# The version number
-set(CTB_VERSION_MAJOR 0)
-set(CTB_VERSION_MINOR 3)
-set(CTB_VERSION_PATCH 0)
 
 # The tile size (width and height). According to the spec this should always be
 # 65
