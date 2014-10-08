@@ -215,8 +215,8 @@ The software has primarily been developed and deployed on a Linux OS.  Porting
 it to other systems should be relatively painless as the library dependencies
 have been ported to numerous systems and the code itself is standard C++11.  In
 fact it has been reported as compiling on Windows using Visual Studio 2010 with
-minor tweaks. It is reported as not compiling on Mac OS X Mavericks using clang 
-- this issue is tracked 
+minor tweaks. It is reported as not compiling on Mac OS X Mavericks using clang: 
+this issue is tracked 
 [here](https://github.com/geo-data/cesium-terrain-builder/issues/3).
 
 ## Requirements
