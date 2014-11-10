@@ -223,7 +223,7 @@ public:
     // see
     // <http://stackoverflow.com/questions/306316/determine-if-two-rectangles-overlap-each-other>
     return getMinX() < other.getMaxX() && other.getMinX() < getMaxX() &&
-           getMinY() < other.getMaxY() && other.getMinX() < getMaxY();
+           getMinY() < other.getMaxY() && other.getMinY() < getMaxY();
   }
   
 private:
