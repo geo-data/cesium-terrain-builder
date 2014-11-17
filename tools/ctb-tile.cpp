@@ -196,7 +196,7 @@ getTileFilename(const TileCoordinate *coord, const string dirname, const char *e
     // Check whether the `{zoom}` directory exists or not
     if (VSIStatExL(filename.c_str(), &stat, VSI_STAT_EXISTS_FLAG | VSI_STAT_NATURE_FLAG)) {
       // Create the `{zoom}` directory
-      if (VSIMkdir(filename.c_str(), 0666))
+      if (VSIMkdir(filename.c_str(), 0755))
         throw CTBException("Could not create the zoom level directory");
 
     } else if (!VSI_ISDIR(stat.st_mode)) {
@@ -205,7 +205,7 @@ getTileFilename(const TileCoordinate *coord, const string dirname, const char *e
 
     // Create the `{zoom}/{x}` directory
     filename += static_cast<ostringstream*>(&(ostringstream() << osDirSep << coord->x))->str();
-    if (VSIMkdir(filename.c_str(), 0666))
+    if (VSIMkdir(filename.c_str(), 0755))
       throw CTBException("Could not create the x level directory");
 
   } else if (!VSI_ISDIR(stat.st_mode)) {
