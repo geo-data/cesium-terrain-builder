@@ -117,8 +117,8 @@ public:
   /// Get the tile covering a pixel location
   inline TilePoint
   pixelsToTile(const PixelPoint &pixel) const {
-    i_tile tx = (i_tile) ceil(pixel.x / mTileSize),
-      ty = (i_tile) ceil(pixel.y / mTileSize);
+    i_tile tx = (i_tile) (pixel.x / mTileSize),
+      ty = (i_tile) (pixel.y / mTileSize);
 
     return TilePoint(tx, ty);
   }
