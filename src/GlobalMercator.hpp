@@ -22,6 +22,7 @@
  * @brief This defines the `GlobalMercator` class
  */
 
+#include "config.hpp"           // for CTB_DLL
 #include "Grid.hpp"
 
 namespace ctb {
@@ -34,7 +35,7 @@ namespace ctb {
  * This class models the [Tile Mapping Service Global Mercator
  * Profile](http://wiki.osgeo.org/wiki/Tile_Map_Service_Specification#global-mercator).
  */
-class CPL_DLL ctb::GlobalMercator :
+class CTB_DLL ctb::GlobalMercator :
   public Grid {
 public:
 
