@@ -9,9 +9,9 @@ include_directories(${GDAL_INCLUDE_DIRS})
 # unification.
 include(CheckLibraryExists)
 check_library_exists(gdal GDALOpenEx "gdal.h" HAVE_UNIFIED_GDAL)
-if(NOT HAVE_UNIFIED_GDAL)
-  message(FATAL_ERROR "The GDAL version must be one that implements RFC 46 (GDAL/OGR unification) i.e. >= 2.0.0")
-endif(NOT HAVE_UNIFIED_GDAL)
+#if(NOT HAVE_UNIFIED_GDAL)
+#  message(FATAL_ERROR "The GDAL version must be one that implements RFC 46 (GDAL/OGR unification) i.e. >= 2.0.0")
+#endif(NOT HAVE_UNIFIED_GDAL)
 
 # We need zlib
 find_package(ZLIB)
