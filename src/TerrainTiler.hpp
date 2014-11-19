@@ -36,7 +36,7 @@ namespace ctb {
  * `GDALTiler::createTerrainTile` method enabling `TerrainTile`s to be created
  * for a specific `TileCoordinate`.
  */
-class ctb::TerrainTiler :
+class CPL_DLL ctb::TerrainTiler :
   public GDALTiler
 {
 public:

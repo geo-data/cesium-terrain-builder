@@ -41,7 +41,7 @@ namespace ctb {
  * This aims to implement the Cesium [heightmap-1.0 terrain
  * format](http://cesiumjs.org/data-and-assets/terrain/formats/heightmap-1.0.html).
  */
-class ctb::Terrain {
+class CPL_DLL ctb::Terrain {
 public:
 
   /// Create an empty terrain object
@@ -180,7 +180,7 @@ private:
  * Associating terrain data with a tile coordinate allows the tile to be
  * converted to a geo-referenced raster (see `TerrainTile::heightsToRaster`).
  */
-class ctb::TerrainTile :
+class CPL_DLL ctb::TerrainTile :
   public Terrain, public Tile
 {
   friend class TerrainTiler;

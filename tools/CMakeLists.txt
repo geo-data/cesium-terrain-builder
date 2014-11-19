@@ -1,3 +1,12 @@
+# We need GDAL
+find_package(GDAL)
+if(NOT GDAL_FOUND)
+  message(FATAL_ERROR "The GDAL library cannot be found on the system")
+endif()
+include_directories(${GDAL_INCLUDE_DIRS})
+
+add_definitions(-DCPL_DISABLE_DLL)
+
 set(TOOL_TARGETS commander ctb)
 
 # Add the `ctb-tile` executable

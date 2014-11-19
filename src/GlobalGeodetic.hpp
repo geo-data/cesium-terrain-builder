@@ -35,7 +35,7 @@ namespace ctb {
  * This class models the [Tile Mapping Service Global Geodetic
  * Profile](http://wiki.osgeo.org/wiki/Tile_Map_Service_Specification#global-geodetic).
  */
-class ctb::GlobalGeodetic:
+class CPL_DLL ctb::GlobalGeodetic :
   public Grid {
 public:
 

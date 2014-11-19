@@ -34,7 +34,7 @@ namespace ctb {
  * This class models the [Tile Mapping Service Global Mercator
  * Profile](http://wiki.osgeo.org/wiki/Tile_Map_Service_Specification#global-mercator).
  */
-class ctb::GlobalMercator:
+class CPL_DLL ctb::GlobalMercator :
   public Grid {
 public:
 
