@@ -24,6 +24,7 @@
 
 #include "gdal_priv.h"
 
+#include "config.hpp"           // for CTB_DLL
 #include "Tile.hpp"
 
 namespace ctb {
@@ -41,7 +42,7 @@ namespace ctb {
  * linear approximation) which wraps an image transformer.  The VRT owns any top
  * level transformer, but we are responsible for the wrapped image transformer.
  */
-class CPL_DLL ctb::GDALTile :
+class CTB_DLL ctb::GDALTile :
   public Tile
 {
 public:
