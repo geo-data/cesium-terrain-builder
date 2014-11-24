@@ -1,3 +1,6 @@
+# The tools are not shared libraries
+add_definitions(-DCPL_DISABLE_DLL)
+
 set(TOOL_TARGETS commander ctb)
 
 # Add the `ctb-tile` executable

@@ -59,7 +59,7 @@ struct ctb::TilerOptions {
  * the reference count is decremented and, if it reaches `0`, the dataset is
  * closed.
  */
-class ctb::GDALTiler {
+class CTB_DLL ctb::GDALTiler {
 public:
 
   /// Instantiate a tiler with all required arguments

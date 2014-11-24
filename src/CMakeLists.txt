@@ -1,17 +1,10 @@
-# We need GDAL
-find_package(GDAL)
-if(NOT GDAL_FOUND)
-  message(FATAL_ERROR "The GDAL library cannot be found on the system")
-endif()
-include_directories(${GDAL_INCLUDE_DIRS})
-
 # Ensure we have a unified GDAL: `GDALOpenEx` is only present after
 # unification.
 include(CheckLibraryExists)
 check_library_exists(gdal GDALOpenEx "gdal.h" HAVE_UNIFIED_GDAL)
-if(NOT HAVE_UNIFIED_GDAL)
+if(NOT MSVC AND NOT HAVE_UNIFIED_GDAL)
   message(FATAL_ERROR "The GDAL version must be one that implements RFC 46 (GDAL/OGR unification) i.e. >= 2.0.0")
-endif(NOT HAVE_UNIFIED_GDAL)
+endif()
 
 # We need zlib
 find_package(ZLIB)

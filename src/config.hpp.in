@@ -25,6 +25,20 @@
  * `config.hpp`.
  */
 
+/* Enable symbol export in Visual Studio 2013 as per issue #6.  This is an
+   adaptation of `CPL_DLL` in GDAL's `cpl_port.h`. */
+#ifndef CTB_DLL
+#if defined(_MSC_VER)
+#  if !defined(CPL_DISABLE_DLL)
+#    define CTB_DLL     __declspec(dllexport)
+#  else
+#    define CTB_DLL     __declspec(dllimport)
+#  endif
+#else
+#  define CTB_DLL
+#endif
+#endif
+
 #include <string>
 #include <sstream>
 

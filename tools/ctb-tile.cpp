@@ -262,7 +262,7 @@ setIteratorSize(T &iter) {
 
 /// A thread safe wrapper around `GDALTermProgress`
 static int
-termProgress(double dfComplete, const char *pszMessage, void *pProgressArg) {
+CPL_STDCALL termProgress(double dfComplete, const char *pszMessage, void *pProgressArg) {
   static mutex mutex;          // GDALTermProgress isn't thread safe, so lock it
   int status;
 
@@ -274,7 +274,7 @@ termProgress(double dfComplete, const char *pszMessage, void *pProgressArg) {
 
 /// In a thread safe manner describe the file just created
 static int
-verboseProgress(double dfComplete, const char *pszMessage, void *pProgressArg) {
+CPL_STDCALL verboseProgress(double dfComplete, const char *pszMessage, void *pProgressArg) {
   stringstream stream;
   stream << "[" << (int) (dfComplete*100) << "%] " << pszMessage << endl;
   cout << stream.str();
