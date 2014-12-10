@@ -1,9 +1,13 @@
-# Cesium Terrain Builder Docker Images
+# Cesium Terrain Builder
 
 This is an Ubuntu derived image containing Cesium Terrain Builder compiled
 against a GDAL installation bundled with a broad range of drivers.  It is
-suitable for getting up and running quickly with the Cesium Terrain Builder
+designed to quickly get you up and running with the Cesium Terrain Builder
 command line tools and/or coding with `libctb`.
+
+Note that the tiles generated with these tools can be visualised with the
+[geodata/cesium-terrain-server](https://registry.hub.docker.com/u/geodata/cesium-terrain-server/)
+image.
 
 ## Usage
 

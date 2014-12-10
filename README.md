@@ -8,10 +8,16 @@ whereby imagery is draped over a model of the underlying terrain.  Cesium
 provides a number of
 [different sources](http://cesiumjs.org/2013/02/15/Cesium-Terrain-Tutorial) for
 the terrain data, one of which is height map data for use with the
-[CesiumTerrainProvider](http://cesiumjs.org/Cesium/Build/Documentation/CesiumTerrainProvider.html)
-JavaScript class.  Cesium Terrain Builder can be used to create the tilesets
-that sit behind a terrain server used by CesiumTerrainProvider.  Note that it
-does *not* provide a way of serving up those tilesets to the browser.
+[`CesiumTerrainProvider`](http://cesiumjs.org/Cesium/Build/Documentation/CesiumTerrainProvider.html)
+JavaScript class.
+
+Cesium Terrain Builder can be used to create the tilesets that sit behind a
+terrain server used by `CesiumTerrainProvider`.  Note that these tools do *not*
+provide a way of serving up those tilesets to the browser: instead
+[Cesium Terrain Server]() is designed to serve terrain tilesets.  In particular
+the Docker
+[geodata/cesium-terrain-server](https://registry.hub.docker.com/u/geodata/cesium-terrain-server/)
+image is designed to simplify the visualisation of terrain tilesets.
 
 ## Command Line Tools
 
@@ -255,13 +261,18 @@ specifying the `CMAKE_INSTALL_PREFIX` directive e.g. `cmake
 
 ### Using Docker
 
-A [Docker](http://www.docker.com/) image
-[is available](https://registry.hub.docker.com/u/homme/cesium-terrain-builder/)
-at the Docker Registry: follow the link for usage information.
+[homme/cesium-terrain-builder](https://registry.hub.docker.com/u/homme/cesium-terrain-builder/)
+is a [Docker](http://www.docker.com/) image that bundles the CTB tools and
+simplifies their deployment.  Follow the link for usage information.
 
 The only requirement to getting up and running with Cesium Terrain Builder is
 having docker available on your system: all software dependencies, build and
 installation issues are encapsulated in the image.
+
+In addition, the
+[geodata/cesium-terrain-server](https://registry.hub.docker.com/u/geodata/cesium-terrain-server/)
+Docker image provides a way of visualising the tilesets created by
+`homme/cesium-terrain-builder`.
 
 ## Limitations and TODO
 
