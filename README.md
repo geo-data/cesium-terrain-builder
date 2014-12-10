@@ -14,8 +14,8 @@ JavaScript class.
 Cesium Terrain Builder can be used to create the tilesets that sit behind a
 terrain server used by `CesiumTerrainProvider`.  Note that these tools do *not*
 provide a way of serving up those tilesets to the browser: instead
-[Cesium Terrain Server]() is designed to serve terrain tilesets.  In particular
-the Docker
+[Cesium Terrain Server](https://github.com/geo-data/cesium-terrain-server) is
+designed to serve terrain tilesets.  In particular the Docker
 [geodata/cesium-terrain-server](https://registry.hub.docker.com/u/geodata/cesium-terrain-server/)
 image is designed to simplify the visualisation of terrain tilesets.
 
