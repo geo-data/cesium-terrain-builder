@@ -1,7 +1,7 @@
 # The tools are not shared libraries
 add_definitions(-DCPL_DISABLE_DLL)
 
-set(TOOL_TARGETS commander ctb)
+set(TOOL_TARGETS commander ctb  ${CMAKE_THREAD_LIBS_INIT})
 
 # Add the `ctb-tile` executable
 add_executable(ctb-tile ctb-tile.cpp)
