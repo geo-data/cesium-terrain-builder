@@ -7,7 +7,7 @@
 # Builder software (https://github.com/geo-data/cesium-terrain-builder).
 #
 
-FROM homme/gdal:v1.11.1
+FROM homme/gdal:latest
 MAINTAINER Homme Zwaagstra <hrz@geodata.soton.ac.uk>
 
 # Upgrade from gcc 4.6 to 4.7 (see
