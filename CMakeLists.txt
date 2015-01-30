@@ -4,7 +4,7 @@ project("Cesium Terrain Builder")
 # The version number
 set(CTB_VERSION_MAJOR 0)
 set(CTB_VERSION_MINOR 4)
-set(CTB_VERSION_PATCH 0)
+set(CTB_VERSION_PATCH 1)
 
 # Ensure we have a C++11 compatible compiler (see
 # http://www.guyrutenberg.com/2014/01/05/enabling-c11-c0x-in-cmake/)
