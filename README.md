@@ -265,9 +265,9 @@ case you will need to provide the `GDAL_LIBRARY_DIR`, `GDAL_LIBRARY` and
 `GDAL_INCLUDE_DIR` directives e.g.
 
 ```sh
-cmake -DGDAL_LIBRARY_DIR=/home/gberaudo/dev/inst/lib \
-      -DGDAL_LIBRARY=/home/gberaudo/dev/inst/lib/libgdal.so \
-      -DGDAL_INCLUDE_DIR=/home/gberaudo/dev/inst/include \
+cmake -DGDAL_LIBRARY_DIR=/home/user/install/lib \
+      -DGDAL_LIBRARY=/home/user/install/lib/libgdal.so \
+      -DGDAL_INCLUDE_DIR=/home/user/install/include \
       ..
 ```
 
