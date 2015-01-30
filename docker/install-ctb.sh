@@ -8,7 +8,7 @@ checkout=`cat /tmp/ctb-checkout.txt`
 
 # Get CTB from github
 cd /tmp/ && \
-    wget "https://github.com/geo-data/cesium-terrain-builder/archive/${checkout}.tar.gz" && \
+    wget --no-verbose "https://github.com/geo-data/cesium-terrain-builder/archive/${checkout}.tar.gz" && \
     tar -xzf "${checkout}.tar.gz" && \
     cd "cesium-terrain-builder-${checkout}" && \
     mkdir build && \
