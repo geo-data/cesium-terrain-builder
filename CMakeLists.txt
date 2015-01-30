@@ -59,6 +59,8 @@ if(NOT MSVC)
   #set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Wextra --pedantic")
 endif()
 
+FIND_PACKAGE (Threads)
+
 # We need GDAL
 find_package(GDAL)
 if(NOT GDAL_FOUND)
