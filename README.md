@@ -259,6 +259,18 @@ Alternatively in step 3 above you can create a debug build by running `cmake
 specifying the `CMAKE_INSTALL_PREFIX` directive e.g. `cmake
 -DCMAKE_INSTALL_PREFIX=/tmp/terrain ..`.
 
+Note that if you have GDAL installed in a custom location (e.g under
+`/home/user/install`) it will likely not be found by running `cmake ..`. In this
+case you will need to provide the `GDAL_LIBRARY_DIR`, `GDAL_LIBRARY` and
+`GDAL_INCLUDE_DIR` directives e.g.
+
+```sh
+cmake -DGDAL_LIBRARY_DIR=/home/gberaudo/dev/inst/lib \
+      -DGDAL_LIBRARY=/home/gberaudo/dev/inst/lib/libgdal.so \
+      -DGDAL_INCLUDE_DIR=/home/gberaudo/dev/inst/include \
+      ..
+```
+
 ### Using Docker
 
 [homme/cesium-terrain-builder](https://registry.hub.docker.com/u/homme/cesium-terrain-builder/)
