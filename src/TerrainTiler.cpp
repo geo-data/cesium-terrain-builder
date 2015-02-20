@@ -41,7 +41,9 @@ ctb::TerrainTiler::createTile(const TileCoordinate &coord) const {
 
   delete rasterTile;
 
-  // Copy the raster data into the terrain tile heights
+  // Convert the raster data into the terrain tile heights.  This assumes the
+  // input raster data represents meters above sea level. Each terrain height
+  // value is the number of 1/5 meter units above -1000 meters.
   // TODO: try doing this using a VRT derived band:
   // (http://www.gdal.org/gdal_vrttut.html)
   for (unsigned short int i = 0; i < TerrainTile::TILE_CELL_SIZE; i++) {
