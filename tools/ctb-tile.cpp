@@ -59,6 +59,8 @@ static const char *osDirSep = "\\";
 static const char *osDirSep = "/";
 #endif
 
+static int globalIteratorIndex;
+
 /// Handle the terrain build CLI options
 class TerrainBuild : public Command {
 public:
@@ -71,6 +73,7 @@ public:
     tileSize(0),
     startZoom(-1),
     endZoom(-1),
+    resumeFrom(0),
     verbosity(1)
   {}
 
@@ -127,6 +130,11 @@ public:
   }
 
   static void
+  setResumeFrom(command_t *command) {
+    static_cast<TerrainBuild *>(Command::self(command))->resumeFrom = atoi(command->arg);
+  }
+
+  static void
   setQuiet(command_t *command) {
     --(static_cast<TerrainBuild *>(Command::self(command))->verbosity);
   }
@@ -164,6 +172,7 @@ public:
     tileSize,
     startZoom,
     endZoom,
+    resumeFrom,
     verbosity;
 
   CPLStringList creationOptions;
@@ -233,7 +242,6 @@ getTileFilename(const TileCoordinate *coord, const string dirname, const char *e
  */
 template<typename T> int
 incrementIterator(T &iter, int currentIndex) {
-  static int globalIteratorIndex = 0; // keep track of where we are globally
   static mutex mutex;        // ensure iterations occur serially between threads
 
   lock_guard<std::mutex> lock(mutex);
@@ -289,7 +297,7 @@ static GDALProgressFunc progressFunc = termProgress;
 int
 showProgress(int currentIndex, string filename) {
   stringstream stream;
-  stream << "created " << filename << " in thread " << this_thread::get_id();
+  stream << "created " << filename << " [" << currentIndex << "] in thread " << this_thread::get_id();
   string message = stream.str();
 
   return progressFunc(currentIndex / (double) iteratorSize, message.c_str(), NULL);
@@ -404,6 +412,7 @@ main(int argc, char *argv[]) {
   command.option("-t", "--tile-size <size>", "specify the size of the tiles in pixels. This defaults to 65 for terrain tiles and 256 for other GDAL formats", TerrainBuild::setTileSize);
   command.option("-s", "--start-zoom <zoom>", "specify the zoom level to start at. This should be greater than the end zoom level", TerrainBuild::setStartZoom);
   command.option("-e", "--end-zoom <zoom>", "specify the zoom level to end at. This should be less than the start zoom level and >= 0", TerrainBuild::setEndZoom);
+  command.option("-r", "--resume-from <index>", "resume the operation from the specified tile index. This should be equal to the number of tiles already generated.", TerrainBuild::setResumeFrom);
   command.option("-n", "--creation-option <option>", "specify a GDAL creation option for the output dataset in the form NAME=VALUE. Can be specified multiple times. Not valid for Terrain tiles.", TerrainBuild::addCreationOption);
   command.option("-z", "--error-threshold <threshold>", "specify the error threshold in pixel units for transformation approximation. Larger values should mean faster transforms. Defaults to 0.125", TerrainBuild::setErrorThreshold);
   command.option("-m", "--warp-memory <bytes>", "The memory limit in bytes used for warp operations. Higher settings should be faster. Defaults to a conservative GDAL internal setting.", TerrainBuild::setWarpMemory);
@@ -415,6 +424,8 @@ main(int argc, char *argv[]) {
   command.check();
 
   GDALAllRegister();
+
+  globalIteratorIndex = command.resumeFrom; // keep track of where we are globally
 
   // Set the output type
   if (command.verbosity > 1) {
