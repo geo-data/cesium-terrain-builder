@@ -10,6 +10,9 @@
 FROM homme/gdal:latest
 MAINTAINER Homme Zwaagstra <hrz@geodata.soton.ac.uk>
 
+# Install as root
+USER root
+
 # Upgrade from gcc 4.6 to 4.7 (see
 # http://askubuntu.com/questions/113291/how-do-i-install-gcc-4-7)
 RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test
