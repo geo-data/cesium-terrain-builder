@@ -7,7 +7,7 @@
 # Builder software (https://github.com/geo-data/cesium-terrain-builder).
 #
 
-FROM homme/gdal:latest
+FROM geodata/gdal:latest
 MAINTAINER Homme Zwaagstra <hrz@geodata.soton.ac.uk>
 
 # Install as root
