@@ -13,7 +13,7 @@ endif()
 # We need zlib
 find_package(ZLIB)
 if(NOT ZLIB_FOUND)
-  message(FATAL_ERROR "The zlib library cannot be found on the sytem")
+  message(FATAL_ERROR "The zlib library cannot be found on the system")
 endif()
 include_directories(${ZLIB_INCLUDE_DIRS})
 

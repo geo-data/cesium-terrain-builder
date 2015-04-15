@@ -115,7 +115,6 @@ public:
     static_cast<TerrainBuild *>(Command::self(command))->tileSize = atoi(command->arg);
   }
 
-
   static void
   setStartZoom(command_t *command) {
     static_cast<TerrainBuild *>(Command::self(command))->startZoom = atoi(command->arg);
@@ -134,6 +133,42 @@ public:
   static void
   setVerbose(command_t *command) {
     ++(static_cast<TerrainBuild *>(Command::self(command))->verbosity);
+  }
+
+  static void
+  setResampleAlg(command_t *command) {
+    GDALResampleAlg eResampleAlg;
+
+    if (strcmp(command->arg, "nearest") == 0)
+      eResampleAlg = GRA_NearestNeighbour;
+    else if (strcmp(command->arg, "bilinear") == 0)
+      eResampleAlg = GRA_Bilinear;
+    else if (strcmp(command->arg, "cubic") == 0)
+      eResampleAlg = GRA_Cubic;
+    else if (strcmp(command->arg, "cubicspline") == 0)
+      eResampleAlg = GRA_CubicSpline;
+    else if (strcmp(command->arg, "lanczos") == 0)
+      eResampleAlg = GRA_Lanczos;
+    else if (strcmp(command->arg, "average") == 0)
+      eResampleAlg = GRA_Average;
+    else if (strcmp(command->arg, "mode") == 0)
+      eResampleAlg = GRA_Mode;
+    else if (strcmp(command->arg, "max") == 0)
+      eResampleAlg = GRA_Max;
+    else if (strcmp(command->arg, "min") == 0)
+      eResampleAlg = GRA_Min;
+    else if (strcmp(command->arg, "med") == 0)
+      eResampleAlg = GRA_Med;
+    else if (strcmp(command->arg, "q1") == 0)
+      eResampleAlg = GRA_Q1;
+    else if (strcmp(command->arg, "q3") == 0)
+      eResampleAlg = GRA_Q3;
+    else {
+      cerr << "Error: Unknown resampling algorithm: " << command->arg << endl;
+      static_cast<TerrainBuild *>(Command::self(command))->help(); // exit
+    }
+
+    static_cast<TerrainBuild *>(Command::self(command))->tilerOptions.resampleAlg = eResampleAlg;
   }
 
   static void
@@ -404,6 +439,7 @@ main(int argc, char *argv[]) {
   command.option("-t", "--tile-size <size>", "specify the size of the tiles in pixels. This defaults to 65 for terrain tiles and 256 for other GDAL formats", TerrainBuild::setTileSize);
   command.option("-s", "--start-zoom <zoom>", "specify the zoom level to start at. This should be greater than the end zoom level", TerrainBuild::setStartZoom);
   command.option("-e", "--end-zoom <zoom>", "specify the zoom level to end at. This should be less than the start zoom level and >= 0", TerrainBuild::setEndZoom);
+  command.option("-r", "--resampling-method <algorithm>", "specify the raster resampling algorithm.  One of: nearest; bilinear; cubic; cubicspline; lanczos; average; mode; max; min; med; q1; q3. Defaults to average.", TerrainBuild::setResampleAlg);
   command.option("-n", "--creation-option <option>", "specify a GDAL creation option for the output dataset in the form NAME=VALUE. Can be specified multiple times. Not valid for Terrain tiles.", TerrainBuild::addCreationOption);
   command.option("-z", "--error-threshold <threshold>", "specify the error threshold in pixel units for transformation approximation. Larger values should mean faster transforms. Defaults to 0.125", TerrainBuild::setErrorThreshold);
   command.option("-m", "--warp-memory <bytes>", "The memory limit in bytes used for warp operations. Higher settings should be faster. Defaults to a conservative GDAL internal setting.", TerrainBuild::setWarpMemory);

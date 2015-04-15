@@ -311,8 +311,7 @@ Docker image provides a way of visualising the tilesets created by
 
 * Expose tilers using a standard container api (map and/or vector).
 
-* Enable more options to be passed to the VRT warper, such as the resampling
-  algorithm. Some of this can be achieved by passing options to
+* Enable more options to be passed to the VRT warper by parameterising
   `GDALWarpOptions::papszWarpOptions` and `GDALCreateGenImgProjTransformer2` in
   `GDALTiler::createRasterTile`.
 

@@ -23,6 +23,7 @@
  */
 
 #include <string>
+#include "gdalwarper.h"
 
 #include "TileCoordinate.hpp"
 #include "GlobalGeodetic.hpp"
@@ -40,6 +41,8 @@ struct ctb::TilerOptions {
   float errorThreshold = 0.125; // the `gdalwarp` default
   /// The memory limit of the warper in bytes
   double warpMemoryLimit = 0.0; // default to GDAL internal setting
+  /// The warp resampling algorithm
+  GDALResampleAlg resampleAlg = GRA_Average; // recommended by GDAL maintainer
 };
 
 /**
