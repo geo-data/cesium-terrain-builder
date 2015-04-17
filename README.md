@@ -70,6 +70,7 @@ Options:
   -t, --tile-size <size>        specify the size of the tiles in pixels. This defaults to 65 for terrain tiles and 256 for other GDAL formats
   -s, --start-zoom <zoom>       specify the zoom level to start at. This should be greater than the end zoom level
   -e, --end-zoom <zoom>         specify the zoom level to end at. This should be less than the start zoom level and >= 0
+  -r, --resampling-method <algorithm> specify the raster resampling algorithm.  One of: nearest; bilinear; cubic; cubicspline; lanczos; average; mode; max; min; med; q1; q3. Defaults to average.
   -n, --creation-option <option> specify a GDAL creation option for the output dataset in the form NAME=VALUE. Can be specified multiple times. Not valid for Terrain tiles.
   -z, --error-threshold <threshold> specify the error threshold in pixel units for transformation approximation. Larger values should mean faster transforms. Defaults to 0.125
   -m, --warp-memory <bytes>     The memory limit in bytes used for warp operations. Higher settings should be faster. Defaults to a conservative GDAL internal setting.
@@ -231,7 +232,10 @@ this issue is tracked
 
 Ensure [GDAL](http://www.gdal.org) >= 2.0.0 is installed.  At the time of
 writing this is not a stable release so you may need to use a nightly build or
-to build the source directly from version control.
+to build the source directly from version control.  Specifically, you will need
+a version of trunk that has added the min,max,med,q1 and q3 resampling
+algorithms.  In the subversion repository this is commit 28717 and on the GitHub
+mirror this is 0a90a34.
 
 ### Build requirements
 
