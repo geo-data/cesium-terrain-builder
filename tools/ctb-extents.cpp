@@ -145,7 +145,7 @@ printTile(ofstream& stream, const GridIterator &iter) {
 /// Output the tile extent for a particular zoom level
 static bool
 writeBoundsForZoom(ofstream &geojson, const string &dirname, GridIterator &iter, i_zoom zoom) {
-  const string filename = dirname + static_cast<ostringstream*>( &(ostringstream() << zoom << ".geojson") )->str();
+  const string filename = dirname + (ostringstream() << zoom << ".geojson").str();
   cout << "creating " << filename << endl;
 
   geojson.open(filename.c_str(), ofstream::trunc);
