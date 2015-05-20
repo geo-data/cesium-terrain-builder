@@ -214,19 +214,16 @@ static string
 getTileFilename(const TileCoordinate *coord, const string dirname, const char *extension) {
   static mutex mutex;
   VSIStatBufL stat;
-  string filename = dirname + static_cast<ostringstream*>
-    (
-     &(ostringstream()
+  string filename = dirname + (ostringstream()
        << coord->zoom
        << osDirSep
-       << coord->x)
-     )->str();
+       << coord->x).str();
 
   lock_guard<std::mutex> lock(mutex);
 
   // Check whether the `{zoom}/{x}` directory exists or not
   if (VSIStatExL(filename.c_str(), &stat, VSI_STAT_EXISTS_FLAG | VSI_STAT_NATURE_FLAG)) {
-    filename = dirname + static_cast<ostringstream*>(&(ostringstream() << coord->zoom))->str();
+    filename = dirname + (ostringstream() << coord->zoom).str();
 
     // Check whether the `{zoom}` directory exists or not
     if (VSIStatExL(filename.c_str(), &stat, VSI_STAT_EXISTS_FLAG | VSI_STAT_NATURE_FLAG)) {
@@ -239,7 +236,7 @@ getTileFilename(const TileCoordinate *coord, const string dirname, const char *e
     }
 
     // Create the `{zoom}/{x}` directory
-    filename += static_cast<ostringstream*>(&(ostringstream() << osDirSep << coord->x))->str();
+    filename += (ostringstream() << osDirSep << coord->x).str();
     if (VSIMkdir(filename.c_str(), 0755))
       throw CTBException("Could not create the x level directory");
 
@@ -248,7 +245,7 @@ getTileFilename(const TileCoordinate *coord, const string dirname, const char *e
   }
 
   // Create the filename itself, adding the extension if required
-  filename += static_cast<ostringstream*>(&(ostringstream() << osDirSep << coord->y))->str();
+  filename += (ostringstream() << osDirSep << coord->y).str();
   if (extension != NULL) {
     filename += ".";
     filename += extension;
