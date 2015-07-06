@@ -30,6 +30,7 @@
 
 #include "gdal_priv.h"
 #include "commander.hpp"
+#include "concat.hpp"
 
 #include "GlobalMercator.hpp"
 #include "RasterTiler.hpp"
@@ -145,7 +146,7 @@ printTile(ofstream& stream, const GridIterator &iter) {
 /// Output the tile extent for a particular zoom level
 static bool
 writeBoundsForZoom(ofstream &geojson, const string &dirname, GridIterator &iter, i_zoom zoom) {
-  const string filename = dirname + (ostringstream() << zoom << ".geojson").str();
+  const string filename = concat(dirname, zoom, ".geojson");
   cout << "creating " << filename << endl;
 
   geojson.open(filename.c_str(), ofstream::trunc);

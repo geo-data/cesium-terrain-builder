@@ -281,6 +281,8 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
 
   // The raster tile is represented as a VRT dataset
   hDstDS = GDALCreateWarpedVRT(hSrcDS, mGrid.tileSize(), mGrid.tileSize(), adfGeoTransform, psWarpOptions);
+
+  bool isApproxTransform = (psWarpOptions->pfnTransformer == GDALApproxTransform);
   GDALDestroyWarpOptions( psWarpOptions );
 
   if (hDstDS == NULL) {
@@ -304,7 +306,7 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
   // Create the tile, passing it the base image transformer to manage if this is
   // an approximate transform
   return new GDALTile((GDALDataset *) hDstDS,
-                      (psWarpOptions->pfnTransformer == GDALApproxTransform)
+                      isApproxTransform
                       ? transformerArg : NULL);
 }
 
