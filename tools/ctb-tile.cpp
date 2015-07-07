@@ -45,6 +45,7 @@
 #include "cpl_vsi.h"            // for virtual filesystem
 #include "gdal_priv.h"
 #include "commander.hpp"        // for cli parsing
+#include "concat.hpp"
 
 #include "GlobalMercator.hpp"
 #include "RasterIterator.hpp"
@@ -214,16 +215,13 @@ static string
 getTileFilename(const TileCoordinate *coord, const string dirname, const char *extension) {
   static mutex mutex;
   VSIStatBufL stat;
-  string filename = dirname + (ostringstream()
-       << coord->zoom
-       << osDirSep
-       << coord->x).str();
+  string filename = concat(dirname, coord->zoom, osDirSep, coord->x);
 
   lock_guard<std::mutex> lock(mutex);
 
   // Check whether the `{zoom}/{x}` directory exists or not
   if (VSIStatExL(filename.c_str(), &stat, VSI_STAT_EXISTS_FLAG | VSI_STAT_NATURE_FLAG)) {
-    filename = dirname + (ostringstream() << coord->zoom).str();
+    filename = concat(dirname, coord->zoom);
 
     // Check whether the `{zoom}` directory exists or not
     if (VSIStatExL(filename.c_str(), &stat, VSI_STAT_EXISTS_FLAG | VSI_STAT_NATURE_FLAG)) {
@@ -236,7 +234,7 @@ getTileFilename(const TileCoordinate *coord, const string dirname, const char *e
     }
 
     // Create the `{zoom}/{x}` directory
-    filename += (ostringstream() << osDirSep << coord->x).str();
+    filename += concat(osDirSep, coord->x);
     if (VSIMkdir(filename.c_str(), 0755))
       throw CTBException("Could not create the x level directory");
 
@@ -245,7 +243,7 @@ getTileFilename(const TileCoordinate *coord, const string dirname, const char *e
   }
 
   // Create the filename itself, adding the extension if required
-  filename += (ostringstream() << osDirSep << coord->y).str();
+  filename += concat(osDirSep, coord->y);
   if (extension != NULL) {
     filename += ".";
     filename += extension;
