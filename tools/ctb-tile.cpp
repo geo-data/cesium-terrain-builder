@@ -72,7 +72,8 @@ public:
     tileSize(0),
     startZoom(-1),
     endZoom(-1),
-    verbosity(1)
+    verbosity(1),
+    resume(false)
   {}
 
   void
@@ -134,6 +135,11 @@ public:
   static void
   setVerbose(command_t *command) {
     ++(static_cast<TerrainBuild *>(Command::self(command))->verbosity);
+  }
+
+  static void
+  setResume(command_t* command) {
+    static_cast<TerrainBuild *>(Command::self(command))->resume = true;
   }
 
   static void
@@ -201,6 +207,8 @@ public:
     startZoom,
     endZoom,
     verbosity;
+
+  bool resume;
 
   CPLStringList creationOptions;
   TilerOptions tilerOptions;
@@ -325,6 +333,12 @@ showProgress(int currentIndex, string filename) {
   return progressFunc(currentIndex / (double) iteratorSize, message.c_str(), NULL);
 }
 
+static bool
+fileExists(const std::string& filename) {
+  VSIStatBufL statbuf;
+  return VSIStatExL(filename.c_str(), &statbuf, VSI_STAT_EXISTS_FLAG) == 0;
+}
+
 /// Output GDAL tiles represented by a tiler to a directory
 static void
 buildGDAL(const RasterTiler &tiler, TerrainBuild *command) {
@@ -348,20 +362,24 @@ buildGDAL(const RasterTiler &tiler, TerrainBuild *command) {
   setIteratorSize(iter);
 
   while (!iter.exhausted()) {
-    GDALTile *tile = *iter;
+    const TileCoordinate *coordinate = iter.GridIterator::operator*();
     GDALDataset *poDstDS;
-    const string filename = getTileFilename(tile, dirname, extension);
+    const string filename = getTileFilename(coordinate, dirname, extension);
 
-    poDstDS = poDriver->CreateCopy(filename.c_str(), tile->dataset, FALSE,
-                                   command->creationOptions.List(), NULL, NULL );
-    delete tile;
+    
+    if( !command->resume || !fileExists(filename) ) {
+      GDALTile *tile = *iter;
+      poDstDS = poDriver->CreateCopy(filename.c_str(), tile->dataset, FALSE,
+                                     command->creationOptions.List(), NULL, NULL );
+      delete tile;
 
-    // Close the datasets, flushing data to destination
-    if (poDstDS == NULL) {
-      throw CTBException("Could not create GDAL tile");
+      // Close the datasets, flushing data to destination
+      if (poDstDS == NULL) {
+        throw CTBException("Could not create GDAL tile");
+      }
+
+      GDALClose(poDstDS);
     }
-
-    GDALClose(poDstDS);
 
     currentIndex = incrementIterator(iter, currentIndex);
     showProgress(currentIndex, filename);
@@ -380,11 +398,15 @@ buildTerrain(const TerrainTiler &tiler, TerrainBuild *command) {
   setIteratorSize(iter);
 
   while (!iter.exhausted()) {
-    TerrainTile *tile = *iter;
-    const string filename = getTileFilename(tile, dirname, "terrain");
+    const TileCoordinate *coordinate = iter.GridIterator::operator*();
+    const string filename = getTileFilename(coordinate, dirname, "terrain");
 
-    tile->writeFile(filename.c_str());
-    delete tile;
+    if( !command->resume || !fileExists(filename) ) {
+      TerrainTile *tile = *iter;
+
+      tile->writeFile(filename.c_str());
+      delete tile;
+    }
 
     currentIndex = incrementIterator(iter, currentIndex);
     showProgress(currentIndex, filename);
@@ -438,6 +460,7 @@ main(int argc, char *argv[]) {
   command.option("-n", "--creation-option <option>", "specify a GDAL creation option for the output dataset in the form NAME=VALUE. Can be specified multiple times. Not valid for Terrain tiles.", TerrainBuild::addCreationOption);
   command.option("-z", "--error-threshold <threshold>", "specify the error threshold in pixel units for transformation approximation. Larger values should mean faster transforms. Defaults to 0.125", TerrainBuild::setErrorThreshold);
   command.option("-m", "--warp-memory <bytes>", "The memory limit in bytes used for warp operations. Higher settings should be faster. Defaults to a conservative GDAL internal setting.", TerrainBuild::setWarpMemory);
+  command.option("-R", "--resume", "Do not overwrite existing files", TerrainBuild::setResume);
   command.option("-q", "--quiet", "only output errors", TerrainBuild::setQuiet);
   command.option("-v", "--verbose", "be more noisy", TerrainBuild::setVerbose);
 
