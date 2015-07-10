@@ -369,7 +369,8 @@ buildGDAL(const RasterTiler &tiler, TerrainBuild *command) {
     
     if( !command->resume || !fileExists(filename) ) {
       GDALTile *tile = *iter;
-      poDstDS = poDriver->CreateCopy(filename.c_str(), tile->dataset, FALSE,
+      const string temp_filename = concat(filename, ".tmp");
+      poDstDS = poDriver->CreateCopy(temp_filename.c_str(), tile->dataset, FALSE,
                                      command->creationOptions.List(), NULL, NULL );
       delete tile;
 
@@ -379,6 +380,10 @@ buildGDAL(const RasterTiler &tiler, TerrainBuild *command) {
       }
 
       GDALClose(poDstDS);
+
+      if (VSIRename(temp_filename.c_str(), filename.c_str()) != 0) {
+        throw new CTBException("Could not rename temporary file");
+      }
     }
 
     currentIndex = incrementIterator(iter, currentIndex);
@@ -403,9 +408,14 @@ buildTerrain(const TerrainTiler &tiler, TerrainBuild *command) {
 
     if( !command->resume || !fileExists(filename) ) {
       TerrainTile *tile = *iter;
+      const string temp_filename = concat(filename, ".tmp");
 
-      tile->writeFile(filename.c_str());
+      tile->writeFile(temp_filename.c_str());
       delete tile;
+
+      if (VSIRename(temp_filename.c_str(), filename.c_str()) != 0) {
+        throw new CTBException("Could not rename temporary file");
+      }
     }
 
     currentIndex = incrementIterator(iter, currentIndex);
