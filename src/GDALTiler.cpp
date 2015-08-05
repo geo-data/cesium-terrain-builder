@@ -192,6 +192,64 @@ GDALTiler::createRasterTile(const TileCoordinate &coord) const {
 }
 
 /**
+ * @brief Get an overview dataset which best matches a transformation
+ *
+ * Try and get an overview from the source dataset that corresponds more closely
+ * to the resolution belonging to any output of the transformation.  This will
+ * make downsampling operations much quicker and work around integer overflow
+ * errors that can occur if downsampling very high resolution source datasets to
+ * small scale (low zoom level) tiles.
+ *
+ * This code is adapted from that found in `gdalwarp.cpp` implementing the
+ * `gdalwarp -ovr` option.
+ */
+static
+GDALDatasetH
+getOverviewDataset(GDALDatasetH hSrcDS, GDALTransformerFunc pfnTransformer, void *hTransformerArg) {
+  GDALDataset* poSrcDS = static_cast<GDALDataset*>(hSrcDS);
+  GDALDataset* poSrcOvrDS = NULL;
+  int nOvLevel = -2;
+  int nOvCount = poSrcDS->GetRasterBand(1)->GetOverviewCount();
+  if( nOvCount > 0 )
+    {
+      double adfSuggestedGeoTransform[6];
+      double adfExtent[4];
+      int    nPixels, nLines;
+      /* Compute what the "natural" output resolution (in pixels) would be for this */
+      /* input dataset */
+      if( GDALSuggestedWarpOutput2(hSrcDS, pfnTransformer, hTransformerArg,
+                                   adfSuggestedGeoTransform, &nPixels, &nLines,
+                                   adfExtent, 0) == CE_None)
+        {
+          double dfTargetRatio = 1.0 / adfSuggestedGeoTransform[1];
+          if( dfTargetRatio > 1.0 )
+            {
+              int iOvr;
+              for( iOvr = -1; iOvr < nOvCount-1; iOvr++ )
+                {
+                  double dfOvrRatio = (iOvr < 0) ? 1.0 : (double)poSrcDS->GetRasterXSize() /
+                    poSrcDS->GetRasterBand(1)->GetOverview(iOvr)->GetXSize();
+                  double dfNextOvrRatio = (double)poSrcDS->GetRasterXSize() /
+                    poSrcDS->GetRasterBand(1)->GetOverview(iOvr+1)->GetXSize();
+                  if( dfOvrRatio < dfTargetRatio && dfNextOvrRatio > dfTargetRatio )
+                    break;
+                  if( fabs(dfOvrRatio - dfTargetRatio) < 1e-1 )
+                    break;
+                }
+              iOvr += (nOvLevel+2);
+              if( iOvr >= 0 )
+                {
+                  //std::cout << "CTB WARPING: Selecting overview level " << iOvr << " for output dataset " << nPixels << "x" << nLines << std::endl;
+                  poSrcOvrDS = GDALCreateOverviewDataset( poSrcDS, iOvr, FALSE, FALSE );
+                }
+            }
+        }
+    }
+
+  return static_cast<GDALDatasetH>(poSrcOvrDS);
+}
+
+/**
  * @details This method is the heart of the tiler.  A `TileCoordinate` is used
  * to obtain the geospatial extent associated with that tile as related to the
  * underlying GDAL dataset. This mapping may require a reprojection if the
@@ -251,6 +309,21 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
     throw CTBException("Could not create image to image transformer");
   }
 
+  // Try and get an overview from the source dataset that corresponds more
+  // closely to the resolution of this tile.
+  GDALDatasetH hWrkSrcDS = getOverviewDataset(hSrcDS, GDALGenImgProjTransform, transformerArg);
+  if (hWrkSrcDS == NULL) {
+    hWrkSrcDS = psWarpOptions->hSrcDS = hSrcDS;
+  } else {
+    // We need to recreate the transform when operating on an overview.
+    GDALDestroyGenImgProjTransformer( transformerArg );
+    transformerArg = GDALCreateGenImgProjTransformer2( hWrkSrcDS, NULL, transformOptions.List() );
+    if(transformerArg == NULL) {
+      GDALDestroyWarpOptions(psWarpOptions);
+      throw CTBException("Could not create overview image to image transformer");
+    }
+  }
+
   // Specify the destination geotransform
   GDALSetGenImgProjTransformerDstGeoTransform(transformerArg, adfGeoTransform );
 
@@ -280,7 +353,7 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
   psWarpOptions->papszWarpOptions = warpOptions.StealList();
 
   // The raster tile is represented as a VRT dataset
-  hDstDS = GDALCreateWarpedVRT(hSrcDS, mGrid.tileSize(), mGrid.tileSize(), adfGeoTransform, psWarpOptions);
+  hDstDS = GDALCreateWarpedVRT(hWrkSrcDS, mGrid.tileSize(), mGrid.tileSize(), adfGeoTransform, psWarpOptions);
 
   bool isApproxTransform = (psWarpOptions->pfnTransformer == GDALApproxTransform);
   GDALDestroyWarpOptions( psWarpOptions );
