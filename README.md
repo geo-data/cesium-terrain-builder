@@ -74,6 +74,7 @@ Options:
   -n, --creation-option <option> specify a GDAL creation option for the output dataset in the form NAME=VALUE. Can be specified multiple times. Not valid for Terrain tiles.
   -z, --error-threshold <threshold> specify the error threshold in pixel units for transformation approximation. Larger values should mean faster transforms. Defaults to 0.125
   -m, --warp-memory <bytes>     The memory limit in bytes used for warp operations. Higher settings should be faster. Defaults to a conservative GDAL internal setting.
+  -R, --resume                  Do not overwrite existing files
   -q, --quiet                   only output errors
   -v, --verbose                 be more noisy
 ```
@@ -90,9 +91,12 @@ Options:
 
 * For large rasters a tile based format (as opposed to scanline based) will
   drastically speed up processing.  A block size that is similar to the tile
-  output size (i.e. 65x65 for terrain tiles) should be chosen.  Additionally a
-  format that supports overviews can be chosen with overviews being implemented
-  for resolutions corresponding to the
+  output size (i.e. 65x65 for terrain tiles) should be chosen.
+
+* Adding overviews to the source dataset will speed up tile generation.  The
+  overview will be chosen whose resolution most closely matches that of the zoom
+  level being rendered.  Overviews will only be downsampled, never upsampled.
+  As such, it is recommended to use rolutions corresponding to the
   [Global Geodetic Profile](http://wiki.osgeo.org/wiki/Tile_Map_Service_Specification#global-geodetic)
   in the Tile Mapping Service specification.  See the
   [`gdaladdo`](http://www.gdal.org/gdaladdo.html) tool for creating overviews.
@@ -214,17 +218,23 @@ at `doc/html/index.html`.
 ## Status
 
 Although the software has been used to create a substantial number of terrain
-tile sets currently in production use, it should be considered alpha quality
+tile sets currently in production use, it should be considered beta quality
 software: it needs broader testing, a comprehensive test harness and the API is
 liable to change.
 
-The software has primarily been developed and deployed on a Linux OS.  Porting
-it to other systems should be relatively painless as the library dependencies
-have been ported to numerous systems and the code itself is standard C++11.  In
-fact it has been reported as compiling on Windows using Visual Studio 2010 with
-minor tweaks. It is reported as not compiling on Mac OS X Mavericks using clang: 
-this issue is tracked 
-[here](https://github.com/geo-data/cesium-terrain-builder/issues/3).
+The software has primarily been developed and deployed on a Linux OS, and this
+is the only officially supported platform.  However, it has been reported as
+compiling and running on:
+
+* Windows using Visual Studio 2010 and 2013 (see
+  [this issue](https://github.com/geo-data/cesium-terrain-builder/issues/6)).
+
+* Mac OS X Mavericks using clang (see
+  [this issue](https://github.com/geo-data/cesium-terrain-builder/issues/3)).
+
+Porting it to other systems should be relatively painless as the library
+dependencies have been ported to numerous systems and the code itself is
+standard C++11.
 
 ## Requirements
 
@@ -296,8 +306,6 @@ Docker image provides a way of visualising the tilesets created by
   [Bandit](http://banditcpp.org/), including code coverage and valgrind
   analysis.
 
-* Add a `--resume` option to `ctb-tile` to resume a previously interrupted run.
-
 * Better coordination between threads in `ctb-tile` to enable graceful exits if
   there is a fatal error or other interrupt.
 
@@ -335,7 +343,8 @@ Docker image provides a way of visualising the tilesets created by
   either `GDALFillNodata()` or `GDALGridCreate()`.
 
 * Adding support for creating water masks to tiles could be useful: at the
-  moment all tiles are flagged as being of type 'land'.
+  moment all tiles are flagged as being of type 'land' (see
+  [this issue](https://github.com/geo-data/cesium-terrain-builder/issues/13)).
 
 ## Issues and Contributing
 
@@ -360,6 +369,8 @@ European Regional Development Fund through the
 
 Software developed by [GeoData](http://www.geodata.soton.ac.uk) through the
 [University of Southampton Open Source Geospatial Laboratory](http://www.osgl.soton.ac.uk/).
+
+Thanks to everyone in the community who has contributed to the code base.
 
 ## Contact
 
