@@ -22,6 +22,7 @@
 #include <cmath>                // std::abs
 #include <algorithm>            // std::minmax
 #include <string.h>             // strlen
+#include <mutex>
 
 #include "gdal_priv.h"
 #include "gdalwarper.h"
@@ -39,6 +40,11 @@ GDALTiler::GDALTiler(GDALDataset *poDataset, const Grid &grid, const TilerOption
   poDataset(poDataset),
   options(options)
 {
+
+  // Transformed bounds can give slightly different results on different threads unless mutexed
+  static std::mutex mutex;
+  std::lock_guard<std::mutex> lock(mutex);
+
   // if the dataset is set we need to initialise the tile bounds and raster
   // resolution from it.
   if (poDataset != NULL) {
