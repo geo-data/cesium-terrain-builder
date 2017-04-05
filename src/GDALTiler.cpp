@@ -295,6 +295,8 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
 
   // Set the warp options
   GDALWarpOptions *psWarpOptions = GDALCreateWarpOptions();
+  char ** papszWarpOptions = CSLSetNameValue(papszWarpOptions, "INIT_DEST", "0");
+  psWarpOptions->papszWarpOptions = CSLDuplicate(papszWarpOptions);
   psWarpOptions->eResampleAlg = options.resampleAlg;
   psWarpOptions->dfWarpMemoryLimit = options.warpMemoryLimit;
   psWarpOptions->hSrcDS = hSrcDS;
