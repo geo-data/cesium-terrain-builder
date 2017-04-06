@@ -308,6 +308,8 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
 
   for (short unsigned int i = 0; i < psWarpOptions->nBandCount; ++i) {
     psWarpOptions->panDstBands[i] = psWarpOptions->panSrcBands[i] = i + 1;
+	psWarpOptions->padfSrcNoDataReal[i] = -32768;
+	psWarpOptions->padfDstNoDataReal[i] = 0;
   }
 
   // Create the image to image transformer
