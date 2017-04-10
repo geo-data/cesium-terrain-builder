@@ -325,7 +325,7 @@ GDALTiler::createRasterTile(double(&adfGeoTransform)[6]) const {
 	for (short unsigned int i = 0; i < psWarpOptions->nBandCount; ++i) {
 		int bSuccess;
 
-		double noDataValue = dataset()->GetRasterBand(i)->GetNoDataValue(&bSuccess);
+		double noDataValue = dataset()->GetRasterBand(i+1)->GetNoDataValue(&bSuccess);
 		if (!bSuccess) noDataValue = -32768;
 		double new_noDataValue = 0;
 		psWarpOptions->panDstBands[i] = psWarpOptions->panSrcBands[i] = i + 1;
