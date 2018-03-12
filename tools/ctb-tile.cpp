@@ -50,6 +50,7 @@
 #include "GlobalMercator.hpp"
 #include "RasterIterator.hpp"
 #include "TerrainIterator.hpp"
+#include "MeshIterator.hpp"
 
 using namespace std;
 using namespace ctb;
@@ -73,7 +74,9 @@ public:
     startZoom(-1),
     endZoom(-1),
     verbosity(1),
-    resume(false)
+    resume(false),
+    meshQualityFactor(1.0),
+    metadata(false)
   {}
 
   void
@@ -198,6 +201,16 @@ public:
     return  (command->argc == 1) ? command->argv[0] : NULL;
   }
 
+  static void
+    setMeshQualityFactor(command_t *command) {
+    static_cast<TerrainBuild *>(Command::self(command))->meshQualityFactor = atof(command->arg);
+  }
+
+  static void
+    setMetadata(command_t *command) {
+    static_cast<TerrainBuild *>(Command::self(command))->metadata = true;
+  }
+
   const char *outputDir,
     *outputFormat,
     *profile;
@@ -212,6 +225,9 @@ public:
 
   CPLStringList creationOptions;
   TilerOptions tilerOptions;
+
+  double meshQualityFactor;
+  bool metadata;
 };
 
 /**
@@ -423,6 +439,177 @@ buildTerrain(const TerrainTiler &tiler, TerrainBuild *command) {
   }
 }
 
+/// Output mesh tiles represented by a tiler to a directory
+static void
+buildMesh(const MeshTiler &tiler, TerrainBuild *command) {
+  const string dirname = string(command->outputDir) + osDirSep;
+  i_zoom startZoom = (command->startZoom < 0) ? tiler.maxZoomLevel() : command->startZoom,
+    endZoom = (command->endZoom < 0) ? 0 : command->endZoom;
+
+  // DEBUG Chunker:
+  #if 0
+  TileCoordinate coordinate(13, 8102, 6047);
+  MeshTile *tile = tiler.createMesh(coordinate);
+  //
+  const string txtname = getTileFilename(&coordinate, dirname, "wkt");
+  const Mesh &mesh = tile->getMesh();
+  mesh.writeWktFile(txtname.c_str());
+  //
+  CRSBounds bounds = tiler.grid().tileBounds(coordinate);
+  double x = bounds.getMinX() + 0.5 * (bounds.getMaxX() - bounds.getMinX());
+  double y = bounds.getMinY() + 0.5 * (bounds.getMaxY() - bounds.getMinY());
+  CRSPoint point(x,y);
+  TileCoordinate c = tiler.grid().crsToTile(point, coordinate.zoom);
+  //
+  const string filename = getTileFilename(&coordinate, dirname, "terrain");
+  tile->writeFile(filename.c_str());
+  delete tile;
+  return;
+  #endif
+
+  MeshIterator iter(tiler, startZoom, endZoom);
+  int currentIndex = incrementIterator(iter, 0);
+  setIteratorSize(iter);
+
+  while (!iter.exhausted()) {
+    const TileCoordinate *coordinate = iter.GridIterator::operator*();
+    const string filename = getTileFilename(coordinate, dirname, "terrain");
+
+    if( !command->resume || !fileExists(filename) ) {
+      MeshTile *tile = *iter;
+      const string temp_filename = concat(filename, ".tmp");
+
+      tile->writeFile(temp_filename.c_str());
+      delete tile;
+
+      if (VSIRename(temp_filename.c_str(), filename.c_str()) != 0) {
+        throw new CTBException("Could not rename temporary file");
+      }
+    }
+
+    currentIndex = incrementIterator(iter, currentIndex);
+    showProgress(currentIndex, filename);
+  }
+}
+
+/// Output the layer.json metadata file
+/// http://help.agi.com/TerrainServer/RESTAPIGuide.html
+/// Example:
+/// https://assets.agi.com/stk-terrain/v1/tilesets/world/tiles/layer.json
+static void
+buildMetadata(const RasterTiler &tiler, TerrainBuild *command) {
+  const string dirname = string(command->outputDir) + osDirSep;
+  i_zoom startZoom = (command->startZoom < 0) ? tiler.maxZoomLevel() : command->startZoom,
+    endZoom = (command->endZoom < 0) ? 0 : command->endZoom;
+
+  // Defines the tiles that are available in a level of a Tileset
+  struct LevelInfo {
+  public:
+    LevelInfo() {
+      startX = startY = std::numeric_limits<int>::max();
+      finalX = finalY = std::numeric_limits<int>::min();
+    }
+    int startX, startY;
+    int finalX, finalY;
+
+    inline void addTileCoordinate(const TileCoordinate *coordinate) {
+      startX = std::min(startX, (int)coordinate->x);
+      startY = std::min(startY, (int)coordinate->y);
+      finalX = std::max(finalX, (int)coordinate->x);
+      finalY = std::max(finalY, (int)coordinate->y);
+    }
+  };
+
+  std::string datasetName(command->getInputFilename());
+  datasetName = datasetName.substr(datasetName.find_last_of("/\\") + 1);
+  const size_t rfindpos = datasetName.rfind('.');
+  if (std::string::npos != rfindpos) datasetName = datasetName.erase(rfindpos);
+
+  const std::string filename = concat(dirname, "layer.json");
+  CRSBounds bounds;
+  std::vector<LevelInfo> levels;
+  for (size_t i = 0; i <= startZoom; i++) {
+    levels.push_back(LevelInfo());
+  }
+
+  RasterIterator iter(tiler, startZoom, endZoom);
+  int currentIndex = incrementIterator(iter, 0);
+  setIteratorSize(iter);
+
+  while (!iter.exhausted()) {
+    const TileCoordinate *coordinate = iter.GridIterator::operator*();
+
+    CRSBounds tileBounds = tiler.grid().tileBounds(*coordinate);
+    LevelInfo &level = levels[coordinate->zoom];
+    level.addTileCoordinate(coordinate);
+
+    if (bounds.getMaxX() == bounds.getMinX()) {
+      bounds = tileBounds;
+    }
+    else {
+      bounds.setMinX(std::min(bounds.getMinX(), tileBounds.getMinX()));
+      bounds.setMinY(std::min(bounds.getMinY(), tileBounds.getMinY()));
+      bounds.setMaxX(std::max(bounds.getMaxX(), tileBounds.getMaxX()));
+      bounds.setMaxY(std::max(bounds.getMaxY(), tileBounds.getMaxY()));
+    }
+    currentIndex = incrementIterator(iter, currentIndex);
+    showProgress(currentIndex, filename);
+  }
+
+  // Write metadata file
+  FILE *fp = fopen(filename.c_str(), "w");
+  if (fp == NULL) {
+    throw CTBException("Failed to open metadata file");
+  }
+  fprintf(fp, "{\n");
+  fprintf(fp, "  \"tilejson\": \"2.1.0\",\n");
+  fprintf(fp, "  \"name\": \"%s\",\n", datasetName.c_str());
+  fprintf(fp, "  \"description\": \"\",\n");
+  fprintf(fp, "  \"version\": \"1.1.0\",\n");
+
+  if (strcmp(command->outputFormat, "Terrain") == 0) {
+    fprintf(fp, "  \"format\": \"heightmap-1.0\",\n");
+  }
+  else if (strcmp(command->outputFormat, "Mesh") == 0) {
+    fprintf(fp, "  \"format\": \"quantized-mesh-1.0\",\n");
+  }
+  else {
+    fprintf(fp, "  \"format\": \"GDAL\",\n");
+  }
+  fprintf(fp, "  \"attribution\": \"\",\n");
+  fprintf(fp, "  \"schema\": \"tms\",\n");
+  fprintf(fp, "  \"tiles\": [ \"{z}/{x}/{y}.terrain?v={version}\" ],\n");
+  fprintf(fp, "  \"projection\": \"EPSG:4326\",\n");
+  fprintf(fp, "  \"bounds\": [ %.2f, %.2f, %.2f, %.2f ],\n", 
+    bounds.getMinX(),
+    bounds.getMinY(),
+    bounds.getMaxX(),
+    bounds.getMaxY());
+
+  fprintf(fp, "  \"available\": [\n");
+  for (size_t i = 0, icount = levels.size(); i < icount; i++) {
+    const LevelInfo &level = levels[i];
+
+    if (i > 0) 
+      fprintf(fp, "   ,[ ");
+    else 
+      fprintf(fp, "    [ ");
+
+    if (level.finalX >= level.startX) {
+      fprintf(fp, "{ \"startX\": %li, \"startY\": %li, \"endX\": %li, \"endY\": %li }", 
+        level.startX, 
+        level.startY, 
+        level.finalX, 
+        level.finalY);
+    }
+    fprintf(fp, " ]\n");
+  }
+  fprintf(fp, "  ]\n");
+
+  fprintf(fp, "}\n");
+  fclose(fp);
+}
+
 /**
  * Perform a tile building operation
  *
@@ -437,9 +624,15 @@ runTiler(TerrainBuild *command, Grid *grid) {
   }
 
   try {
-    if (strcmp(command->outputFormat, "Terrain") == 0) {
+    if (command->metadata) {
+      const RasterTiler tiler(poDataset, *grid, command->tilerOptions);
+      buildMetadata(tiler, command);
+    } else if (strcmp(command->outputFormat, "Terrain") == 0) {
       const TerrainTiler tiler(poDataset, *grid);
       buildTerrain(tiler, command);
+    } else if (strcmp(command->outputFormat, "Mesh") == 0) {
+      const MeshTiler tiler(poDataset, *grid, command->tilerOptions, command->meshQualityFactor);
+      buildMesh(tiler, command);
     } else {                    // it's a GDAL format
       const RasterTiler tiler(poDataset, *grid, command->tilerOptions);
       buildGDAL(tiler, command);
@@ -460,7 +653,7 @@ main(int argc, char *argv[]) {
   TerrainBuild command = TerrainBuild(argv[0], version.cstr);
   command.setUsage("[options] GDAL_DATASOURCE");
   command.option("-o", "--output-dir <dir>", "specify the output directory for the tiles (defaults to working directory)", TerrainBuild::setOutputDir);
-  command.option("-f", "--output-format <format>", "specify the output format for the tiles. This is either `Terrain` (the default) or any format listed by `gdalinfo --formats`", TerrainBuild::setOutputFormat);
+  command.option("-f", "--output-format <format>", "specify the output format for the tiles. This is either `Terrain` (the default), `Mesh` (Chunked LOD mesh), or any format listed by `gdalinfo --formats`", TerrainBuild::setOutputFormat);
   command.option("-p", "--profile <profile>", "specify the TMS profile for the tiles. This is either `geodetic` (the default) or `mercator`", TerrainBuild::setProfile);
   command.option("-c", "--thread-count <count>", "specify the number of threads to use for tile generation. On multicore machines this defaults to the number of CPUs", TerrainBuild::setThreadCount);
   command.option("-t", "--tile-size <size>", "specify the size of the tiles in pixels. This defaults to 65 for terrain tiles and 256 for other GDAL formats", TerrainBuild::setTileSize);
@@ -471,6 +664,8 @@ main(int argc, char *argv[]) {
   command.option("-z", "--error-threshold <threshold>", "specify the error threshold in pixel units for transformation approximation. Larger values should mean faster transforms. Defaults to 0.125", TerrainBuild::setErrorThreshold);
   command.option("-m", "--warp-memory <bytes>", "The memory limit in bytes used for warp operations. Higher settings should be faster. Defaults to a conservative GDAL internal setting.", TerrainBuild::setWarpMemory);
   command.option("-R", "--resume", "Do not overwrite existing files", TerrainBuild::setResume);
+  command.option("-g", "--mesh-qfactor", "specify the factor to multiply the estimated geometric error to convert heightmaps to irregular meshes. Larger values should mean minor quality. Defaults to 1.0", TerrainBuild::setMeshQualityFactor);
+  command.option("-l", "--layer", "only output the layer.json metadata file", TerrainBuild::setMetadata);
   command.option("-q", "--quiet", "only output errors", TerrainBuild::setQuiet);
   command.option("-v", "--verbose", "be more noisy", TerrainBuild::setVerbose);
 
@@ -513,6 +708,7 @@ main(int argc, char *argv[]) {
   // Run the tilers in separate threads
   vector<future<int>> tasks;
   int threadCount = (command.threadCount > 0) ? command.threadCount : CPLGetNumCPUs();
+  if (command.metadata) threadCount = 1;
 
   // Instantiate the threads using futures from a packaged_task
   for (int i = 0; i < threadCount ; ++i) {

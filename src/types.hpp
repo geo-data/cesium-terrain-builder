@@ -25,6 +25,7 @@
 #include <cstdint>              // uint16_t
 
 #include "Bounds.hpp"
+#include "Coordinate3D.hpp"
 
 /// All terrain related data types reside in this namespace
 namespace ctb {
@@ -38,7 +39,8 @@ namespace ctb {
   // Complex types
   typedef Bounds<i_tile> TileBounds;      ///< Tile extents in tile coordinates
   typedef Coordinate<i_pixel> PixelPoint; ///< The location of a pixel
-  typedef Coordinate<double> CRSPoint; ///< A Coordinate Reference System coordinate
+  typedef Coordinate<double> CRSPoint;    ///< A Coordinate Reference System coordinate
+  typedef Coordinate3D<double> CRSVertex; ///< A 3D-Vertex of a mesh or tile in CRS coordinates
   typedef Bounds<double> CRSBounds;       ///< Extents in CRS coordinates
   typedef Coordinate<i_tile> TilePoint;   ///< The location of a tile
 
