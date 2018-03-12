@@ -664,7 +664,7 @@ main(int argc, char *argv[]) {
   command.option("-z", "--error-threshold <threshold>", "specify the error threshold in pixel units for transformation approximation. Larger values should mean faster transforms. Defaults to 0.125", TerrainBuild::setErrorThreshold);
   command.option("-m", "--warp-memory <bytes>", "The memory limit in bytes used for warp operations. Higher settings should be faster. Defaults to a conservative GDAL internal setting.", TerrainBuild::setWarpMemory);
   command.option("-R", "--resume", "Do not overwrite existing files", TerrainBuild::setResume);
-  command.option("-g", "--mesh-qfactor", "specify the factor to multiply the estimated geometric error to convert heightmaps to irregular meshes. Larger values should mean minor quality. Defaults to 1.0", TerrainBuild::setMeshQualityFactor);
+  command.option("-g", "--mesh-qfactor <factor>", "specify the factor to multiply the estimated geometric error to convert heightmaps to irregular meshes. Larger values should mean minor quality. Defaults to 1.0", TerrainBuild::setMeshQualityFactor);
   command.option("-l", "--layer", "only output the layer.json metadata file", TerrainBuild::setMetadata);
   command.option("-q", "--quiet", "only output errors", TerrainBuild::setQuiet);
   command.option("-v", "--verbose", "be more noisy", TerrainBuild::setVerbose);
