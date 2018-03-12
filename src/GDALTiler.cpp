@@ -304,7 +304,25 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
   psWarpOptions->panDstBands =
     (int *) CPLMalloc(sizeof(int) * psWarpOptions->nBandCount );
 
+  psWarpOptions->padfSrcNoDataReal = 
+    (double *)CPLCalloc(psWarpOptions->nBandCount, sizeof(double));
+  psWarpOptions->padfSrcNoDataImag = 
+    (double *)CPLCalloc(psWarpOptions->nBandCount, sizeof(double));
+  psWarpOptions->padfDstNoDataReal = 
+    (double *)CPLCalloc(psWarpOptions->nBandCount, sizeof(double));
+  psWarpOptions->padfDstNoDataImag = 
+    (double *)CPLCalloc(psWarpOptions->nBandCount, sizeof(double));
+
   for (short unsigned int i = 0; i < psWarpOptions->nBandCount; ++i) {
+    int bGotNoData = FALSE;
+    double noDataValue = dataset()->GetRasterBand(i + 1)->GetNoDataValue(&bGotNoData);
+    if (!bGotNoData) noDataValue = -32768;
+
+    psWarpOptions->padfSrcNoDataReal[i] = noDataValue;
+    psWarpOptions->padfSrcNoDataImag[i] = 0;
+    psWarpOptions->padfDstNoDataReal[i] = noDataValue;
+    psWarpOptions->padfDstNoDataImag[i] = 0;
+    
     psWarpOptions->panDstBands[i] = psWarpOptions->panSrcBands[i] = i + 1;
   }
 
