@@ -585,26 +585,6 @@ buildMesh(const MeshTiler &tiler, TerrainBuild *command, TerrainMetadata *metada
   i_zoom startZoom = (command->startZoom < 0) ? tiler.maxZoomLevel() : command->startZoom,
     endZoom = (command->endZoom < 0) ? 0 : command->endZoom;
 
-  // DEBUG Chunker:
-  #if 0
-  TileCoordinate coordinate(13, 8102, 6047);
-  MeshTile *tile = tiler.createMesh(coordinate);
-  //
-  const string txtname = getTileFilename(&coordinate, dirname, "wkt");
-  const Mesh &mesh = tile->getMesh();
-  mesh.writeWktFile(txtname.c_str());
-  //
-  CRSBounds bounds = tiler.grid().tileBounds(coordinate);
-  double x = bounds.getMinX() + 0.5 * (bounds.getMaxX() - bounds.getMinX());
-  double y = bounds.getMinY() + 0.5 * (bounds.getMaxY() - bounds.getMinY());
-  CRSPoint point(x,y);
-  TileCoordinate c = tiler.grid().crsToTile(point, coordinate.zoom);
-  //
-  const string filename = getTileFilename(&coordinate, dirname, "terrain");
-  tile->writeFile(filename.c_str());
-  delete tile;
-  return;
-  #endif
 
   MeshIterator iter(tiler, startZoom, endZoom);
   int currentIndex = incrementIterator(iter, 0);
