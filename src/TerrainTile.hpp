@@ -57,15 +57,8 @@ public:
   /// Read terrain data from the filesystem
   void
   readFile(const char *fileName);
-
-  /// Write terrain data to a file handle
-  void
-  writeFile(FILE *fp) const;
-
-  /// Write terrain data to the filesystem
-  void
-  writeFile(const char *fileName) const;
-
+    
+  // Create a gzipped string containing the terrain bytes, ready to write to disk
   std::string 
   gzipTileContents() const;
 

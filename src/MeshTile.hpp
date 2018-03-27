@@ -52,11 +52,8 @@ public:
 
   /// Create a mesh tile from a tile coordinate
   MeshTile(const TileCoordinate &coord);
-
-  /// Write terrain data to the filesystem
-  void
-  writeFile(const char *fileName) const;
-
+  
+  // Create a gzipped string containing the terrain bytes, ready to write to disk
   std::string
   gzipTileContents() const;
 

@@ -546,6 +546,14 @@ buildGDAL(const RasterTiler &tiler, TerrainBuild *command, TerrainMetadata *meta
   }
 }
 
+static void
+writeTerrainTileToFile(const std::string &filename, const std::string &gzippedTileContents) {
+	std::ofstream fout;
+	fout.open(filename.c_str(), std::ofstream::out | std::ofstream::binary);
+	fout << gzippedTileContents;
+	fout.close();
+}
+
 /// Output terrain tiles represented by a tiler to a directory
 static void
 buildTerrain(const TerrainTiler &tiler, TerrainBuild *command, TerrainMetadata *metadata) {
@@ -564,23 +572,11 @@ buildTerrain(const TerrainTiler &tiler, TerrainBuild *command, TerrainMetadata *
 
     if( !command->resume || !fileExists(filename) ) {
       TerrainTile *tile = *iter;
-      const string temp_filename = concat(filename, ".tmp");
 
-      tile->writeFile(temp_filename.c_str());
-
-	  const string dupeFilename = getTileFilename(coordinate, dirname, "dupe.terrain");
 	  const string gzippedTile = tile->gzipTileContents();
-
-	  std::ofstream fout;
-	  fout.open(dupeFilename.c_str(), std::ofstream::out | std::ofstream::binary);
-	  fout << gzippedTile;
-	  fout.close();
+	  writeTerrainTileToFile(filename, gzippedTile);
 	  
       delete tile;
-
-      if (VSIRename(temp_filename.c_str(), filename.c_str()) != 0) {
-        throw new CTBException("Could not rename temporary file");
-      }
     }
 
     currentIndex = incrementIterator(iter, currentIndex);
@@ -607,23 +603,11 @@ buildMesh(const MeshTiler &tiler, TerrainBuild *command, TerrainMetadata *metada
 
     if( !command->resume || !fileExists(filename) ) {
       MeshTile *tile = *iter;
-      const string temp_filename = concat(filename, ".tmp");
 
-      tile->writeFile(temp_filename.c_str());
-
-	  const string dupeFilename = getTileFilename(coordinate, dirname, "dupe.terrain");
 	  const string gzippedTile = tile->gzipTileContents();
-
-	  std::ofstream fout;
-	  fout.open(dupeFilename.c_str(), std::ofstream::out | std::ofstream::binary);
-	  fout << gzippedTile;
-	  fout.close();
+	  writeTerrainTileToFile(filename, gzippedTile);
 
       delete tile;
-
-      if (VSIRename(temp_filename.c_str(), filename.c_str()) != 0) {
-        throw new CTBException("Could not rename temporary file");
-      }
     }
 
     currentIndex = incrementIterator(iter, currentIndex);
