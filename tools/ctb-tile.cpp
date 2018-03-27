@@ -53,6 +53,8 @@
 #include "TerrainIterator.hpp"
 #include "MeshIterator.hpp"
 
+#include "output_mbtiles.hpp"
+
 using namespace std;
 using namespace ctb;
 
@@ -568,7 +570,7 @@ writeTerrainTileToFile(const std::string &filename, const std::string &gzippedTi
 
 /// Output terrain tiles represented by a tiler to a directory
 static void
-buildTerrain(const TerrainTiler &tiler, TerrainBuild *command, TerrainMetadata *metadata) {
+buildTerrain(const TerrainTiler &tiler, TerrainBuild *command, TerrainMetadata *metadata, mapbox::sqlite_db* db) {
   const string dirname = string(command->outputDir) + osDirSep;
   i_zoom startZoom = (command->startZoom < 0) ? tiler.maxZoomLevel() : command->startZoom,
     endZoom = (command->endZoom < 0) ? 0 : command->endZoom;
@@ -577,19 +579,39 @@ buildTerrain(const TerrainTiler &tiler, TerrainBuild *command, TerrainMetadata *
   int currentIndex = incrementIterator(iter, 0);
   setIteratorSize(iter);
 
+  static int threadCounter = 0;
+  int threadID = threadCounter++;
+
   while (!iter.exhausted()) {
     const TileCoordinate *coordinate = iter.GridIterator::operator*();
-    const string filename = getTileFilename(coordinate, dirname, "terrain");
+    
     if (metadata) metadata->add(tiler.grid(), coordinate);
 
-    if( !command->resume || !fileExists(filename) ) {
-      TerrainTile *tile = *iter;
+	string filename = "unknown";
 
-	  const string gzippedTile = tile->gzipTileContents();
-	  writeTerrainTileToFile(filename, gzippedTile);
-	  
-      delete tile;
-    }
+	if (command->fileFormat == TilerFileFormat::File) {
+		filename = getTileFilename(coordinate, dirname, "terrain");
+
+		if (!command->resume || !fileExists(filename)) {
+			TerrainTile *tile = *iter;
+
+			const string gzippedTile = tile->gzipTileContents();
+			writeTerrainTileToFile(filename, gzippedTile);
+
+			delete tile;
+		}
+	}
+	else if (command->fileFormat == TilerFileFormat::MBTiles) {
+		static std::mutex mutex;
+
+		TerrainTile *tile = *iter;
+		const string gzippedTile = tile->gzipTileContents();
+		
+		std::lock_guard<std::mutex> lock(mutex);
+
+		//printf("Thread %d: writing tile %d/%d/%d\n", threadID, coordinate->zoom, coordinate->x, coordinate->y);
+		mapbox::mbtiles_write_tile(*db, coordinate->zoom, coordinate->x, coordinate->y, gzippedTile.c_str(), gzippedTile.size());
+	}
 
     currentIndex = incrementIterator(iter, currentIndex);
     showProgress(currentIndex, filename);
@@ -598,7 +620,7 @@ buildTerrain(const TerrainTiler &tiler, TerrainBuild *command, TerrainMetadata *
 
 /// Output mesh tiles represented by a tiler to a directory
 static void
-buildMesh(const MeshTiler &tiler, TerrainBuild *command, TerrainMetadata *metadata) {
+buildMesh(const MeshTiler &tiler, TerrainBuild *command, TerrainMetadata *metadata, mapbox::sqlite_db* db) {
   const string dirname = string(command->outputDir) + osDirSep;
   i_zoom startZoom = (command->startZoom < 0) ? tiler.maxZoomLevel() : command->startZoom,
     endZoom = (command->endZoom < 0) ? 0 : command->endZoom;
@@ -654,7 +676,7 @@ buildMetadata(const RasterTiler &tiler, TerrainBuild *command, TerrainMetadata *
  * This function is designed to be run in a separate thread.
  */
 static int
-runTiler(TerrainBuild *command, Grid *grid, TerrainMetadata *metadata) {
+runTiler(TerrainBuild *command, Grid *grid, TerrainMetadata *metadata, mapbox::sqlite_db* db) {
   GDALDataset  *poDataset = (GDALDataset *) GDALOpen(command->getInputFilename(), GA_ReadOnly);
   if (poDataset == NULL) {
     cerr << "Error: could not open GDAL dataset" << endl;
@@ -670,10 +692,10 @@ runTiler(TerrainBuild *command, Grid *grid, TerrainMetadata *metadata) {
       buildMetadata(tiler, command, threadMetadata);
     } else if (strcmp(command->outputFormat, "Terrain") == 0) {
       const TerrainTiler tiler(poDataset, *grid);
-      buildTerrain(tiler, command, threadMetadata);
+      buildTerrain(tiler, command, threadMetadata, db);
     } else if (strcmp(command->outputFormat, "Mesh") == 0) {
       const MeshTiler tiler(poDataset, *grid, command->tilerOptions, command->meshQualityFactor);
-      buildMesh(tiler, command, threadMetadata);
+      buildMesh(tiler, command, threadMetadata, db);
     } else {                    // it's a GDAL format
       const RasterTiler tiler(poDataset, *grid, command->tilerOptions);
       buildGDAL(tiler, command, threadMetadata);
@@ -694,6 +716,17 @@ runTiler(TerrainBuild *command, Grid *grid, TerrainMetadata *metadata) {
     delete threadMetadata;
   }
   return 0;
+}
+
+mapbox::sqlite_db createMBTilesDatabase(std::string const& dbname) {
+	VSIStatBufL stat;
+	if (VSIStatExL(dbname.c_str(), &stat, VSI_STAT_EXISTS_FLAG | VSI_STAT_NATURE_FLAG)) {
+		// TODO For now, just nuke the old DB completely
+		VSIUnlink(dbname.c_str());
+	}
+
+	mapbox::sqlite_db db = mapbox::mbtiles_open(dbname);
+	return db;
 }
 
 int
@@ -734,13 +767,32 @@ main(int argc, char *argv[]) {
 
   // Check whether or not the output directory exists
   VSIStatBufL stat;
-  if (VSIStatExL(command.outputDir, &stat, VSI_STAT_EXISTS_FLAG | VSI_STAT_NATURE_FLAG)) {
-    cerr << "Error: The output directory does not exist: " << command.outputDir << endl;
-    return 1;
-  } else if (!VSI_ISDIR(stat.st_mode)) {
-    cerr << "Error: The output filepath is not a directory: " << command.outputDir << endl;
-    return 1;
+
+  mapbox::sqlite_db db;
+
+  if (command.fileFormat == TilerFileFormat::File) {
+	  if (VSIStatExL(command.outputDir, &stat, VSI_STAT_EXISTS_FLAG | VSI_STAT_NATURE_FLAG)) {
+		  cerr << "Error: The output directory does not exist: " << command.outputDir << endl;
+		  return 1;
+	  }
+	  else if (!VSI_ISDIR(stat.st_mode)) {
+		  cerr << "Error: The output filepath is not a directory: " << command.outputDir << endl;
+		  return 1;
+	  }
   }
+  else if(command.fileFormat == TilerFileFormat::MBTiles) {
+	  string dbPath = command.outputDir;
+	  dbPath += ".mbtiles";
+
+	  // TODO For now, just nuke the old DB completely
+	  VSIUnlink(dbPath.c_str());
+
+	 db = mapbox::mbtiles_open(dbPath);
+  }
+
+
+
+ 
 
   // Define the grid we are going to use
   Grid grid;
@@ -766,9 +818,9 @@ main(int argc, char *argv[]) {
 
   // Instantiate the threads using futures from a packaged_task
   for (int i = 0; i < threadCount ; ++i) {
-    packaged_task<int(TerrainBuild *, Grid *, TerrainMetadata *)> task(runTiler); // wrap the function
+    packaged_task<int(TerrainBuild *, Grid *, TerrainMetadata *, mapbox::sqlite_db *)> task(runTiler); // wrap the function
     tasks.push_back(task.get_future());                        // get a future
-    thread(move(task), &command, &grid, metadata).detach(); // launch on a thread
+    thread(move(task), &command, &grid, metadata, &db).detach(); // launch on a thread
   }
 
   // Synchronise the completion of the threads
@@ -785,6 +837,10 @@ main(int argc, char *argv[]) {
       delete metadata;
       return retval;
     }
+  }
+
+  if (db.db) {
+	  mapbox::mbtiles_close(db);
   }
 
   // Write Json metadata file?

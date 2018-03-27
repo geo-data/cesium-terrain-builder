@@ -11,7 +11,7 @@
 #include <stdexcept>
 #include <sstream>
 
-namespace mapbox { namespace mrmvt {
+namespace mapbox { 
 
 struct close_db {
     void operator() (sqlite3* db) { if (db) { sqlite3_close(db); }};
@@ -281,4 +281,4 @@ void mbtiles_close(sqlite_db const& db) {
     // sqlite_db destructor will close the database connection.
 }
 
-}} // end ns
+} // end ns
