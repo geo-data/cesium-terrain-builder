@@ -28,6 +28,9 @@
 #include "TerrainTile.hpp"
 #include "GlobalGeodetic.hpp"
 #include "Bounds.hpp"
+#include "zstr.hpp"
+#include <sstream>
+#include <string>
 
 using namespace ctb;
 
@@ -181,6 +184,21 @@ Terrain::writeFile(const char *fileName) const {
   default:
     throw CTBException("Failed to close file");
   }
+}
+
+std::string
+Terrain::gzipTileContents() const {
+	std::stringbuf outputBuffer;
+	zstr::ostream gzipBuffer(&outputBuffer);
+
+	gzipBuffer.write((const char *)mHeights.data(), TILE_CELL_SIZE * 2);
+	gzipBuffer.write(&mChildren, 1);
+	gzipBuffer.write((const char *)&mMask, mMaskLength);
+		
+	std::flush(gzipBuffer);
+	std::string result = outputBuffer.str();
+
+	return result;
 }
 
 std::vector<bool>

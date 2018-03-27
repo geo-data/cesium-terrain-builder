@@ -34,6 +34,7 @@
  */
 
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <string.h>             // for strcmp
 #include <stdlib.h>             // for atoi
@@ -566,6 +567,15 @@ buildTerrain(const TerrainTiler &tiler, TerrainBuild *command, TerrainMetadata *
       const string temp_filename = concat(filename, ".tmp");
 
       tile->writeFile(temp_filename.c_str());
+
+	  const string dupeFilename = getTileFilename(coordinate, dirname, "dupe.terrain");
+	  const string gzippedTile = tile->gzipTileContents();
+
+	  std::ofstream fout;
+	  fout.open(dupeFilename.c_str(), std::ofstream::out | std::ofstream::binary);
+	  fout << gzippedTile;
+	  fout.close();
+	  
       delete tile;
 
       if (VSIRename(temp_filename.c_str(), filename.c_str()) != 0) {
