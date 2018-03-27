@@ -62,6 +62,11 @@ static const char *osDirSep = "\\";
 static const char *osDirSep = "/";
 #endif
 
+enum TilerFileFormat {
+	File,
+	MBTiles
+};
+
 /// Handle the terrain build CLI options
 class TerrainBuild : public Command {
 public:
@@ -77,7 +82,8 @@ public:
     verbosity(1),
     resume(false),
     meshQualityFactor(1.0),
-    metadata(false)
+    metadata(false),
+	fileFormat(TilerFileFormat::File)
   {}
 
   void
@@ -212,6 +218,11 @@ public:
     static_cast<TerrainBuild *>(Command::self(command))->metadata = true;
   }
 
+  static void
+	setFileFormat(command_t *command) {
+	  static_cast<TerrainBuild *>(Command::self(command))->fileFormat = TilerFileFormat::MBTiles;
+  }
+
   const char *outputDir,
     *outputFormat,
     *profile;
@@ -229,6 +240,7 @@ public:
 
   double meshQualityFactor;
   bool metadata;
+  TilerFileFormat fileFormat;
 };
 
 /**
@@ -690,6 +702,7 @@ main(int argc, char *argv[]) {
   TerrainBuild command = TerrainBuild(argv[0], version.cstr);
   command.setUsage("[options] GDAL_DATASOURCE");
   command.option("-o", "--output-dir <dir>", "specify the output directory for the tiles (defaults to working directory)", TerrainBuild::setOutputDir);
+  command.option("-b", "--mbtiles", "specify the output format and location should be an MBTiles container instead of a directory", TerrainBuild::setFileFormat);
   command.option("-f", "--output-format <format>", "specify the output format for the tiles. This is either `Terrain` (the default), `Mesh` (Chunked LOD mesh), or any format listed by `gdalinfo --formats`", TerrainBuild::setOutputFormat);
   command.option("-p", "--profile <profile>", "specify the TMS profile for the tiles. This is either `geodetic` (the default) or `mercator`", TerrainBuild::setProfile);
   command.option("-c", "--thread-count <count>", "specify the number of threads to use for tile generation. On multicore machines this defaults to the number of CPUs", TerrainBuild::setThreadCount);
