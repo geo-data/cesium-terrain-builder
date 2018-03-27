@@ -25,6 +25,10 @@
 #include <map>
 #include "zlib.h"
 
+#include "zstr.hpp"
+#include <sstream>
+#include <string>
+
 #include "CTBException.hpp"
 #include "MeshTile.hpp"
 #include "BoundingSphere.hpp"
@@ -143,6 +147,37 @@ template <typename T> int writeEdgeIndices(gzFile terrainFile, const Mesh &mesh,
   }
   return indices.size();
 }
+
+// Write the edge indices of the mesh
+template <typename T> int writeEdgeIndices2(zstr::ostream& gzipBuffer, const Mesh &mesh, double edgeCoord, int componentIndex) {
+	std::vector<uint32_t> indices;
+	std::map<uint32_t, size_t> ihash;
+
+	for (size_t i = 0, icount = mesh.indices.size(); i < icount; i++) {
+		uint32_t indice = mesh.indices[i];
+		double val = mesh.vertices[indice][componentIndex];
+
+		if (val == edgeCoord) {
+			std::map<uint32_t, size_t>::iterator it = ihash.find(indice);
+
+			if (it == ihash.end()) {
+				ihash.insert(std::make_pair(indice, i));
+				indices.push_back(indice);
+			}
+		}
+	}
+
+	int edgeCount = indices.size();
+	gzipBuffer.write((const char *)&edgeCount, sizeof(int));
+
+	for (size_t i = 0; i < edgeCount; i++) {
+		T indice = (T)indices[i];
+		gzipBuffer.write((const char *)&indice, sizeof(T));
+	}
+	return indices.size();
+}
+
+
 
 // ZigZag-Encodes a number (-1 = 1, -2 = 3, 0 = 0, 1 = 2, 2 = 4)
 static inline uint16_t zigZagEncode(int n) {
@@ -294,6 +329,132 @@ MeshTile::writeFile(const char *fileName) const {
   default:
     throw CTBException("Failed to close file");
   }
+}
+
+std::string
+MeshTile::gzipTileContents() const {
+	std::stringbuf outputBuffer;
+	zstr::ostream gzipBuffer(&outputBuffer);
+
+	// Calculate main header mesh data
+	std::vector<CRSVertex> cartesianVertices;
+	BoundingSphere<double> cartesianBoundingSphere;
+	BoundingBox<double> cartesianBounds;
+	BoundingBox<double> bounds;
+
+	cartesianVertices.resize(mMesh.vertices.size());
+	for (size_t i = 0, icount = mMesh.vertices.size(); i < icount; i++) {
+		const CRSVertex &vertex = mMesh.vertices[i];
+		cartesianVertices[i] = LLH2ECEF(vertex);
+	}
+	cartesianBoundingSphere.fromPoints(cartesianVertices);
+	cartesianBounds.fromPoints(cartesianVertices);
+	bounds.fromPoints(mMesh.vertices);
+
+
+	// # Write the mesh header data:
+	// # https://github.com/AnalyticalGraphicsInc/quantized-mesh
+	//
+	// The center of the tile in Earth-centered Fixed coordinates.
+	double centerX = cartesianBounds.min.x + 0.5 * (cartesianBounds.max.x - cartesianBounds.min.x);
+	double centerY = cartesianBounds.min.y + 0.5 * (cartesianBounds.max.y - cartesianBounds.min.y);
+	double centerZ = cartesianBounds.min.z + 0.5 * (cartesianBounds.max.z - cartesianBounds.min.z);
+
+	gzipBuffer.write((const char *)&centerX, sizeof(double));
+	gzipBuffer.write((const char *)&centerY, sizeof(double));
+	gzipBuffer.write((const char *)&centerZ, sizeof(double));
+
+	//
+	// The minimum and maximum heights in the area covered by this tile.
+	float minimumHeight = (float)bounds.min.z;
+	float maximumHeight = (float)bounds.max.z;
+	gzipBuffer.write((const char *)&minimumHeight, sizeof(float));
+	gzipBuffer.write((const char *)&maximumHeight, sizeof(float));
+	//
+	// The tile’s bounding sphere. The X,Y,Z coordinates are again expressed
+	// in Earth-centered Fixed coordinates, and the radius is in meters.
+	double boundingSphereCenterX = cartesianBoundingSphere.center.x;
+	double boundingSphereCenterY = cartesianBoundingSphere.center.y;
+	double boundingSphereCenterZ = cartesianBoundingSphere.center.z;
+	double boundingSphereRadius = cartesianBoundingSphere.radius;
+	gzipBuffer.write((const char *)&boundingSphereCenterX, sizeof(double));
+	gzipBuffer.write((const char *)&boundingSphereCenterY, sizeof(double));
+	gzipBuffer.write((const char *)&boundingSphereCenterZ, sizeof(double));
+	gzipBuffer.write((const char *)&boundingSphereRadius, sizeof(double));
+	//
+	// The horizon occlusion point, expressed in the ellipsoid-scaled Earth-centered Fixed frame.
+	CRSVertex horizonOcclusionPoint = ocp_fromPoints(cartesianVertices, cartesianBoundingSphere);
+	gzipBuffer.write((const char *)&horizonOcclusionPoint.x, sizeof(double));
+	gzipBuffer.write((const char *)&horizonOcclusionPoint.y, sizeof(double));
+	gzipBuffer.write((const char *)&horizonOcclusionPoint.z, sizeof(double));
+
+
+	// # Write mesh vertices (X Y Z components of each vertex):
+	int vertexCount = mMesh.vertices.size();
+	gzipBuffer.write((const char *)&vertexCount, sizeof(int));
+
+	for (int c = 0; c < 3; c++) {
+		double origin = bounds.min[c];
+		double factor = 0;
+		if (bounds.max[c] > bounds.min[c]) factor = SHORT_MAX / (bounds.max[c] - bounds.min[c]);
+
+		// Move the initial value
+		int u0 = quantizeIndices(origin, factor, mMesh.vertices[0][c]), u1, ud;
+		uint16_t sval = zigZagEncode(u0);
+		gzipBuffer.write((const char *)&sval, sizeof(uint16_t));
+
+		for (size_t i = 1, icount = mMesh.vertices.size(); i < icount; i++) {
+			u1 = quantizeIndices(origin, factor, mMesh.vertices[i][c]);
+			ud = u1 - u0;
+			sval = zigZagEncode(ud);
+			gzipBuffer.write((const char *)&sval, sizeof(uint16_t));
+			u0 = u1;
+		}
+	}
+
+	// # Write mesh indices:
+	int triangleCount = mMesh.indices.size() / 3;
+	gzipBuffer.write((const char *)&triangleCount, sizeof(int));
+
+	if (vertexCount > BYTESPLIT) {
+		uint32_t highest = 0;
+		uint32_t code;
+
+		// Write main indices
+		for (size_t i = 0, icount = mMesh.indices.size(); i < icount; i++) {
+			code = highest - mMesh.indices[i];
+			gzipBuffer.write((const char *)&code, sizeof(uint32_t));
+			if (code == 0) highest++;
+		}
+
+		// Write all vertices on the edge of the tile (W, S, E, N)
+		writeEdgeIndices2<uint32_t>(gzipBuffer, mMesh, bounds.min.x, 0);
+		writeEdgeIndices2<uint32_t>(gzipBuffer, mMesh, bounds.min.y, 1);
+		writeEdgeIndices2<uint32_t>(gzipBuffer, mMesh, bounds.max.x, 0);
+		writeEdgeIndices2<uint32_t>(gzipBuffer, mMesh, bounds.max.y, 1);
+	}
+	else {
+		uint16_t highest = 0;
+		uint16_t code;
+
+		// Write main indices
+		for (size_t i = 0, icount = mMesh.indices.size(); i < icount; i++) {
+			code = highest - mMesh.indices[i];
+			gzipBuffer.write((const char *)&code, sizeof(uint16_t));
+			if (code == 0) highest++;
+		}
+
+		// Write all vertices on the edge of the tile (W, S, E, N)
+		writeEdgeIndices2<uint16_t>(gzipBuffer, mMesh, bounds.min.x, 0);
+		writeEdgeIndices2<uint16_t>(gzipBuffer, mMesh, bounds.min.y, 1);
+		writeEdgeIndices2<uint16_t>(gzipBuffer, mMesh, bounds.max.x, 0);
+		writeEdgeIndices2<uint16_t>(gzipBuffer, mMesh, bounds.max.y, 1);
+	}
+
+	std::flush(gzipBuffer);
+	std::string result = outputBuffer.str();
+
+	return result;
 }
 
 bool

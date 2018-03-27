@@ -23,6 +23,8 @@
  * @author Alvaro Huarte <ahuarte47@yahoo.es>
  */
 
+#include <string>
+
 #include "config.hpp"
 #include "Mesh.hpp"
 #include "TileCoordinate.hpp"
@@ -54,6 +56,9 @@ public:
   /// Write terrain data to the filesystem
   void
   writeFile(const char *fileName) const;
+
+  std::string
+  gzipTileContents() const;
 
   /// Does the terrain tile have child tiles?
   bool
