@@ -568,85 +568,60 @@ writeTerrainTileToFile(const std::string &filename, const std::string &gzippedTi
 	fout.close();
 }
 
-/// Output terrain tiles represented by a tiler to a directory
 static void
-buildTerrain(const TerrainTiler &tiler, TerrainBuild *command, TerrainMetadata *metadata, mapbox::sqlite_db* db) {
-  const string dirname = string(command->outputDir) + osDirSep;
-  i_zoom startZoom = (command->startZoom < 0) ? tiler.maxZoomLevel() : command->startZoom,
-    endZoom = (command->endZoom < 0) ? 0 : command->endZoom;
+writeTerrainTileToMBTiles(const mapbox::sqlite_db* db, const TileCoordinate* coordinate, const std::string &gzippedTileContents) {
+	static std::mutex mutex;
+	
+	std::lock_guard<std::mutex> lock(mutex);
 
-  TerrainIterator iter(tiler, startZoom, endZoom);
-  int currentIndex = incrementIterator(iter, 0);
-  setIteratorSize(iter);
+	mapbox::mbtiles_write_tile(*db, coordinate->zoom, coordinate->x, coordinate->y, gzippedTileContents.c_str(), gzippedTileContents.size());
 
-  static int threadCounter = 0;
-  int threadID = threadCounter++;
+}
 
-  while (!iter.exhausted()) {
-    const TileCoordinate *coordinate = iter.GridIterator::operator*();
-    
-    if (metadata) metadata->add(tiler.grid(), coordinate);
 
-	string filename = "unknown";
+// Output terrain tiles to either a folder or directory, as needed
+template <typename TTiler, typename TIterator>
+static void
+buildTerrainTiles(const TTiler &tiler, TerrainBuild *command, TerrainMetadata *metadata, mapbox::sqlite_db* db) {
+	const string dirname = string(command->outputDir) + osDirSep;
+	i_zoom startZoom = (command->startZoom < 0) ? tiler.maxZoomLevel() : command->startZoom,
+		endZoom = (command->endZoom < 0) ? 0 : command->endZoom;
 
-	if (command->fileFormat == TilerFileFormat::File) {
-		filename = getTileFilename(coordinate, dirname, "terrain");
 
-		if (!command->resume || !fileExists(filename)) {
-			TerrainTile *tile = *iter;
+	TIterator iter(tiler, startZoom, endZoom);
+	int currentIndex = incrementIterator(iter, 0);
+	setIteratorSize(iter);
 
+	while (!iter.exhausted()) {
+		const TileCoordinate *coordinate = iter.GridIterator::operator*();
+		if (metadata) metadata->add(tiler.grid(), coordinate);
+
+		string filename = "unknown";
+
+		if (command->fileFormat == TilerFileFormat::File) {
+			filename = getTileFilename(coordinate, dirname, "terrain");
+
+			if (!command->resume || !fileExists(filename)) {
+				auto *tile = *iter;
+
+				const string gzippedTile = tile->gzipTileContents();
+				writeTerrainTileToFile(filename, gzippedTile);
+
+				delete tile;
+			}
+		}
+		else if (command->fileFormat == TilerFileFormat::MBTiles) {
+			auto *tile = *iter;
 			const string gzippedTile = tile->gzipTileContents();
-			writeTerrainTileToFile(filename, gzippedTile);
+
+			writeTerrainTileToMBTiles(db, coordinate, gzippedTile);
 
 			delete tile;
 		}
+
+		currentIndex = incrementIterator(iter, currentIndex);
+		showProgress(currentIndex, filename);
 	}
-	else if (command->fileFormat == TilerFileFormat::MBTiles) {
-		static std::mutex mutex;
-
-		TerrainTile *tile = *iter;
-		const string gzippedTile = tile->gzipTileContents();
-		
-		std::lock_guard<std::mutex> lock(mutex);
-
-		//printf("Thread %d: writing tile %d/%d/%d\n", threadID, coordinate->zoom, coordinate->x, coordinate->y);
-		mapbox::mbtiles_write_tile(*db, coordinate->zoom, coordinate->x, coordinate->y, gzippedTile.c_str(), gzippedTile.size());
-	}
-
-    currentIndex = incrementIterator(iter, currentIndex);
-    showProgress(currentIndex, filename);
-  }
-}
-
-/// Output mesh tiles represented by a tiler to a directory
-static void
-buildMesh(const MeshTiler &tiler, TerrainBuild *command, TerrainMetadata *metadata, mapbox::sqlite_db* db) {
-  const string dirname = string(command->outputDir) + osDirSep;
-  i_zoom startZoom = (command->startZoom < 0) ? tiler.maxZoomLevel() : command->startZoom,
-    endZoom = (command->endZoom < 0) ? 0 : command->endZoom;
-
-
-  MeshIterator iter(tiler, startZoom, endZoom);
-  int currentIndex = incrementIterator(iter, 0);
-  setIteratorSize(iter);
-
-  while (!iter.exhausted()) {
-    const TileCoordinate *coordinate = iter.GridIterator::operator*();
-    const string filename = getTileFilename(coordinate, dirname, "terrain");
-    if (metadata) metadata->add(tiler.grid(), coordinate);
-
-    if( !command->resume || !fileExists(filename) ) {
-      MeshTile *tile = *iter;
-
-	  const string gzippedTile = tile->gzipTileContents();
-	  writeTerrainTileToFile(filename, gzippedTile);
-
-      delete tile;
-    }
-
-    currentIndex = incrementIterator(iter, currentIndex);
-    showProgress(currentIndex, filename);
-  }
 }
 
 static void
@@ -692,10 +667,10 @@ runTiler(TerrainBuild *command, Grid *grid, TerrainMetadata *metadata, mapbox::s
       buildMetadata(tiler, command, threadMetadata);
     } else if (strcmp(command->outputFormat, "Terrain") == 0) {
       const TerrainTiler tiler(poDataset, *grid);
-      buildTerrain(tiler, command, threadMetadata, db);
+	  buildTerrainTiles<TerrainTiler, TerrainIterator>(tiler, command, threadMetadata, db);
     } else if (strcmp(command->outputFormat, "Mesh") == 0) {
       const MeshTiler tiler(poDataset, *grid, command->tilerOptions, command->meshQualityFactor);
-      buildMesh(tiler, command, threadMetadata, db);
+	  buildTerrainTiles<MeshTiler, MeshIterator>(tiler, command, threadMetadata, db);
     } else {                    // it's a GDAL format
       const RasterTiler tiler(poDataset, *grid, command->tilerOptions);
       buildGDAL(tiler, command, threadMetadata);
