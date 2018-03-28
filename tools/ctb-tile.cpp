@@ -745,6 +745,8 @@ main(int argc, char *argv[]) {
 
   mapbox::sqlite_db db;
 
+  string filename = "layer.json";
+
   if (command.fileFormat == TilerFileFormat::File) {
 	  if (VSIStatExL(command.outputDir, &stat, VSI_STAT_EXISTS_FLAG | VSI_STAT_NATURE_FLAG)) {
 		  cerr << "Error: The output directory does not exist: " << command.outputDir << endl;
@@ -754,6 +756,9 @@ main(int argc, char *argv[]) {
 		  cerr << "Error: The output filepath is not a directory: " << command.outputDir << endl;
 		  return 1;
 	  }
+
+	  const string dirname = string(command.outputDir) + osDirSep;
+	  filename = concat(dirname, "layer.json");
   }
   else if(command.fileFormat == TilerFileFormat::MBTiles) {
 	  string dbPath = command.outputDir;
@@ -787,8 +792,7 @@ main(int argc, char *argv[]) {
   int threadCount = (command.threadCount > 0) ? command.threadCount : CPLGetNumCPUs();
 
   // Calculate metadata?
-  const string dirname = string(command.outputDir) + osDirSep;
-  const std::string filename = concat(dirname, "layer.json");
+  
   TerrainMetadata *metadata = command.metadata || !fileExists(filename) ? new TerrainMetadata() : NULL;
 
   // Instantiate the threads using futures from a packaged_task
