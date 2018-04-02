@@ -172,6 +172,10 @@ Terrain::hasChildSE() const {
   return ((mChildren & TERRAIN_CHILD_SE) == TERRAIN_CHILD_SE);
 }
 
+void Terrain::setIsValid(bool newIsValid) {
+	isValid = newIsValid;
+}
+
 bool
 Terrain::hasChildNW() const {
   return ((mChildren & TERRAIN_CHILD_NW) == TERRAIN_CHILD_NW);
@@ -252,6 +256,10 @@ Terrain::isLand() const {
 bool
 Terrain::hasWaterMask() const {
   return mMaskLength == MASK_CELL_SIZE;
+}
+
+bool Terrain::isValidTile() const {
+	return isValid;
 }
 
 const std::vector<i_terrain_height> &

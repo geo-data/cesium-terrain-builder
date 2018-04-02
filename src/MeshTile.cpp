@@ -364,6 +364,14 @@ MeshTile::setAllChildren(bool on) {
   }
 }
 
+void MeshTile::setIsValid(bool newIsValid) {
+	isValid = newIsValid;
+}
+
+bool MeshTile::isValidTile() const {
+	return isValid;
+}
+
 const Mesh & MeshTile::getMesh() const {
   return mMesh;
 }

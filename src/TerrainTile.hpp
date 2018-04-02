@@ -122,6 +122,8 @@ public:
   bool
   isLand() const;
 
+  
+
   /// Does this tile have a water mask?
   bool
   hasWaterMask() const;
@@ -133,6 +135,9 @@ public:
   /// Get the height data as a vector
   std::vector<i_terrain_height> &
   getHeights();
+
+  void setIsValid(bool isValid = true);
+  bool isValidTile() const;
 
 protected:
   /// The terrain height data
@@ -156,6 +161,7 @@ private:
   char mChildren;               ///< The child flags
   char mMask[MASK_CELL_SIZE];   ///< The water mask
   size_t mMaskLength;           ///< What size is the water mask?
+  bool isValid = true;
 
   /**
    * @brief Bit flags defining child tile existence

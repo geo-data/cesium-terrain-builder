@@ -115,6 +115,12 @@ ctb::MeshTiler::createMesh(const TileCoordinate &coord) const {
   // Get a mesh tile represented by the tile coordinate
   MeshTile *terrainTile = new MeshTile(coord);
   GDALTile *rasterTile = createRasterTile(coord); // the raster associated with this tile coordinate
+
+  if (rasterTile == nullptr) {
+	  terrainTile->setIsValid(false);
+	  return terrainTile;
+  }
+
   GDALRasterBand *heightsBand = rasterTile->dataset->GetRasterBand(1);
 
   // Get the initial width and height of tile data in a tile

@@ -97,6 +97,9 @@ public:
   void
   setAllChildren(bool on = true);
 
+  void setIsValid(bool isValid = true);
+  bool isValidTile() const;
+
   /// Get the mesh data as a const object
   const ctb::Mesh & getMesh() const;
 
@@ -111,6 +114,7 @@ protected:
 private:
 
   char mChildren;               ///< The child flags
+  bool isValid = true;
 
   /**
    * @brief Bit flags defining child tile existence

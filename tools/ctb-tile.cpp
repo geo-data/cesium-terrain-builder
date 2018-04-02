@@ -579,6 +579,10 @@ writeTerrainTileToMBTiles(const mapbox::sqlite_db* db, const TileCoordinate* coo
 }
 
 
+
+
+int validTiles = 0, totalTiles = 0;
+
 // Output terrain tiles to either a folder or directory, as needed
 template <typename TTiler, typename TIterator>
 static void
@@ -598,23 +602,32 @@ buildTerrainTiles(const TTiler &tiler, TerrainBuild *command, TerrainMetadata *m
 
 		string filename = "unknown";
 
+		totalTiles++;
+
 		if (command->fileFormat == TilerFileFormat::File) {
 			filename = getTileFilename(coordinate, dirname, "terrain");
 
 			if (!command->resume || !fileExists(filename)) {
 				auto *tile = *iter;
 
-				const string gzippedTile = tile->gzipTileContents();
-				writeTerrainTileToFile(filename, gzippedTile);
-
+				if (tile->isValidTile()) {
+					validTiles++;
+					const string gzippedTile = tile->gzipTileContents();
+					writeTerrainTileToFile(filename, gzippedTile);
+				}
+				
 				delete tile;
 			}
 		}
 		else if (command->fileFormat == TilerFileFormat::MBTiles) {
 			auto *tile = *iter;
-			const string gzippedTile = tile->gzipTileContents();
 
-			writeTerrainTileToMBTiles(db, coordinate, gzippedTile);
+			if (tile->isValidTile()) {
+				validTiles++;
+				const string gzippedTile = tile->gzipTileContents();
+				writeTerrainTileToMBTiles(db, coordinate, gzippedTile);
+			}
+			
 
 			delete tile;
 		}
@@ -645,6 +658,7 @@ buildMetadata(const RasterTiler &tiler, TerrainBuild *command, TerrainMetadata *
   }
 }
 
+
 /**
  * Perform a tile building operation
  *
@@ -652,7 +666,12 @@ buildMetadata(const RasterTiler &tiler, TerrainBuild *command, TerrainMetadata *
  */
 static int
 runTiler(TerrainBuild *command, Grid *grid, TerrainMetadata *metadata, mapbox::sqlite_db* db) {
-  GDALDataset  *poDataset = (GDALDataset *) GDALOpen(command->getInputFilename(), GA_ReadOnly);
+
+  char **optionStrArray = NULL;
+  optionStrArray = CSLSetNameValue(optionStrArray, "SPARSE_OK", "TRUE");
+
+
+  GDALDataset  *poDataset = (GDALDataset *) GDALOpenEx(command->getInputFilename(), GA_ReadOnly, nullptr, optionStrArray, nullptr);
   if (poDataset == NULL) {
     cerr << "Error: could not open GDAL dataset" << endl;
     return 1;
@@ -681,6 +700,8 @@ runTiler(TerrainBuild *command, Grid *grid, TerrainMetadata *metadata, mapbox::s
   }
 
   GDALClose(poDataset);
+
+  std::cout << "Valid tiles: " << validTiles << ", " << "total tiles: " << totalTiles << std::endl;
 
   // Pass metadata to global instance.
   if (threadMetadata) {
