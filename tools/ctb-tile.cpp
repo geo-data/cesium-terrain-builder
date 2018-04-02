@@ -583,6 +583,14 @@ writeTerrainTileToMBTiles(const mapbox::sqlite_db* db, const TileCoordinate* coo
 
 int validTiles = 0, totalTiles = 0;
 
+vector<vector<TilePoint> > validPoints(30);
+
+static void recordValidPoint(const TileCoordinate& coord) {
+	TilePoint point(coord.x, coord.y);
+	validPoints[coord.zoom].push_back(point);
+}
+
+
 // Output terrain tiles to either a folder or directory, as needed
 template <typename TTiler, typename TIterator>
 static void
@@ -612,6 +620,7 @@ buildTerrainTiles(const TTiler &tiler, TerrainBuild *command, TerrainMetadata *m
 
 				if (tile->isValidTile()) {
 					validTiles++;
+					recordValidPoint(*coordinate);
 					const string gzippedTile = tile->gzipTileContents();
 					writeTerrainTileToFile(filename, gzippedTile);
 				}
@@ -624,6 +633,7 @@ buildTerrainTiles(const TTiler &tiler, TerrainBuild *command, TerrainMetadata *m
 
 			if (tile->isValidTile()) {
 				validTiles++;
+				recordValidPoint(*coordinate);
 				const string gzippedTile = tile->gzipTileContents();
 				writeTerrainTileToMBTiles(db, coordinate, gzippedTile);
 			}
@@ -702,6 +712,9 @@ runTiler(TerrainBuild *command, Grid *grid, TerrainMetadata *metadata, mapbox::s
   GDALClose(poDataset);
 
   std::cout << "Valid tiles: " << validTiles << ", " << "total tiles: " << totalTiles << std::endl;
+
+
+
 
   // Pass metadata to global instance.
   if (threadMetadata) {
@@ -793,8 +806,6 @@ main(int argc, char *argv[]) {
 
 
 
- 
-
   // Define the grid we are going to use
   Grid grid;
   if (strcmp(command.profile, "geodetic") == 0) {
@@ -842,6 +853,21 @@ main(int argc, char *argv[]) {
   if (db.db) {
 	  mapbox::mbtiles_close(db);
   }
+
+  std::ofstream fout;
+  fout.open("validTiles.csv", std::ofstream::out);
+
+  fout << "zoom,x,y" << std::endl;
+
+  for (int i = 0; i < validPoints.size(); i++) {
+	  vector<TilePoint>& points = validPoints[i];
+
+	  for (int j = 0; j < points.size(); j++) {
+		  TilePoint& point = points[j];
+		  fout << i << "," << point.x << "," << point.y << std::endl;
+	  }
+  }
+  fout.close();
 
   // Write Json metadata file?
   if (metadata) {
