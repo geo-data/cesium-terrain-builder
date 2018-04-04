@@ -94,7 +94,8 @@ void mbtiles_write_tile(sqlite_db const& db, int z, int x, int y, const char *da
     sqlite3_clear_bindings(stmt);
     sqlite3_bind_int(stmt, 1, z);
     sqlite3_bind_int(stmt, 2, x);
-    sqlite3_bind_int(stmt, 3, (1 << z) - 1 - y);
+    //sqlite3_bind_int(stmt, 3, (1 << z) - 1 - y);
+	sqlite3_bind_int(stmt, 3, y);
     sqlite3_bind_blob(stmt, 4, data, size, NULL);
     if (sqlite3_step(stmt) != SQLITE_DONE) {
         std::cerr << "SQLite Error: tile insert failed: " << sqlite3_errmsg(db.db.get()) << std::endl;
