@@ -586,6 +586,9 @@ int validTiles = 0, totalTiles = 0;
 vector<vector<TilePoint> > validPoints(30);
 
 static void recordValidPoint(const TileCoordinate& coord) {
+	static std::mutex mutex;
+	std::lock_guard<std::mutex> lock(mutex);
+
 	TilePoint point(coord.x, coord.y);
 	validPoints[coord.zoom].push_back(point);
 }
@@ -711,7 +714,7 @@ runTiler(TerrainBuild *command, Grid *grid, TerrainMetadata *metadata, mapbox::s
 
   GDALClose(poDataset);
 
-  std::cout << "Valid tiles: " << validTiles << ", " << "total tiles: " << totalTiles << std::endl;
+
 
 
 
@@ -853,6 +856,8 @@ main(int argc, char *argv[]) {
   if (db.db) {
 	  mapbox::mbtiles_close(db);
   }
+
+  std::cout << "Valid tiles: " << validTiles << ", " << "total tiles: " << totalTiles << std::endl;
 
   std::ofstream fout;
   fout.open("validTiles.csv", std::ofstream::out);
