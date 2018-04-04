@@ -120,10 +120,25 @@ ctb::TerrainTiler::createRasterTile(const TileCoordinate &coord) const {
     throw CTBException("At least one band must be present in the GDAL dataset");
   }
 
-  // Get the bounds and resolution for a tile coordinate which represents the
-  // data overlap requested by the terrain specification.
-  double resolution;
-  CRSBounds tileBounds = terrainTileBounds(coord, resolution);
+
+
+  // The previous geotransform represented the data with an overlap as required
+  // by the terrain specification.  We also need a geotransform that uses 
+  // the bounds defined by the tile itself.
+
+  CRSBounds tileBounds = mGrid.tileBounds(coord);
+  double resolution = mGrid.resolution(coord.zoom);
+
+  double adfGeoTransform[6];
+  adfGeoTransform[0] = tileBounds.getMinX(); // min longitude
+  adfGeoTransform[1] = resolution;
+  adfGeoTransform[2] = 0;
+  adfGeoTransform[3] = tileBounds.getMaxY(); // max latitude
+  adfGeoTransform[4] = 0;
+  adfGeoTransform[5] = -resolution;
+
+
+
 
   double ulX = tileBounds.getMinX();
   double ulY = tileBounds.getMaxY();
@@ -147,14 +162,7 @@ ctb::TerrainTiler::createRasterTile(const TileCoordinate &coord) const {
   
 
 
-  // Convert the tile bounds into a geo transform
-  double adfGeoTransform[6];
-  adfGeoTransform[0] = tileBounds.getMinX(); // min longitude
-  adfGeoTransform[1] = resolution;
-  adfGeoTransform[2] = 0;
-  adfGeoTransform[3] = tileBounds.getMaxY(); // max latitude
-  adfGeoTransform[4] = 0;
-  adfGeoTransform[5] = -resolution;
+
   
   calcWorldToPixel(datasetTransform, ulX, ulY, &ulCol, &ulRow);
   calcWorldToPixel(datasetTransform, lrX, lrY, &lrCol, &lrRow);
@@ -192,43 +200,29 @@ ctb::TerrainTiler::createRasterTile(const TileCoordinate &coord) const {
 	  }
 	  
 	  allBandsValid &= !blockIsEmpty;
-
-	  if (blockIsEmpty) {
-		  //return nullptr;
-		  //emptyTiles++;
-		  //std::cout << "Empty tile: " << coord.zoom << "," << coord.x << "," << coord.y << std::endl;
-	  }
-	  else {
-		  //validTiles++;
-	  }
-
-	  /*
-	  double percentCoverageCenter = 0;
-	  int centerCoverageStatus = band->GetDataCoverageStatus(imgWidth / 2, imgHeight / 2, 1, 1, 0, &percentCoverageCenter);
-	  bool centerIsEmpty = centerCoverageStatus == GDAL_DATA_COVERAGE_STATUS_EMPTY;
-
-	  int q = 42;
-	  int z = q;
-	  */
   }
 
   if (!allBandsValid) {
 	  return nullptr;
   }
 
-  GDALTile *tile = GDALTiler::createRasterTile(adfGeoTransform);
+  // Get the bounds and resolution for a tile coordinate which represents the
+  // data overlap requested by the terrain specification.
+  double offsetTileResolution;
+  CRSBounds offsetTileBounds = terrainTileBounds(coord, offsetTileResolution);
 
-  // The previous geotransform represented the data with an overlap as required
-  // by the terrain specification.  This now needs to be overwritten so that
-  // the data is shifted to the bounds defined by tile itself.
-  tileBounds = mGrid.tileBounds(coord);
-  resolution = mGrid.resolution(coord.zoom);
-  adfGeoTransform[0] = tileBounds.getMinX(); // min longitude
-  adfGeoTransform[1] = resolution;
-  adfGeoTransform[2] = 0;
-  adfGeoTransform[3] = tileBounds.getMaxY(); // max latitude
-  adfGeoTransform[4] = 0;
-  adfGeoTransform[5] = -resolution;
+  // Convert the tile bounds into a geo transform
+  double offsetTileGeoTransform[6];
+  offsetTileGeoTransform[0] = offsetTileBounds.getMinX(); // min longitude
+  offsetTileGeoTransform[1] = offsetTileResolution;
+  offsetTileGeoTransform[2] = 0;
+  offsetTileGeoTransform[3] = offsetTileBounds.getMaxY(); // max latitude
+  offsetTileGeoTransform[4] = 0;
+  offsetTileGeoTransform[5] = -offsetTileResolution;
+
+  GDALTile *tile = GDALTiler::createRasterTile(offsetTileGeoTransform);
+
+
 
   // Set the shifted geo transform to the VRT
   if (GDALSetGeoTransform(tile->dataset, adfGeoTransform) != CE_None) {
