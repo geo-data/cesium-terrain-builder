@@ -36,6 +36,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <unordered_set>
 #include <string.h>             // for strcmp
 #include <stdlib.h>             // for atoi
 #include <thread>
@@ -581,9 +582,38 @@ writeTerrainTileToMBTiles(const mapbox::sqlite_db* db, const TileCoordinate* coo
 
 
 
-int validTiles = 0, totalTiles = 0;
+int validTiles = 0, totalTiles = 0, alreadyRendered = 0;
 
 vector<vector<TilePoint> > validPoints(30);
+std::unordered_set<uint64_t> renderedTiles;
+
+static void loadRenderedTiles(const mapbox::sqlite_db* db) {
+	sqlite3_stmt *stmt;
+	if (sqlite3_prepare_v2(db->db.get(), "SELECT zoom_level, tile_column, tile_row FROM tiles;", -1, &stmt, nullptr) != SQLITE_OK) {
+		std::string err = "Could not prepare tile fetching statement";
+		throw std::runtime_error(err);
+	}
+
+	int rc;
+	while (true) {
+		rc = sqlite3_step(stmt);
+		if (rc == SQLITE_ROW) {
+			uint64_t z = sqlite3_column_int(stmt, 0);
+			uint64_t x = sqlite3_column_int(stmt, 1);
+			uint64_t y = sqlite3_column_int(stmt, 2);
+			renderedTiles.insert((z << 58) | (x << 29) | y);
+		}
+		else if (rc == SQLITE_DONE) {
+			break;
+		}
+		else {
+			std::string err = "Could not fetch rendered rows from database";
+			throw std::runtime_error(err);
+		}
+	}
+
+	sqlite3_finalize(stmt);
+}
 
 static void recordValidPoint(const TileCoordinate& coord) {
 	static std::mutex mutex;
@@ -591,7 +621,29 @@ static void recordValidPoint(const TileCoordinate& coord) {
 
 	TilePoint point(coord.x, coord.y);
 	validPoints[coord.zoom].push_back(point);
+
+	uint64_t z = coord.zoom;
+	uint64_t x = coord.x;
+	uint64_t y = coord.y;
+
+	validTiles++;
+
+	renderedTiles.insert((z << 58) | (x << 29) | y);
 }
+
+static bool checkIfAlreadyRendered(const TileCoordinate& coord) {
+	static std::mutex mutex;
+	std::lock_guard<std::mutex> lock(mutex);
+
+	uint64_t z = coord.zoom;
+	uint64_t x = coord.x;
+	uint64_t y = coord.y;
+
+	auto it = renderedTiles.find((z << 58) | (x << 29) | y);
+	bool alreadyRendered = it != renderedTiles.end();
+	return alreadyRendered;
+}
+
 
 
 // Output terrain tiles to either a folder or directory, as needed
@@ -611,39 +663,58 @@ buildTerrainTiles(const TTiler &tiler, TerrainBuild *command, TerrainMetadata *m
 		const TileCoordinate *coordinate = iter.GridIterator::operator*();
 		if (metadata) metadata->add(tiler.grid(), coordinate);
 
+		{
+			std::mutex totalTileMutex;
+			std::lock_guard<std::mutex> lock(totalTileMutex);
+			totalTiles++;
+		}
+
 		string filename = "unknown";
 
-		totalTiles++;
+		bool isFile = command->fileFormat == TilerFileFormat::File;
+		bool isMBTiles = command->fileFormat == TilerFileFormat::MBTiles;
+		
 
-		if (command->fileFormat == TilerFileFormat::File) {
+		if (isFile) {
 			filename = getTileFilename(coordinate, dirname, "terrain");
-
-			if (!command->resume || !fileExists(filename)) {
-				auto *tile = *iter;
-
-				if (tile->isValidTile()) {
-					validTiles++;
-					recordValidPoint(*coordinate);
-					const string gzippedTile = tile->gzipTileContents();
-					writeTerrainTileToFile(filename, gzippedTile);
-				}
-				
-				delete tile;
-			}
 		}
-		else if (command->fileFormat == TilerFileFormat::MBTiles) {
+
+		bool tileAlreadyRendered = false;
+
+		if (command->resume) {
+			if (isFile) {
+				tileAlreadyRendered = fileExists(filename);
+			}
+			else if (isMBTiles) {
+				tileAlreadyRendered = checkIfAlreadyRendered(*coordinate);
+			}
+			
+			if (tileAlreadyRendered) {
+				alreadyRendered++;
+			}			
+		}
+
+		
+		if (!tileAlreadyRendered) {
 			auto *tile = *iter;
 
 			if (tile->isValidTile()) {
-				validTiles++;
 				recordValidPoint(*coordinate);
+
 				const string gzippedTile = tile->gzipTileContents();
-				writeTerrainTileToMBTiles(db, coordinate, gzippedTile);
+
+				if (isFile) {
+					writeTerrainTileToFile(filename, gzippedTile);
+				}
+				else if (isMBTiles) {
+					writeTerrainTileToMBTiles(db, coordinate, gzippedTile);
+				}
 			}
-			
 
 			delete tile;
 		}
+
+		
 
 		currentIndex = incrementIterator(iter, currentIndex);
 		showProgress(currentIndex, filename);
@@ -681,10 +752,15 @@ static int
 runTiler(TerrainBuild *command, Grid *grid, TerrainMetadata *metadata, mapbox::sqlite_db* db) {
 
   char **optionStrArray = NULL;
-  optionStrArray = CSLSetNameValue(optionStrArray, "SPARSE_OK", "TRUE");
 
+  string inputFilename = command->getInputFilename();
 
-  GDALDataset  *poDataset = (GDALDataset *) GDALOpenEx(command->getInputFilename(), GA_ReadOnly, nullptr, optionStrArray, nullptr);
+  // Quick check to see if this is a TIFF file
+  if (inputFilename.find(".tif") != std::string::npos) {
+	  optionStrArray = CSLSetNameValue(optionStrArray, "SPARSE_OK", "TRUE");
+  } 
+
+  GDALDataset  *poDataset = (GDALDataset *) GDALOpenEx(inputFilename.c_str(), GA_ReadOnly, nullptr, optionStrArray, nullptr);
   if (poDataset == NULL) {
     cerr << "Error: could not open GDAL dataset" << endl;
     return 1;
@@ -801,10 +877,16 @@ main(int argc, char *argv[]) {
 	  string dbPath = command.outputDir;
 	  dbPath += ".mbtiles";
 
-	  // TODO For now, just nuke the old DB completely
-	  VSIUnlink(dbPath.c_str());
+	  // If we're not resuming, just nuke the old DB completely
+	  if (!command.resume) {
+		  VSIUnlink(dbPath.c_str());
+	  }
 
 	 db = mapbox::mbtiles_open(dbPath);
+
+	 if (command.resume) {
+		 loadRenderedTiles(&db);
+	 }
   }
 
 
@@ -857,8 +939,9 @@ main(int argc, char *argv[]) {
 	  mapbox::mbtiles_close(db);
   }
 
-  std::cout << "Valid tiles: " << validTiles << ", " << "total tiles: " << totalTiles << std::endl;
+  std::cout << "Valid tiles: " << validTiles << ", already rendered: " << alreadyRendered << ", total tiles considered: " << totalTiles << std::endl;
 
+  /*
   std::ofstream fout;
   fout.open("validTiles.csv", std::ofstream::out);
 
@@ -873,6 +956,7 @@ main(int argc, char *argv[]) {
 	  }
   }
   fout.close();
+  */
 
   // Write Json metadata file?
   if (metadata) {

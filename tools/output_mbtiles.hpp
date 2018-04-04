@@ -55,22 +55,22 @@ inline sqlite_db mbtiles_open(std::string const& dbname) {
         err << "SQLite Error: Async error: " << err_msg << std::endl;
         throw std::runtime_error(err.str());
     }
-    if (sqlite3_exec(outdb.get(), "CREATE TABLE metadata (name text, value text);", NULL, NULL, &err_msg) != SQLITE_OK) {
+    if (sqlite3_exec(outdb.get(), "CREATE TABLE IF NOT EXISTS metadata (name text, value text);", NULL, NULL, &err_msg) != SQLITE_OK) {
         std::ostringstream err;
         err << "SQLite Error: Metadata Table Creation error: " << err_msg << std::endl;
         throw std::runtime_error(err.str());
     }
-    if (sqlite3_exec(outdb.get(), "CREATE TABLE tiles (zoom_level integer, tile_column integer, tile_row integer, tile_data blob);", NULL, NULL, &err_msg) != SQLITE_OK) {
+    if (sqlite3_exec(outdb.get(), "CREATE TABLE IF NOT EXISTS  tiles (zoom_level integer, tile_column integer, tile_row integer, tile_data blob);", NULL, NULL, &err_msg) != SQLITE_OK) {
         std::ostringstream err;
         err << "SQLite Error: Tiles Table Creation error: " << err_msg << std::endl;
         throw std::runtime_error(err.str());
     }
-    if (sqlite3_exec(outdb.get(), "create unique index name on metadata (name);", NULL, NULL, &err_msg) != SQLITE_OK) {
+    if (sqlite3_exec(outdb.get(), "create unique index IF NOT EXISTS  name on metadata (name);", NULL, NULL, &err_msg) != SQLITE_OK) {
         std::ostringstream err;
         err << "SQLite Error: Metadata Index Creation error: " << err_msg << std::endl;
         throw std::runtime_error(err.str());
     }
-    if (sqlite3_exec(outdb.get(), "create unique index tile_index on tiles (zoom_level, tile_column, tile_row);", NULL, NULL, &err_msg) != SQLITE_OK) {
+    if (sqlite3_exec(outdb.get(), "create unique index IF NOT EXISTS  tile_index on tiles (zoom_level, tile_column, tile_row);", NULL, NULL, &err_msg) != SQLITE_OK) {
         std::ostringstream err;
         err << "SQLite Error: Tiles Index Creation error: " << err_msg << std::endl;
         throw std::runtime_error(err.str());
