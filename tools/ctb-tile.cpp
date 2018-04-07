@@ -51,6 +51,7 @@
 #include "RasterIterator.hpp"
 #include "TerrainIterator.hpp"
 #include "MeshIterator.hpp"
+#include "GDALDatasetReader.hpp"
 
 using namespace std;
 using namespace ctb;
@@ -593,6 +594,7 @@ buildTerrain(const TerrainTiler &tiler, TerrainBuild *command, TerrainMetadata *
   TerrainIterator iter(tiler, startZoom, endZoom);
   int currentIndex = incrementIterator(iter, 0);
   setIteratorSize(iter);
+  GDALDatasetReaderWithOverviews reader(tiler);
 
   while (!iter.exhausted()) {
     const TileCoordinate *coordinate = iter.GridIterator::operator*();
@@ -600,7 +602,7 @@ buildTerrain(const TerrainTiler &tiler, TerrainBuild *command, TerrainMetadata *
     if (metadata) metadata->add(tiler.grid(), coordinate);
 
     if( !command->resume || !fileExists(filename) ) {
-      TerrainTile *tile = *iter;
+      TerrainTile *tile = iter.operator*(&reader);
       const string temp_filename = concat(filename, ".tmp");
 
       tile->writeFile(temp_filename.c_str());
@@ -647,6 +649,7 @@ buildMesh(const MeshTiler &tiler, TerrainBuild *command, TerrainMetadata *metada
   MeshIterator iter(tiler, startZoom, endZoom);
   int currentIndex = incrementIterator(iter, 0);
   setIteratorSize(iter);
+  GDALDatasetReaderWithOverviews reader(tiler);
 
   while (!iter.exhausted()) {
     const TileCoordinate *coordinate = iter.GridIterator::operator*();
@@ -654,7 +657,7 @@ buildMesh(const MeshTiler &tiler, TerrainBuild *command, TerrainMetadata *metada
     if (metadata) metadata->add(tiler.grid(), coordinate);
 
     if( !command->resume || !fileExists(filename) ) {
-      MeshTile *tile = *iter;
+      MeshTile *tile = iter.operator*(&reader);
       const string temp_filename = concat(filename, ".tmp");
 
       tile->writeFile(temp_filename.c_str());

@@ -62,7 +62,11 @@ public:
 
   /// Create a mesh from a tile coordinate
   MeshTile *
-  createMesh(const TileCoordinate &coord) const;
+  createMesh(GDALDataset *dataset, const TileCoordinate &coord) const;
+
+  /// Create a mesh from a tile coordinate
+  MeshTile *
+  createMesh(GDALDataset *dataset, const TileCoordinate &coord, GDALDatasetReader *reader) const;
 
 protected:
 
@@ -75,6 +79,9 @@ protected:
     double heightmapTerrainQuality, 
     int tileWidth, 
     int numberOfTilesAtLevelZero);
+
+  /// Assigns settings of Tile just to use.
+  void prepareSettingsOfTile(MeshTile *tile, const TileCoordinate &coord, float *rasterHeights, ctb::i_tile tileSizeX, ctb::i_tile tileSizeY) const;
 };
 
 #endif /* MESHTILER_HPP */

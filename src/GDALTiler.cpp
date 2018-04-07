@@ -173,7 +173,7 @@ GDALTiler::~GDALTiler() {
 }
 
 GDALTile *
-GDALTiler::createRasterTile(const TileCoordinate &coord) const {
+GDALTiler::createRasterTile(GDALDataset *dataset, const TileCoordinate &coord) const {
   // Convert the tile bounds into a geo transform
   double adfGeoTransform[6],
     resolution = mGrid.resolution(coord.zoom);
@@ -186,7 +186,7 @@ GDALTiler::createRasterTile(const TileCoordinate &coord) const {
   adfGeoTransform[4] = 0;
   adfGeoTransform[5] = -resolution;
 
-  GDALTile *tile = createRasterTile(adfGeoTransform);
+  GDALTile *tile = createRasterTile(dataset, adfGeoTransform);
   static_cast<TileCoordinate &>(*tile) = coord;
 
   // Set the shifted geo transform to the VRT
@@ -271,13 +271,13 @@ getOverviewDataset(GDALDatasetH hSrcDS, GDALTransformerFunc pfnTransformer, void
  * dataset.
  */
 GDALTile *
-GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
-  if (poDataset == NULL) {
+GDALTiler::createRasterTile(GDALDataset *dataset, double (&adfGeoTransform)[6]) const {
+  if (dataset == NULL) {
     throw CTBException("No GDAL dataset is set");
   }
 
   // The source and sink datasets
-  GDALDatasetH hSrcDS = (GDALDatasetH) dataset();
+  GDALDatasetH hSrcDS = (GDALDatasetH) dataset;
   GDALDatasetH hDstDS;
 
   // The transformation option list
@@ -319,7 +319,7 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
 
   for (short unsigned int i = 0; i < psWarpOptions->nBandCount; ++i) {
     int bGotNoData = FALSE;
-    double noDataValue = dataset()->GetRasterBand(i + 1)->GetNoDataValue(&bGotNoData);
+    double noDataValue = poDataset->GetRasterBand(i + 1)->GetNoDataValue(&bGotNoData);
     if (!bGotNoData) noDataValue = -32768;
 
     psWarpOptions->padfSrcNoDataReal[i] = noDataValue;

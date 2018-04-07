@@ -34,3 +34,18 @@ GDALTile::~GDALTile() {
     }
   }
 }
+
+/// Detach the underlying GDAL dataset
+GDALDataset *GDALTile::detach() {
+  if (dataset != NULL) {
+    GDALDataset *poDataset = dataset;
+    dataset = NULL;
+
+    if (transformer != NULL) {
+      GDALDestroyGenImgProjTransformer(transformer);
+      transformer = NULL;
+    }
+    return poDataset;
+  }
+  return NULL;
+}

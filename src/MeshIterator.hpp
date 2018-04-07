@@ -56,7 +56,12 @@ public:
   /// Override the dereference operator to return a Tile
   virtual MeshTile *
   operator*() const {
-    return tiler.createMesh(*(GridIterator::operator*()));
+    return tiler.createMesh(tiler.dataset(), *(GridIterator::operator*()));
+  }
+
+  virtual MeshTile *
+  operator*(ctb::GDALDatasetReader *reader) const {
+    return tiler.createMesh(tiler.dataset(), *(GridIterator::operator*()), reader);
   }
 
 protected:

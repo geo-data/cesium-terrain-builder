@@ -23,6 +23,7 @@
 #include "CTBException.hpp"
 #include "MeshTiler.hpp"
 #include "HeightFieldChunker.hpp"
+#include "GDALDatasetReader.hpp"
 
 using namespace ctb;
 
@@ -110,31 +111,13 @@ public:
 
 ////////////////////////////////////////////////////////////////////////////////
 
-MeshTile *
-ctb::MeshTiler::createMesh(const TileCoordinate &coord) const {
-  // Get a mesh tile represented by the tile coordinate
-  MeshTile *terrainTile = new MeshTile(coord);
-  GDALTile *rasterTile = createRasterTile(coord); // the raster associated with this tile coordinate
-  GDALRasterBand *heightsBand = rasterTile->dataset->GetRasterBand(1);
-
-  // Get the initial width and height of tile data in a tile
-  const ctb::i_tile TILE_SIZE = mGrid.tileSize();
-  const ctb::i_tile TILE_CELL_SIZE = TILE_SIZE * TILE_SIZE;
-
-  // Copy the raster data into an array
-  float *rasterHeights = (float *)CPLCalloc(TILE_CELL_SIZE, sizeof(float));
-  if (heightsBand->RasterIO(GF_Read, 0, 0, TILE_SIZE, TILE_SIZE,
-                            (void *) rasterHeights, TILE_SIZE, TILE_SIZE, GDT_Float32,
-                            0, 0) != CE_None) {
-    CPLFree(rasterHeights);
-    throw CTBException("Could not read heights from raster");
-  }
-
-  delete rasterTile;
+void 
+ctb::MeshTiler::prepareSettingsOfTile(MeshTile *terrainTile, const TileCoordinate &coord, float *rasterHeights, ctb::i_tile tileSizeX, ctb::i_tile tileSizeY) const {
+  const ctb::i_tile TILE_SIZE = tileSizeX;
 
   // Number of tiles in the horizontal direction at tile level zero.
   double resolutionAtLevelZero = mGrid.resolution(0);
-  int numberOfTilesAtLevelZero = (int)(mGrid.getExtent().getWidth() / (TILE_SIZE * resolutionAtLevelZero));
+  int numberOfTilesAtLevelZero = (int)(mGrid.getExtent().getWidth() / (tileSizeX * resolutionAtLevelZero));
   // Default quality of terrain created from heightmaps (TerrainProvider.js).
   double heightmapTerrainQuality = 0.25;
   // Earth semi-major-axis in meters.
@@ -157,11 +140,9 @@ ctb::MeshTiler::createMesh(const TileCoordinate &coord) const {
   //
   ctb::CRSBounds mGridBounds = mGrid.tileBounds(coord);
   Mesh &tileMesh = terrainTile->getMesh();
-  WrapperMesh mesh(mGridBounds, tileMesh, TILE_SIZE, TILE_SIZE);
+  WrapperMesh mesh(mGridBounds, tileMesh, tileSizeX, tileSizeY);
   heightfield.generateMesh(mesh, 0);
   heightfield.clear();
-
-  CPLFree(rasterHeights);
 
   // If we are not at the maximum zoom level we need to set child flags on the
   // tile where child tiles overlap the dataset bounds.
@@ -185,6 +166,30 @@ ctb::MeshTiler::createMesh(const TileCoordinate &coord) const {
       }
     }
   }
+}
+
+MeshTile *
+ctb::MeshTiler::createMesh(GDALDataset *dataset, const TileCoordinate &coord) const {
+  // Copy the raster data into an array
+  float *rasterHeights = ctb::GDALDatasetReader::readRasterHeights(*this, dataset, coord, mGrid.tileSize(), mGrid.tileSize());
+
+  // Get a mesh tile represented by the tile coordinate
+  MeshTile *terrainTile = new MeshTile(coord);
+  prepareSettingsOfTile(terrainTile, coord, rasterHeights, mGrid.tileSize(), mGrid.tileSize());
+  CPLFree(rasterHeights);
+
+  return terrainTile;
+}
+
+MeshTile *
+ctb::MeshTiler::createMesh(GDALDataset *dataset, const TileCoordinate &coord, ctb::GDALDatasetReader *reader) const {
+  // Copy the raster data into an array
+  float *rasterHeights = reader->readRasterHeights(dataset, coord, mGrid.tileSize(), mGrid.tileSize());
+
+  // Get a mesh tile represented by the tile coordinate
+  MeshTile *terrainTile = new MeshTile(coord);
+  prepareSettingsOfTile(terrainTile, coord, rasterHeights, mGrid.tileSize(), mGrid.tileSize());
+  CPLFree(rasterHeights);
 
   return terrainTile;
 }

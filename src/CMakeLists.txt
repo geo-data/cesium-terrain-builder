@@ -20,6 +20,7 @@ include_directories(${ZLIB_INCLUDE_DIRS})
 add_library(ctb SHARED
   GDALTile.cpp
   GDALTiler.cpp
+  GDALDatasetReader.cpp
   TerrainTiler.cpp
   TerrainTile.cpp
   MeshTiler.cpp
@@ -36,6 +37,7 @@ set(HEADERS
   Coordinate3D.hpp
   GDALTile.hpp
   GDALTiler.hpp
+  GDALDatasetReader.hpp
   GlobalGeodetic.hpp
   GlobalMercator.hpp
   Grid.hpp
