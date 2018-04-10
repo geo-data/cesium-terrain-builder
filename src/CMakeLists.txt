@@ -22,6 +22,8 @@ add_library(ctb SHARED
   GDALTiler.cpp
   TerrainTiler.cpp
   TerrainTile.cpp
+  MeshTiler.cpp
+  MeshTile.cpp
   GlobalMercator.cpp
   GlobalGeodetic.cpp)
 target_link_libraries(ctb ${GDAL_LIBRARIES} ${ZLIB_LIBRARIES})
@@ -29,13 +31,20 @@ target_link_libraries(ctb ${GDAL_LIBRARIES} ${ZLIB_LIBRARIES})
 # Install libctb
 set(HEADERS
   Bounds.hpp
+  BoundingSphere.hpp
   Coordinate.hpp
+  Coordinate3D.hpp
   GDALTile.hpp
   GDALTiler.hpp
   GlobalGeodetic.hpp
   GlobalMercator.hpp
   Grid.hpp
   GridIterator.hpp
+  HeightFieldChunker.hpp
+  Mesh.hpp
+  MeshIterator.hpp
+  MeshTile.hpp
+  MeshTiler.hpp
   RasterIterator.hpp
   RasterTiler.hpp
   CTBException.hpp

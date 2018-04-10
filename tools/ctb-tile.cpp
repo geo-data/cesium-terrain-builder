@@ -34,7 +34,9 @@
  */
 
 #include <iostream>
+#include <fstream>
 #include <sstream>
+#include <unordered_set>
 #include <string.h>             // for strcmp
 #include <stdlib.h>             // for atoi
 #include <thread>
@@ -50,6 +52,9 @@
 #include "GlobalMercator.hpp"
 #include "RasterIterator.hpp"
 #include "TerrainIterator.hpp"
+#include "MeshIterator.hpp"
+
+#include "output_mbtiles.hpp"
 
 using namespace std;
 using namespace ctb;
@@ -59,6 +64,11 @@ static const char *osDirSep = "\\";
 #else
 static const char *osDirSep = "/";
 #endif
+
+enum TilerFileFormat {
+	File,
+	MBTiles
+};
 
 /// Handle the terrain build CLI options
 class TerrainBuild : public Command {
@@ -73,7 +83,10 @@ public:
     startZoom(-1),
     endZoom(-1),
     verbosity(1),
-    resume(false)
+    resume(false),
+    meshQualityFactor(1.0),
+    metadata(false),
+	fileFormat(TilerFileFormat::File)
   {}
 
   void
@@ -198,6 +211,21 @@ public:
     return  (command->argc == 1) ? command->argv[0] : NULL;
   }
 
+  static void
+    setMeshQualityFactor(command_t *command) {
+    static_cast<TerrainBuild *>(Command::self(command))->meshQualityFactor = atof(command->arg);
+  }
+
+  static void
+    setMetadata(command_t *command) {
+    static_cast<TerrainBuild *>(Command::self(command))->metadata = true;
+  }
+
+  static void
+	setFileFormat(command_t *command) {
+	  static_cast<TerrainBuild *>(Command::self(command))->fileFormat = TilerFileFormat::MBTiles;
+  }
+
   const char *outputDir,
     *outputFormat,
     *profile;
@@ -212,6 +240,10 @@ public:
 
   CPLStringList creationOptions;
   TilerOptions tilerOptions;
+
+  double meshQualityFactor;
+  bool metadata;
+  TilerFileFormat fileFormat;
 };
 
 /**
@@ -339,9 +371,147 @@ fileExists(const std::string& filename) {
   return VSIStatExL(filename.c_str(), &statbuf, VSI_STAT_EXISTS_FLAG) == 0;
 }
 
+/// Handle the terrain metadata
+class TerrainMetadata {
+public:
+  TerrainMetadata() {
+  }
+
+  // Defines the valid tile indexes of a level in a Tileset
+  struct LevelInfo {
+  public:
+    LevelInfo() {
+      startX = startY = std::numeric_limits<int>::max();
+      finalX = finalY = std::numeric_limits<int>::min();
+    }
+    int startX, startY;
+    int finalX, finalY;
+
+    inline void add(const TileCoordinate *coordinate) {
+      startX = std::min(startX, (int)coordinate->x);
+      startY = std::min(startY, (int)coordinate->y);
+      finalX = std::max(finalX, (int)coordinate->x);
+      finalY = std::max(finalY, (int)coordinate->y);
+    }
+    inline void add(const LevelInfo &level) {
+      startX = std::min(startX, level.startX);
+      startY = std::min(startY, level.startY);
+      finalX = std::max(finalX, level.finalX);
+      finalY = std::max(finalY, level.finalY);
+    }
+  };
+  std::vector<LevelInfo> levels;
+
+  // Defines the bounding box covered by the Terrain
+  CRSBounds bounds;
+
+  // Add metadata of the specified Coordinate
+  void add(const Grid &grid, const TileCoordinate *coordinate) {
+    CRSBounds tileBounds = grid.tileBounds(*coordinate);
+    i_zoom zoom = coordinate->zoom;
+
+    if ((1 + zoom) > levels.size()) {
+      for (size_t i = 0; i <= zoom; i++) {
+        levels.push_back(LevelInfo());
+      }
+    }
+    LevelInfo &level = levels[zoom];
+    level.add(coordinate);
+
+    if (bounds.getMaxX() == bounds.getMinX()) {
+      bounds = tileBounds;
+    }
+    else {
+      bounds.setMinX(std::min(bounds.getMinX(), tileBounds.getMinX()));
+      bounds.setMinY(std::min(bounds.getMinY(), tileBounds.getMinY()));
+      bounds.setMaxX(std::max(bounds.getMaxX(), tileBounds.getMaxX()));
+      bounds.setMaxY(std::max(bounds.getMaxY(), tileBounds.getMaxY()));
+    }
+  }
+
+  // Add metadata info
+  void add(const TerrainMetadata &otherMetadata) {
+    if (otherMetadata.levels.size() > 0) {
+      const CRSBounds &otherBounds = otherMetadata.bounds;
+
+      for (size_t i = 0; i < (otherMetadata.levels.size() - this->levels.size()); i++) {
+        levels.push_back(LevelInfo());
+      }
+      for (size_t i = 0; i < levels.size(); i++) {
+        levels[i].add(otherMetadata.levels[i]);
+      }
+
+      bounds.setMinX(std::min(bounds.getMinX(), otherBounds.getMinX()));
+      bounds.setMinY(std::min(bounds.getMinY(), otherBounds.getMinY()));
+      bounds.setMaxX(std::max(bounds.getMaxX(), otherBounds.getMaxX()));
+      bounds.setMaxY(std::max(bounds.getMaxY(), otherBounds.getMaxY()));
+    }
+  }
+
+  /// Output the layer.json metadata file
+  /// http://help.agi.com/TerrainServer/RESTAPIGuide.html
+  /// Example:
+  /// https://assets.agi.com/stk-terrain/v1/tilesets/world/tiles/layer.json
+  void writeJsonFile(const std::string &filename, const std::string &datasetName, const std::string &outputFormat) const {
+    FILE *fp = fopen(filename.c_str(), "w");
+
+    if (fp == NULL) {
+      throw CTBException("Failed to open metadata file");
+    }
+
+    fprintf(fp, "{\n");
+    fprintf(fp, "  \"tilejson\": \"2.1.0\",\n");
+    fprintf(fp, "  \"name\": \"%s\",\n", datasetName.c_str());
+    fprintf(fp, "  \"description\": \"\",\n");
+    fprintf(fp, "  \"version\": \"1.1.0\",\n");
+
+    if (strcmp(outputFormat.c_str(), "Terrain") == 0) {
+      fprintf(fp, "  \"format\": \"heightmap-1.0\",\n");
+    }
+    else if (strcmp(outputFormat.c_str(), "Mesh") == 0) {
+      fprintf(fp, "  \"format\": \"quantized-mesh-1.0\",\n");
+    }
+    else {
+      fprintf(fp, "  \"format\": \"GDAL\",\n");
+    }
+    fprintf(fp, "  \"attribution\": \"\",\n");
+    fprintf(fp, "  \"schema\": \"tms\",\n");
+    fprintf(fp, "  \"tiles\": [ \"{z}/{x}/{y}.terrain?v={version}\" ],\n");
+    fprintf(fp, "  \"projection\": \"EPSG:4326\",\n");
+    fprintf(fp, "  \"bounds\": [ %.2f, %.2f, %.2f, %.2f ],\n",
+      bounds.getMinX(),
+      bounds.getMinY(),
+      bounds.getMaxX(),
+      bounds.getMaxY());
+
+    fprintf(fp, "  \"available\": [\n");
+    for (size_t i = 0, icount = levels.size(); i < icount; i++) {
+      const LevelInfo &level = levels[i];
+
+      if (i > 0)
+        fprintf(fp, "   ,[ ");
+      else
+        fprintf(fp, "    [ ");
+
+      if (level.finalX >= level.startX) {
+        fprintf(fp, "{ \"startX\": %li, \"startY\": %li, \"endX\": %li, \"endY\": %li }",
+          level.startX,
+          level.startY,
+          level.finalX,
+          level.finalY);
+      }
+      fprintf(fp, " ]\n");
+    }
+    fprintf(fp, "  ]\n");
+
+    fprintf(fp, "}\n");
+    fclose(fp);
+  }
+};
+
 /// Output GDAL tiles represented by a tiler to a directory
 static void
-buildGDAL(const RasterTiler &tiler, TerrainBuild *command) {
+buildGDAL(const RasterTiler &tiler, TerrainBuild *command, TerrainMetadata *metadata) {
   GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName(command->outputFormat);
 
   if (poDriver == NULL) {
@@ -365,8 +535,8 @@ buildGDAL(const RasterTiler &tiler, TerrainBuild *command) {
     const TileCoordinate *coordinate = iter.GridIterator::operator*();
     GDALDataset *poDstDS;
     const string filename = getTileFilename(coordinate, dirname, extension);
+    if (metadata) metadata->add(tiler.grid(), coordinate);
 
-    
     if( !command->resume || !fileExists(filename) ) {
       GDALTile *tile = *iter;
       const string temp_filename = concat(filename, ".tmp");
@@ -391,37 +561,187 @@ buildGDAL(const RasterTiler &tiler, TerrainBuild *command) {
   }
 }
 
-/// Output terrain tiles represented by a tiler to a directory
 static void
-buildTerrain(const TerrainTiler &tiler, TerrainBuild *command) {
+writeTerrainTileToFile(const std::string &filename, const std::string &gzippedTileContents) {
+	std::ofstream fout;
+	fout.open(filename.c_str(), std::ofstream::out | std::ofstream::binary);
+	fout << gzippedTileContents;
+	fout.close();
+}
+
+static void
+writeTerrainTileToMBTiles(const mapbox::sqlite_db* db, const TileCoordinate* coordinate, const std::string &gzippedTileContents) {
+	static std::mutex mutex;
+	
+	std::lock_guard<std::mutex> lock(mutex);
+
+	mapbox::mbtiles_write_tile(*db, coordinate->zoom, coordinate->x, coordinate->y, gzippedTileContents.c_str(), gzippedTileContents.size());
+
+}
+
+
+
+
+int validTiles = 0, totalTiles = 0, alreadyRendered = 0;
+
+vector<vector<TilePoint> > validPoints(30);
+std::unordered_set<uint64_t> renderedTiles;
+
+static void loadRenderedTiles(const mapbox::sqlite_db* db) {
+	sqlite3_stmt *stmt;
+	if (sqlite3_prepare_v2(db->db.get(), "SELECT zoom_level, tile_column, tile_row FROM tiles;", -1, &stmt, nullptr) != SQLITE_OK) {
+		std::string err = "Could not prepare tile fetching statement";
+		throw std::runtime_error(err);
+	}
+
+	int rc;
+	while (true) {
+		rc = sqlite3_step(stmt);
+		if (rc == SQLITE_ROW) {
+			uint64_t z = sqlite3_column_int(stmt, 0);
+			uint64_t x = sqlite3_column_int(stmt, 1);
+			uint64_t y = sqlite3_column_int(stmt, 2);
+			renderedTiles.insert((z << 58) | (x << 29) | y);
+		}
+		else if (rc == SQLITE_DONE) {
+			break;
+		}
+		else {
+			std::string err = "Could not fetch rendered rows from database";
+			throw std::runtime_error(err);
+		}
+	}
+
+	sqlite3_finalize(stmt);
+}
+
+static void recordValidPoint(const TileCoordinate& coord) {
+	static std::mutex mutex;
+	std::lock_guard<std::mutex> lock(mutex);
+
+	TilePoint point(coord.x, coord.y);
+	validPoints[coord.zoom].push_back(point);
+
+	uint64_t z = coord.zoom;
+	uint64_t x = coord.x;
+	uint64_t y = coord.y;
+
+	validTiles++;
+
+	renderedTiles.insert((z << 58) | (x << 29) | y);
+}
+
+static bool checkIfAlreadyRendered(const TileCoordinate& coord) {
+	static std::mutex mutex;
+	std::lock_guard<std::mutex> lock(mutex);
+
+	uint64_t z = coord.zoom;
+	uint64_t x = coord.x;
+	uint64_t y = coord.y;
+
+	auto it = renderedTiles.find((z << 58) | (x << 29) | y);
+	bool alreadyRendered = it != renderedTiles.end();
+	return alreadyRendered;
+}
+
+
+
+// Output terrain tiles to either a folder or directory, as needed
+template <typename TTiler, typename TIterator>
+static void
+buildTerrainTiles(const TTiler &tiler, TerrainBuild *command, TerrainMetadata *metadata, mapbox::sqlite_db* db) {
+	const string dirname = string(command->outputDir) + osDirSep;
+	i_zoom startZoom = (command->startZoom < 0) ? tiler.maxZoomLevel() : command->startZoom,
+		endZoom = (command->endZoom < 0) ? 0 : command->endZoom;
+
+
+	TIterator iter(tiler, startZoom, endZoom);
+	int currentIndex = incrementIterator(iter, 0);
+	setIteratorSize(iter);
+
+	while (!iter.exhausted()) {
+		const TileCoordinate *coordinate = iter.GridIterator::operator*();
+		if (metadata) metadata->add(tiler.grid(), coordinate);
+
+		{
+			std::mutex totalTileMutex;
+			std::lock_guard<std::mutex> lock(totalTileMutex);
+			totalTiles++;
+		}
+
+		string filename = "unknown";
+
+		bool isFile = command->fileFormat == TilerFileFormat::File;
+		bool isMBTiles = command->fileFormat == TilerFileFormat::MBTiles;
+		
+
+		if (isFile) {
+			filename = getTileFilename(coordinate, dirname, "terrain");
+		}
+
+		bool tileAlreadyRendered = false;
+
+		if (command->resume) {
+			if (isFile) {
+				tileAlreadyRendered = fileExists(filename);
+			}
+			else if (isMBTiles) {
+				tileAlreadyRendered = checkIfAlreadyRendered(*coordinate);
+			}
+			
+			if (tileAlreadyRendered) {
+				alreadyRendered++;
+			}			
+		}
+
+		
+		if (!tileAlreadyRendered) {
+			auto *tile = *iter;
+
+			if (tile->isValidTile()) {
+				recordValidPoint(*coordinate);
+
+				const string gzippedTile = tile->gzipTileContents();
+
+				if (isFile) {
+					writeTerrainTileToFile(filename, gzippedTile);
+				}
+				else if (isMBTiles) {
+					writeTerrainTileToMBTiles(db, coordinate, gzippedTile);
+				}
+			}
+
+			delete tile;
+		}
+
+		
+
+		currentIndex = incrementIterator(iter, currentIndex);
+		showProgress(currentIndex, filename);
+	}
+}
+
+static void
+buildMetadata(const RasterTiler &tiler, TerrainBuild *command, TerrainMetadata *metadata) {
   const string dirname = string(command->outputDir) + osDirSep;
   i_zoom startZoom = (command->startZoom < 0) ? tiler.maxZoomLevel() : command->startZoom,
     endZoom = (command->endZoom < 0) ? 0 : command->endZoom;
 
-  TerrainIterator iter(tiler, startZoom, endZoom);
+  const std::string filename = concat(dirname, "layer.json"); 
+
+  RasterIterator iter(tiler, startZoom, endZoom);
   int currentIndex = incrementIterator(iter, 0);
   setIteratorSize(iter);
 
   while (!iter.exhausted()) {
     const TileCoordinate *coordinate = iter.GridIterator::operator*();
-    const string filename = getTileFilename(coordinate, dirname, "terrain");
-
-    if( !command->resume || !fileExists(filename) ) {
-      TerrainTile *tile = *iter;
-      const string temp_filename = concat(filename, ".tmp");
-
-      tile->writeFile(temp_filename.c_str());
-      delete tile;
-
-      if (VSIRename(temp_filename.c_str(), filename.c_str()) != 0) {
-        throw new CTBException("Could not rename temporary file");
-      }
-    }
+    if (metadata) metadata->add(tiler.grid(), coordinate);
 
     currentIndex = incrementIterator(iter, currentIndex);
     showProgress(currentIndex, filename);
   }
 }
+
 
 /**
  * Perform a tile building operation
@@ -429,20 +749,39 @@ buildTerrain(const TerrainTiler &tiler, TerrainBuild *command) {
  * This function is designed to be run in a separate thread.
  */
 static int
-runTiler(TerrainBuild *command, Grid *grid) {
-  GDALDataset  *poDataset = (GDALDataset *) GDALOpen(command->getInputFilename(), GA_ReadOnly);
+runTiler(TerrainBuild *command, Grid *grid, TerrainMetadata *metadata, mapbox::sqlite_db* db) {
+
+  char **optionStrArray = NULL;
+
+  string inputFilename = command->getInputFilename();
+
+  // Quick check to see if this is a TIFF file
+  if (inputFilename.find(".tif") != std::string::npos) {
+	  optionStrArray = CSLSetNameValue(optionStrArray, "SPARSE_OK", "TRUE");
+  } 
+
+  GDALDataset  *poDataset = (GDALDataset *) GDALOpenEx(inputFilename.c_str(), GA_ReadOnly, nullptr, optionStrArray, nullptr);
   if (poDataset == NULL) {
     cerr << "Error: could not open GDAL dataset" << endl;
     return 1;
   }
 
+  // Metadata of only this thread, it will be joined to global later
+  TerrainMetadata *threadMetadata = metadata ? new TerrainMetadata() : NULL;
+
   try {
-    if (strcmp(command->outputFormat, "Terrain") == 0) {
+    if (command->metadata) {
+      const RasterTiler tiler(poDataset, *grid, command->tilerOptions);
+      buildMetadata(tiler, command, threadMetadata);
+    } else if (strcmp(command->outputFormat, "Terrain") == 0) {
       const TerrainTiler tiler(poDataset, *grid);
-      buildTerrain(tiler, command);
+	  buildTerrainTiles<TerrainTiler, TerrainIterator>(tiler, command, threadMetadata, db);
+    } else if (strcmp(command->outputFormat, "Mesh") == 0) {
+      const MeshTiler tiler(poDataset, *grid, command->tilerOptions, command->meshQualityFactor);
+	  buildTerrainTiles<MeshTiler, MeshIterator>(tiler, command, threadMetadata, db);
     } else {                    // it's a GDAL format
       const RasterTiler tiler(poDataset, *grid, command->tilerOptions);
-      buildGDAL(tiler, command);
+      buildGDAL(tiler, command, threadMetadata);
     }
 
   } catch (CTBException &e) {
@@ -451,7 +790,31 @@ runTiler(TerrainBuild *command, Grid *grid) {
 
   GDALClose(poDataset);
 
+
+
+
+
+
+  // Pass metadata to global instance.
+  if (threadMetadata) {
+    static std::mutex mutex;
+    std::lock_guard<std::mutex> lock(mutex);
+
+    metadata->add(*threadMetadata);
+    delete threadMetadata;
+  }
   return 0;
+}
+
+mapbox::sqlite_db createMBTilesDatabase(std::string const& dbname) {
+	VSIStatBufL stat;
+	if (VSIStatExL(dbname.c_str(), &stat, VSI_STAT_EXISTS_FLAG | VSI_STAT_NATURE_FLAG)) {
+		// TODO For now, just nuke the old DB completely
+		VSIUnlink(dbname.c_str());
+	}
+
+	mapbox::sqlite_db db = mapbox::mbtiles_open(dbname);
+	return db;
 }
 
 int
@@ -460,7 +823,8 @@ main(int argc, char *argv[]) {
   TerrainBuild command = TerrainBuild(argv[0], version.cstr);
   command.setUsage("[options] GDAL_DATASOURCE");
   command.option("-o", "--output-dir <dir>", "specify the output directory for the tiles (defaults to working directory)", TerrainBuild::setOutputDir);
-  command.option("-f", "--output-format <format>", "specify the output format for the tiles. This is either `Terrain` (the default) or any format listed by `gdalinfo --formats`", TerrainBuild::setOutputFormat);
+  command.option("-b", "--mbtiles", "specify the output format and location should be an MBTiles container instead of a directory", TerrainBuild::setFileFormat);
+  command.option("-f", "--output-format <format>", "specify the output format for the tiles. This is either `Terrain` (the default), `Mesh` (Chunked LOD mesh), or any format listed by `gdalinfo --formats`", TerrainBuild::setOutputFormat);
   command.option("-p", "--profile <profile>", "specify the TMS profile for the tiles. This is either `geodetic` (the default) or `mercator`", TerrainBuild::setProfile);
   command.option("-c", "--thread-count <count>", "specify the number of threads to use for tile generation. On multicore machines this defaults to the number of CPUs", TerrainBuild::setThreadCount);
   command.option("-t", "--tile-size <size>", "specify the size of the tiles in pixels. This defaults to 65 for terrain tiles and 256 for other GDAL formats", TerrainBuild::setTileSize);
@@ -471,6 +835,8 @@ main(int argc, char *argv[]) {
   command.option("-z", "--error-threshold <threshold>", "specify the error threshold in pixel units for transformation approximation. Larger values should mean faster transforms. Defaults to 0.125", TerrainBuild::setErrorThreshold);
   command.option("-m", "--warp-memory <bytes>", "The memory limit in bytes used for warp operations. Higher settings should be faster. Defaults to a conservative GDAL internal setting.", TerrainBuild::setWarpMemory);
   command.option("-R", "--resume", "Do not overwrite existing files", TerrainBuild::setResume);
+  command.option("-g", "--mesh-qfactor <factor>", "specify the factor to multiply the estimated geometric error to convert heightmaps to irregular meshes. Larger values should mean minor quality. Defaults to 1.0", TerrainBuild::setMeshQualityFactor);
+  command.option("-l", "--layer", "only output the layer.json metadata file", TerrainBuild::setMetadata);
   command.option("-q", "--quiet", "only output errors", TerrainBuild::setQuiet);
   command.option("-v", "--verbose", "be more noisy", TerrainBuild::setVerbose);
 
@@ -489,13 +855,41 @@ main(int argc, char *argv[]) {
 
   // Check whether or not the output directory exists
   VSIStatBufL stat;
-  if (VSIStatExL(command.outputDir, &stat, VSI_STAT_EXISTS_FLAG | VSI_STAT_NATURE_FLAG)) {
-    cerr << "Error: The output directory does not exist: " << command.outputDir << endl;
-    return 1;
-  } else if (!VSI_ISDIR(stat.st_mode)) {
-    cerr << "Error: The output filepath is not a directory: " << command.outputDir << endl;
-    return 1;
+
+  mapbox::sqlite_db db;
+
+  string filename = "layer.json";
+
+  if (command.fileFormat == TilerFileFormat::File) {
+	  if (VSIStatExL(command.outputDir, &stat, VSI_STAT_EXISTS_FLAG | VSI_STAT_NATURE_FLAG)) {
+		  cerr << "Error: The output directory does not exist: " << command.outputDir << endl;
+		  return 1;
+	  }
+	  else if (!VSI_ISDIR(stat.st_mode)) {
+		  cerr << "Error: The output filepath is not a directory: " << command.outputDir << endl;
+		  return 1;
+	  }
+
+	  const string dirname = string(command.outputDir) + osDirSep;
+	  filename = concat(dirname, "layer.json");
   }
+  else if(command.fileFormat == TilerFileFormat::MBTiles) {
+	  string dbPath = command.outputDir;
+	  dbPath += ".mbtiles";
+
+	  // If we're not resuming, just nuke the old DB completely
+	  if (!command.resume) {
+		  VSIUnlink(dbPath.c_str());
+	  }
+
+	 db = mapbox::mbtiles_open(dbPath);
+
+	 if (command.resume) {
+		 loadRenderedTiles(&db);
+	 }
+  }
+
+
 
   // Define the grid we are going to use
   Grid grid;
@@ -514,11 +908,15 @@ main(int argc, char *argv[]) {
   vector<future<int>> tasks;
   int threadCount = (command.threadCount > 0) ? command.threadCount : CPLGetNumCPUs();
 
+  // Calculate metadata?
+  
+  TerrainMetadata *metadata = command.metadata || !fileExists(filename) ? new TerrainMetadata() : NULL;
+
   // Instantiate the threads using futures from a packaged_task
   for (int i = 0; i < threadCount ; ++i) {
-    packaged_task<int(TerrainBuild *, Grid *)> task(runTiler); // wrap the function
+    packaged_task<int(TerrainBuild *, Grid *, TerrainMetadata *, mapbox::sqlite_db *)> task(runTiler); // wrap the function
     tasks.push_back(task.get_future());                        // get a future
-    thread(move(task), &command, &grid).detach(); // launch on a thread
+    thread(move(task), &command, &grid, metadata, &db).detach(); // launch on a thread
   }
 
   // Synchronise the completion of the threads
@@ -531,8 +929,44 @@ main(int argc, char *argv[]) {
     int retval = task.get();
 
     // return on the first encountered problem
-    if (retval)
+    if (retval) {
+      delete metadata;
       return retval;
+    }
+  }
+
+  if (db.db) {
+	  mapbox::mbtiles_close(db);
+  }
+
+  std::cout << "Valid tiles: " << validTiles << ", already rendered: " << alreadyRendered << ", total tiles considered: " << totalTiles << std::endl;
+
+  /*
+  std::ofstream fout;
+  fout.open("validTiles.csv", std::ofstream::out);
+
+  fout << "zoom,x,y" << std::endl;
+
+  for (int i = 0; i < validPoints.size(); i++) {
+	  vector<TilePoint>& points = validPoints[i];
+
+	  for (int j = 0; j < points.size(); j++) {
+		  TilePoint& point = points[j];
+		  fout << i << "," << point.x << "," << point.y << std::endl;
+	  }
+  }
+  fout.close();
+  */
+
+  // Write Json metadata file?
+  if (metadata) {
+    std::string datasetName(command.getInputFilename());
+    datasetName = datasetName.substr(datasetName.find_last_of("/\\") + 1);
+    const size_t rfindpos = datasetName.rfind('.');
+    if (std::string::npos != rfindpos) datasetName = datasetName.erase(rfindpos);
+
+    metadata->writeJsonFile(filename, datasetName, std::string(command.outputFormat));
+    delete metadata;
   }
 
   return 0;

@@ -172,12 +172,53 @@ GDALTiler::~GDALTiler() {
   closeDataset();
 }
 
+
+
 GDALTile *
 GDALTiler::createRasterTile(const TileCoordinate &coord) const {
   // Convert the tile bounds into a geo transform
   double adfGeoTransform[6],
     resolution = mGrid.resolution(coord.zoom);
   CRSBounds tileBounds = mGrid.tileBounds(coord);
+
+  /*
+  double ulX = tileBounds.getMinX();
+  double ulY = tileBounds.getMaxY();
+  double llX = tileBounds.getMaxX();
+  double llY = tileBounds.getMaxY();
+
+  long ulCol, ulRow, llCol, llRow;
+
+  double datasetTransform[6];
+
+  GDALGetGeoTransform(poDataset, datasetTransform);
+
+  calcWorldToPixel(datasetTransform, ulX, ulY, &ulCol, &ulRow);
+  calcWorldToPixel(datasetTransform, llX, llY, &llCol, &llRow);
+
+  int xOffset = (int)ulCol;
+  int yOffset = (int)ulRow;
+  int xSize = ulCol - llCol;
+  int ySize = ulRow - llRow;
+
+
+  uint16_t nBandCount = poDataset->GetRasterCount();
+
+  bool allBandsValid = true;
+
+  for (int i = 0; i < nBandCount; i++) {
+  int bGotNoData = FALSE;
+  GDALRasterBand* band = dataset()->GetRasterBand(i + 1);
+  double noDataValue = band->GetNoDataValue(&bGotNoData);
+  if (!bGotNoData) noDataValue = -32768;
+
+  double percentCoverage = 0;
+  int bandCoverageStatus = band->GetDataCoverageStatus(xOffset, yOffset, xSize, ySize, 0, &percentCoverage);
+
+  bool blockIsEmpty = bandCoverageStatus == GDAL_DATA_COVERAGE_STATUS_EMPTY;
+  allBandsValid &= !blockIsEmpty;
+  }
+*/
 
   adfGeoTransform[0] = tileBounds.getMinX(); // min longitude
   adfGeoTransform[1] = resolution;
@@ -186,6 +227,13 @@ GDALTiler::createRasterTile(const TileCoordinate &coord) const {
   adfGeoTransform[4] = 0;
   adfGeoTransform[5] = -resolution;
 
+
+
+  int imgWidth = GDALGetRasterXSize(poDataset);
+  int imgHeight = GDALGetRasterYSize(poDataset);
+
+
+  
   GDALTile *tile = createRasterTile(adfGeoTransform);
   static_cast<TileCoordinate &>(*tile) = coord;
 
@@ -196,6 +244,8 @@ GDALTiler::createRasterTile(const TileCoordinate &coord) const {
 
   return tile;
 }
+
+#include "gdaloverviewdataset.cpp"
 
 /**
  * @brief Get an overview dataset which best matches a transformation
@@ -246,7 +296,11 @@ getOverviewDataset(GDALDatasetH hSrcDS, GDALTransformerFunc pfnTransformer, void
               if( iOvr >= 0 )
                 {
                   //std::cout << "CTB WARPING: Selecting overview level " << iOvr << " for output dataset " << nPixels << "x" << nLines << std::endl;
-                  poSrcOvrDS = GDALCreateOverviewDataset( poSrcDS, iOvr, FALSE);
+#if ( GDAL_VERSION_MAJOR >= 2 && GDAL_VERSION_MINOR >= 2 )
+				  poSrcOvrDS = GDALCreateOverviewDataset(poSrcDS, iOvr, FALSE);
+#else
+				  poSrcOvrDS = GDALCreateOverviewDataset(poSrcDS, iOvr, FALSE, FALSE);
+#endif
                 }
             }
         }
@@ -304,7 +358,27 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
   psWarpOptions->panDstBands =
     (int *) CPLMalloc(sizeof(int) * psWarpOptions->nBandCount );
 
+  psWarpOptions->padfSrcNoDataReal = 
+    (double *)CPLCalloc(psWarpOptions->nBandCount, sizeof(double));
+  psWarpOptions->padfSrcNoDataImag = 
+    (double *)CPLCalloc(psWarpOptions->nBandCount, sizeof(double));
+  psWarpOptions->padfDstNoDataReal = 
+    (double *)CPLCalloc(psWarpOptions->nBandCount, sizeof(double));
+  psWarpOptions->padfDstNoDataImag = 
+    (double *)CPLCalloc(psWarpOptions->nBandCount, sizeof(double));
+
+  
+
   for (short unsigned int i = 0; i < psWarpOptions->nBandCount; ++i) {
+    int bGotNoData = FALSE;
+    double noDataValue = dataset()->GetRasterBand(i + 1)->GetNoDataValue(&bGotNoData);
+    if (!bGotNoData) noDataValue = -32768;
+
+    psWarpOptions->padfSrcNoDataReal[i] = noDataValue;
+    psWarpOptions->padfSrcNoDataImag[i] = 0;
+    psWarpOptions->padfDstNoDataReal[i] = noDataValue;
+    psWarpOptions->padfDstNoDataImag[i] = 0;
+    
     psWarpOptions->panDstBands[i] = psWarpOptions->panSrcBands[i] = i + 1;
   }
 
