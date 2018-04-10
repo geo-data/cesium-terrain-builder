@@ -28,6 +28,9 @@
 #include "TerrainTile.hpp"
 #include "GlobalGeodetic.hpp"
 #include "Bounds.hpp"
+#include "zstr.hpp"
+#include <sstream>
+#include <string>
 
 using namespace ctb;
 
@@ -131,56 +134,20 @@ Terrain::readFile(const char *fileName) {
   memcpy(mMask, &(inflateBuffer[++byteCount]), mMaskLength);
 }
 
-/**
- * @details This writes raw uncompressed terrain data to a filehandle.
- */
-void
-Terrain::writeFile(FILE *fp) const {
-  fwrite(mHeights.data(), TILE_CELL_SIZE * 2, 1, fp);
-  fwrite(&mChildren, 1, 1, fp);
-  fwrite(mMask, mMaskLength, 1, fp);
-}
 
-/**
- * @details This writes gzipped terrain data to a file.
- */
-void 
-Terrain::writeFile(const char *fileName) const {
-  gzFile terrainFile = gzopen(fileName, "wb");
+std::string
+Terrain::gzipTileContents() const {
+	std::stringbuf outputBuffer;
+	zstr::ostream gzipBuffer(&outputBuffer);
 
-  if (terrainFile == NULL) {
-    throw CTBException("Failed to open file");
-  }
+	gzipBuffer.write((const char *)mHeights.data(), TILE_CELL_SIZE * 2);
+	gzipBuffer.write(&mChildren, 1);
+	gzipBuffer.write((const char *)&mMask, mMaskLength);
+		
+	std::flush(gzipBuffer);
+	std::string result = outputBuffer.str();
 
-  // Write the height data
-  if (gzwrite(terrainFile, mHeights.data(), TILE_CELL_SIZE * 2) == 0) {
-    gzclose(terrainFile);
-    throw CTBException("Failed to write height data");
-  }
-
-  // Write the child flags
-  if (gzputc(terrainFile, mChildren) == -1) {
-    gzclose(terrainFile);
-    throw CTBException("Failed to write child flags");
-  }
-
-  // Write the water mask
-  if (gzwrite(terrainFile, mMask, mMaskLength) == 0) {
-    gzclose(terrainFile);
-    throw CTBException("Failed to write water mask");
-  }
-
-  // Try and close the file
-  switch (gzclose(terrainFile)) {
-  case Z_OK:
-    break;
-  case Z_STREAM_ERROR:
-  case Z_ERRNO:
-  case Z_MEM_ERROR:
-  case Z_BUF_ERROR:
-  default:
-    throw CTBException("Failed to close file");
-  }
+	return result;
 }
 
 std::vector<bool>
@@ -203,6 +170,10 @@ Terrain::hasChildSW() const {
 bool
 Terrain::hasChildSE() const {
   return ((mChildren & TERRAIN_CHILD_SE) == TERRAIN_CHILD_SE);
+}
+
+void Terrain::setIsValid(bool newIsValid) {
+	isValid = newIsValid;
 }
 
 bool
@@ -285,6 +256,10 @@ Terrain::isLand() const {
 bool
 Terrain::hasWaterMask() const {
   return mMaskLength == MASK_CELL_SIZE;
+}
+
+bool Terrain::isValidTile() const {
+	return isValid;
 }
 
 const std::vector<i_terrain_height> &

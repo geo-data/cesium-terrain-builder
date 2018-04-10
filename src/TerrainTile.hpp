@@ -23,6 +23,7 @@
  */
 
 #include <vector>
+#include <string>
 
 #include "gdal_priv.h"
 
@@ -56,14 +57,10 @@ public:
   /// Read terrain data from the filesystem
   void
   readFile(const char *fileName);
-
-  /// Write terrain data to a file handle
-  void
-  writeFile(FILE *fp) const;
-
-  /// Write terrain data to the filesystem
-  void
-  writeFile(const char *fileName) const;
+    
+  // Create a gzipped string containing the terrain bytes, ready to write to disk
+  std::string 
+  gzipTileContents() const;
 
   /// Get the water mask as a boolean mask
   std::vector<bool>
@@ -125,6 +122,8 @@ public:
   bool
   isLand() const;
 
+  
+
   /// Does this tile have a water mask?
   bool
   hasWaterMask() const;
@@ -136,6 +135,9 @@ public:
   /// Get the height data as a vector
   std::vector<i_terrain_height> &
   getHeights();
+
+  void setIsValid(bool isValid = true);
+  bool isValidTile() const;
 
 protected:
   /// The terrain height data
@@ -159,6 +161,7 @@ private:
   char mChildren;               ///< The child flags
   char mMask[MASK_CELL_SIZE];   ///< The water mask
   size_t mMaskLength;           ///< What size is the water mask?
+  bool isValid = true;
 
   /**
    * @brief Bit flags defining child tile existence
