@@ -78,7 +78,8 @@ public:
     resume(false),
     meshQualityFactor(1.0),
     metadata(false),
-    cesiumFriendly(false)
+    cesiumFriendly(false),
+    vertexNormals(false)
   {}
 
   void
@@ -218,6 +219,11 @@ public:
     static_cast<TerrainBuild *>(Command::self(command))->cesiumFriendly = true;
   }
 
+  static void
+    setVertexNormals(command_t *command) {
+    static_cast<TerrainBuild *>(Command::self(command))->vertexNormals = true;
+  }
+
   const char *outputDir,
     *outputFormat,
     *profile;
@@ -236,6 +242,7 @@ public:
   double meshQualityFactor;
   bool metadata;
   bool cesiumFriendly;
+  bool vertexNormals;
 };
 
 /**
@@ -620,7 +627,7 @@ buildTerrain(const TerrainTiler &tiler, TerrainBuild *command, TerrainMetadata *
 
 /// Output mesh tiles represented by a tiler to a directory
 static void
-buildMesh(const MeshTiler &tiler, TerrainBuild *command, TerrainMetadata *metadata) {
+buildMesh(const MeshTiler &tiler, TerrainBuild *command, TerrainMetadata *metadata, bool writeVertexNormals = false) {
   const string dirname = string(command->outputDir) + osDirSep;
   i_zoom startZoom = (command->startZoom < 0) ? tiler.maxZoomLevel() : command->startZoom,
     endZoom = (command->endZoom < 0) ? 0 : command->endZoom;
@@ -628,7 +635,7 @@ buildMesh(const MeshTiler &tiler, TerrainBuild *command, TerrainMetadata *metada
   // DEBUG Chunker:
   #if 0
   TileCoordinate coordinate(13, 8102, 6047);
-  MeshTile *tile = tiler.createMesh(coordinate);
+  MeshTile *tile = tiler.createMesh(tiler.dataset(), coordinate);
   //
   const string txtname = getTileFilename(&coordinate, dirname, "wkt");
   const Mesh &mesh = tile->getMesh();
@@ -641,7 +648,7 @@ buildMesh(const MeshTiler &tiler, TerrainBuild *command, TerrainMetadata *metada
   TileCoordinate c = tiler.grid().crsToTile(point, coordinate.zoom);
   //
   const string filename = getTileFilename(&coordinate, dirname, "terrain");
-  tile->writeFile(filename.c_str());
+  tile->writeFile(filename.c_str(), writeVertexNormals);
   delete tile;
   return;
   #endif
@@ -660,7 +667,7 @@ buildMesh(const MeshTiler &tiler, TerrainBuild *command, TerrainMetadata *metada
       MeshTile *tile = iter.operator*(&reader);
       const string temp_filename = concat(filename, ".tmp");
 
-      tile->writeFile(temp_filename.c_str());
+      tile->writeFile(temp_filename.c_str(), writeVertexNormals);
       delete tile;
 
       if (VSIRename(temp_filename.c_str(), filename.c_str()) != 0) {
@@ -719,7 +726,7 @@ runTiler(TerrainBuild *command, Grid *grid, TerrainMetadata *metadata) {
       buildTerrain(tiler, command, threadMetadata);
     } else if (strcmp(command->outputFormat, "Mesh") == 0) {
       const MeshTiler tiler(poDataset, *grid, command->tilerOptions, command->meshQualityFactor);
-      buildMesh(tiler, command, threadMetadata);
+      buildMesh(tiler, command, threadMetadata, command->vertexNormals);
     } else {                    // it's a GDAL format
       const RasterTiler tiler(poDataset, *grid, command->tilerOptions);
       buildGDAL(tiler, command, threadMetadata);
@@ -762,6 +769,7 @@ main(int argc, char *argv[]) {
   command.option("-g", "--mesh-qfactor <factor>", "specify the factor to multiply the estimated geometric error to convert heightmaps to irregular meshes. Larger values should mean minor quality. Defaults to 1.0", TerrainBuild::setMeshQualityFactor);
   command.option("-l", "--layer", "only output the layer.json metadata file", TerrainBuild::setMetadata);
   command.option("-C", "--cesium-friendly", "Force the creation of missing root tiles to be CesiumJS-friendly", TerrainBuild::setCesiumFriendly);
+  command.option("-N", "--vertex-normals", "Write 'Oct-Encoded Per-Vertex Normals' for Terrain Lighting, only for `Mesh` format", TerrainBuild::setVertexNormals);
   command.option("-q", "--quiet", "only output errors", TerrainBuild::setQuiet);
   command.option("-v", "--verbose", "be more noisy", TerrainBuild::setVerbose);
 

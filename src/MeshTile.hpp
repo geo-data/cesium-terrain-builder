@@ -53,7 +53,7 @@ public:
 
   /// Write terrain data to the filesystem
   void
-  writeFile(const char *fileName) const;
+  writeFile(const char *fileName, bool writeVertexNormals = false) const;
 
   /// Does the terrain tile have child tiles?
   bool

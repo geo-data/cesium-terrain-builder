@@ -23,6 +23,7 @@
 #include <cmath>
 #include <vector>
 #include <map>
+#include "cpl_conv.h"
 #include "zlib.h"
 
 #include "CTBException.hpp"
@@ -149,6 +150,46 @@ static inline uint16_t zigZagEncode(int n) {
   return (n << 1) ^ (n >> 31);
 }
 
+// Triangle area
+static inline double triangleArea(const CRSVertex &a, const CRSVertex &b) {
+  double i = std::pow(a[1] * b[2] - a[2] * b[1], 2);
+  double j = std::pow(a[2] * b[0] - a[0] * b[2], 2);
+  double k = std::pow(a[0] * b[1] - a[1] * b[0], 2);
+  return 0.5 * sqrt(i + j + k);
+}
+
+// Constraint a value to lie between two values
+static inline double clamp_value(double value, double min, double max) {
+  return value < min ? min : value > max ? max : value;
+}
+
+// Converts a scalar value in the range [-1.0, 1.0] to a SNORM in the range [0, rangeMax]
+static inline unsigned char snorm_value(double value, double rangeMax = 255) {
+  return (unsigned char)int(std::round((clamp_value(value, -1.0, 1.0) * 0.5 + 0.5) * rangeMax));
+}
+
+/**
+ * Encodes a normalized vector into 2 SNORM values in the range of [0-rangeMax] following the 'oct' encoding.
+ *
+ * Oct encoding is a compact representation of unit length vectors.
+ * The 'oct' encoding is described in "A Survey of Efficient Representations of Independent Unit Vectors",
+ * Cigolle et al 2014: {@link http://jcgt.org/published/0003/02/01/}
+ */
+static inline Coordinate<unsigned char> octEncode(const CRSVertex &vector, double rangeMax = 255) {
+  Coordinate<double> temp;
+  double llnorm = std::abs(vector.x) + std::abs(vector.y) + std::abs(vector.z);
+  temp.x = vector.x / llnorm;
+  temp.y = vector.y / llnorm;
+
+  if (vector.z < 0) {
+    double x = temp.x;
+    double y = temp.y;
+    temp.x = (1.0 - std::abs(y)) * (x < 0.0 ? -1.0 : 1.0);
+    temp.y = (1.0 - std::abs(x)) * (y < 0.0 ? -1.0 : 1.0);
+  }
+  return Coordinate<unsigned char>(snorm_value(temp.x, rangeMax), snorm_value(temp.y, rangeMax));
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 MeshTile::MeshTile():
@@ -165,7 +206,7 @@ MeshTile::MeshTile(const TileCoordinate &coord):
  * @details This writes gzipped terrain data to a file.
  */
 void 
-MeshTile::writeFile(const char *fileName) const {
+MeshTile::writeFile(const char *fileName, bool writeVertexNormals) const {
   gzFile terrainFile = gzopen(fileName, "wb");
 
   if (terrainFile == NULL) {
@@ -281,6 +322,45 @@ MeshTile::writeFile(const char *fileName) const {
     writeEdgeIndices<uint16_t>(terrainFile, mMesh, bounds.min.y, 1);
     writeEdgeIndices<uint16_t>(terrainFile, mMesh, bounds.max.x, 0);
     writeEdgeIndices<uint16_t>(terrainFile, mMesh, bounds.max.y, 1);
+  }
+
+  // # Write 'Oct-Encoded Per-Vertex Normals' for Terrain Lighting:
+  if (writeVertexNormals && triangleCount > 0) {
+    unsigned char extensionId = 1;
+    gzwrite(terrainFile, &extensionId, sizeof(unsigned char));
+    int extensionLength = 2 * vertexCount;
+    gzwrite(terrainFile, &extensionLength, sizeof(int));
+
+    std::vector<CRSVertex> normalsPerVertex(vertexCount);
+    std::vector<CRSVertex> normalsPerFace(triangleCount);
+    std::vector<double> areasPerFace(triangleCount);
+
+    for (size_t i = 0, icount = mMesh.indices.size(), j = 0; i < icount; i+=3, j++) {
+      const CRSVertex &v0 = cartesianVertices[ mMesh.indices[i  ] ];
+      const CRSVertex &v1 = cartesianVertices[ mMesh.indices[i+1] ];
+      const CRSVertex &v2 = cartesianVertices[ mMesh.indices[i+2] ];
+
+      CRSVertex normal = (v1 - v0).cross(v2 - v0);
+      double area = triangleArea(v0, v1);
+      normalsPerFace[j] = normal;
+      areasPerFace[j] = area;
+    }
+    for (size_t i = 0, icount = mMesh.indices.size(), j = 0; i < icount; i+=3, j++) {
+      int indexV0 = mMesh.indices[i  ];
+      int indexV1 = mMesh.indices[i+1];
+      int indexV2 = mMesh.indices[i+2];
+
+      CRSVertex weightedNormal = normalsPerFace[j] * areasPerFace[j];
+
+      normalsPerVertex[indexV0] = normalsPerVertex[indexV0] + weightedNormal;
+      normalsPerVertex[indexV1] = normalsPerVertex[indexV1] + weightedNormal;
+      normalsPerVertex[indexV2] = normalsPerVertex[indexV2] + weightedNormal;
+    }
+    for (size_t i = 0; i < vertexCount; i++) {
+      Coordinate<unsigned char> xy = octEncode(normalsPerVertex[i].normalize());
+      gzwrite(terrainFile, &xy.x, sizeof(unsigned char));
+      gzwrite(terrainFile, &xy.y, sizeof(unsigned char));
+    }
   }
 
   // Try and close the file
