@@ -27,6 +27,7 @@
 #include "Mesh.hpp"
 #include "TileCoordinate.hpp"
 #include "Tile.hpp"
+#include "CTBOutputStream.hpp"
 
 namespace ctb {
   class MeshTile;
@@ -54,6 +55,10 @@ public:
   /// Write terrain data to the filesystem
   void
   writeFile(const char *fileName, bool writeVertexNormals = false) const;
+
+  /// Write terrain data to an output stream
+  void
+  writeFile(CTBOutputStream &ostream, bool writeVertexNormals = false) const;
 
   /// Does the terrain tile have child tiles?
   bool

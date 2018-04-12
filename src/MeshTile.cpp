@@ -24,11 +24,11 @@
 #include <vector>
 #include <map>
 #include "cpl_conv.h"
-#include "zlib.h"
 
 #include "CTBException.hpp"
 #include "MeshTile.hpp"
 #include "BoundingSphere.hpp"
+#include "CTBZOutputStream.hpp"
 
 using namespace ctb;
 
@@ -117,7 +117,7 @@ static inline int quantizeIndices(const double &origin, const double &factor, co
 }
 
 // Write the edge indices of the mesh
-template <typename T> int writeEdgeIndices(gzFile terrainFile, const Mesh &mesh, double edgeCoord, int componentIndex) {
+template <typename T> int writeEdgeIndices(CTBOutputStream &ostream, const Mesh &mesh, double edgeCoord, int componentIndex) {
   std::vector<uint32_t> indices;
   std::map<uint32_t, size_t> ihash;
 
@@ -136,11 +136,11 @@ template <typename T> int writeEdgeIndices(gzFile terrainFile, const Mesh &mesh,
   }
 
   int edgeCount = indices.size();
-  gzwrite(terrainFile, &edgeCount, sizeof(int));
+  ostream.write(&edgeCount, sizeof(int));
 
   for (size_t i = 0; i < edgeCount; i++) {
     T indice = (T)indices[i];
-    gzwrite(terrainFile, &indice, sizeof(T));
+    ostream.write(&indice, sizeof(T));
   }
   return indices.size();
 }
@@ -207,11 +207,15 @@ MeshTile::MeshTile(const TileCoordinate &coord):
  */
 void 
 MeshTile::writeFile(const char *fileName, bool writeVertexNormals) const {
-  gzFile terrainFile = gzopen(fileName, "wb");
+  CTBZFileOutputStream ostream(fileName);
+  writeFile(ostream);
+}
 
-  if (terrainFile == NULL) {
-    throw CTBException("Failed to open file");
-  }
+/**
+ * @details This writes raw terrain data to an output stream.
+ */
+void
+MeshTile::writeFile(CTBOutputStream &ostream, bool writeVertexNormals) const {
 
   // Calculate main header mesh data
   std::vector<CRSVertex> cartesianVertices;
@@ -236,37 +240,37 @@ MeshTile::writeFile(const char *fileName, bool writeVertexNormals) const {
   double centerX = cartesianBounds.min.x + 0.5 * (cartesianBounds.max.x - cartesianBounds.min.x);
   double centerY = cartesianBounds.min.y + 0.5 * (cartesianBounds.max.y - cartesianBounds.min.y);
   double centerZ = cartesianBounds.min.z + 0.5 * (cartesianBounds.max.z - cartesianBounds.min.z);
-  gzwrite(terrainFile, &centerX, sizeof(double));
-  gzwrite(terrainFile, &centerY, sizeof(double));
-  gzwrite(terrainFile, &centerZ, sizeof(double));
+  ostream.write(&centerX, sizeof(double));
+  ostream.write(&centerY, sizeof(double));
+  ostream.write(&centerZ, sizeof(double));
   //
   // The minimum and maximum heights in the area covered by this tile.
   float minimumHeight = (float)bounds.min.z;
   float maximumHeight = (float)bounds.max.z;
-  gzwrite(terrainFile, &minimumHeight, sizeof(float));
-  gzwrite(terrainFile, &maximumHeight, sizeof(float));
+  ostream.write(&minimumHeight, sizeof(float));
+  ostream.write(&maximumHeight, sizeof(float));
   //
-  // The tile’s bounding sphere. The X,Y,Z coordinates are again expressed
+  // The tile's bounding sphere. The X,Y,Z coordinates are again expressed
   // in Earth-centered Fixed coordinates, and the radius is in meters.
   double boundingSphereCenterX = cartesianBoundingSphere.center.x;
   double boundingSphereCenterY = cartesianBoundingSphere.center.y;
   double boundingSphereCenterZ = cartesianBoundingSphere.center.z;
   double boundingSphereRadius  = cartesianBoundingSphere.radius;
-  gzwrite(terrainFile, &boundingSphereCenterX, sizeof(double));
-  gzwrite(terrainFile, &boundingSphereCenterY, sizeof(double));
-  gzwrite(terrainFile, &boundingSphereCenterZ, sizeof(double));
-  gzwrite(terrainFile, &boundingSphereRadius , sizeof(double));
+  ostream.write(&boundingSphereCenterX, sizeof(double));
+  ostream.write(&boundingSphereCenterY, sizeof(double));
+  ostream.write(&boundingSphereCenterZ, sizeof(double));
+  ostream.write(&boundingSphereRadius , sizeof(double));
   //
   // The horizon occlusion point, expressed in the ellipsoid-scaled Earth-centered Fixed frame.
   CRSVertex horizonOcclusionPoint = ocp_fromPoints(cartesianVertices, cartesianBoundingSphere);
-  gzwrite(terrainFile, &horizonOcclusionPoint.x, sizeof(double));
-  gzwrite(terrainFile, &horizonOcclusionPoint.y, sizeof(double));
-  gzwrite(terrainFile, &horizonOcclusionPoint.z, sizeof(double));
+  ostream.write(&horizonOcclusionPoint.x, sizeof(double));
+  ostream.write(&horizonOcclusionPoint.y, sizeof(double));
+  ostream.write(&horizonOcclusionPoint.z, sizeof(double));
 
 
   // # Write mesh vertices (X Y Z components of each vertex):
   int vertexCount = mMesh.vertices.size();
-  gzwrite(terrainFile, &vertexCount, sizeof(int));
+  ostream.write(&vertexCount, sizeof(int));
   for (int c = 0; c < 3; c++) {
     double origin = bounds.min[c];
     double factor = 0;
@@ -275,20 +279,20 @@ MeshTile::writeFile(const char *fileName, bool writeVertexNormals) const {
     // Move the initial value
     int u0 = quantizeIndices(origin, factor, mMesh.vertices[0][c]), u1, ud;
     uint16_t sval = zigZagEncode(u0);
-    gzwrite(terrainFile, &sval, sizeof(uint16_t));
+    ostream.write(&sval, sizeof(uint16_t));
 
     for (size_t i = 1, icount = mMesh.vertices.size(); i < icount; i++) {
       u1 = quantizeIndices(origin, factor, mMesh.vertices[i][c]);
       ud = u1 - u0;
       sval = zigZagEncode(ud);
-      gzwrite(terrainFile, &sval, sizeof(uint16_t));
+      ostream.write(&sval, sizeof(uint16_t));
       u0 = u1;
     }
   }
 
   // # Write mesh indices:
   int triangleCount = mMesh.indices.size() / 3;
-  gzwrite(terrainFile, &triangleCount, sizeof(int));
+  ostream.write(&triangleCount, sizeof(int));
   if (vertexCount > BYTESPLIT) {
     uint32_t highest = 0;
     uint32_t code;
@@ -296,15 +300,15 @@ MeshTile::writeFile(const char *fileName, bool writeVertexNormals) const {
     // Write main indices
     for (size_t i = 0, icount = mMesh.indices.size(); i < icount; i++) {
       code = highest - mMesh.indices[i];
-      gzwrite(terrainFile, &code, sizeof(uint32_t));
+      ostream.write(&code, sizeof(uint32_t));
       if (code == 0) highest++;
     }
 
     // Write all vertices on the edge of the tile (W, S, E, N)
-    writeEdgeIndices<uint32_t>(terrainFile, mMesh, bounds.min.x, 0);
-    writeEdgeIndices<uint32_t>(terrainFile, mMesh, bounds.min.y, 1);
-    writeEdgeIndices<uint32_t>(terrainFile, mMesh, bounds.max.x, 0);
-    writeEdgeIndices<uint32_t>(terrainFile, mMesh, bounds.max.y, 1);
+    writeEdgeIndices<uint32_t>(ostream, mMesh, bounds.min.x, 0);
+    writeEdgeIndices<uint32_t>(ostream, mMesh, bounds.min.y, 1);
+    writeEdgeIndices<uint32_t>(ostream, mMesh, bounds.max.x, 0);
+    writeEdgeIndices<uint32_t>(ostream, mMesh, bounds.max.y, 1);
   }
   else {
     uint16_t highest = 0;
@@ -313,23 +317,23 @@ MeshTile::writeFile(const char *fileName, bool writeVertexNormals) const {
     // Write main indices
     for (size_t i = 0, icount = mMesh.indices.size(); i < icount; i++) {
       code = highest - mMesh.indices[i];
-      gzwrite(terrainFile, &code, sizeof(uint16_t));
+      ostream.write(&code, sizeof(uint16_t));
       if (code == 0) highest++;
     }
 
     // Write all vertices on the edge of the tile (W, S, E, N)
-    writeEdgeIndices<uint16_t>(terrainFile, mMesh, bounds.min.x, 0);
-    writeEdgeIndices<uint16_t>(terrainFile, mMesh, bounds.min.y, 1);
-    writeEdgeIndices<uint16_t>(terrainFile, mMesh, bounds.max.x, 0);
-    writeEdgeIndices<uint16_t>(terrainFile, mMesh, bounds.max.y, 1);
+    writeEdgeIndices<uint16_t>(ostream, mMesh, bounds.min.x, 0);
+    writeEdgeIndices<uint16_t>(ostream, mMesh, bounds.min.y, 1);
+    writeEdgeIndices<uint16_t>(ostream, mMesh, bounds.max.x, 0);
+    writeEdgeIndices<uint16_t>(ostream, mMesh, bounds.max.y, 1);
   }
 
   // # Write 'Oct-Encoded Per-Vertex Normals' for Terrain Lighting:
   if (writeVertexNormals && triangleCount > 0) {
     unsigned char extensionId = 1;
-    gzwrite(terrainFile, &extensionId, sizeof(unsigned char));
+    ostream.write(&extensionId, sizeof(unsigned char));
     int extensionLength = 2 * vertexCount;
-    gzwrite(terrainFile, &extensionLength, sizeof(int));
+    ostream.write(&extensionLength, sizeof(int));
 
     std::vector<CRSVertex> normalsPerVertex(vertexCount);
     std::vector<CRSVertex> normalsPerFace(triangleCount);
@@ -358,21 +362,9 @@ MeshTile::writeFile(const char *fileName, bool writeVertexNormals) const {
     }
     for (size_t i = 0; i < vertexCount; i++) {
       Coordinate<unsigned char> xy = octEncode(normalsPerVertex[i].normalize());
-      gzwrite(terrainFile, &xy.x, sizeof(unsigned char));
-      gzwrite(terrainFile, &xy.y, sizeof(unsigned char));
+      ostream.write(&xy.x, sizeof(unsigned char));
+      ostream.write(&xy.y, sizeof(unsigned char));
     }
-  }
-
-  // Try and close the file
-  switch (gzclose(terrainFile)) {
-  case Z_OK:
-    break;
-  case Z_STREAM_ERROR:
-  case Z_ERRNO:
-  case Z_MEM_ERROR:
-  case Z_BUF_ERROR:
-  default:
-    throw CTBException("Failed to close file");
   }
 }
 
