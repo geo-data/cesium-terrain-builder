@@ -525,7 +525,7 @@ buildGDAL(GDALSerializer &serializer, const RasterTiler &tiler, TerrainBuild *co
 
     if (serializer.mustSerializeCoordinate(coordinate)) {
       GDALTile *tile = *iter;
-      serializer.serializeTile(tile, poDriver, extension, &command->creationOptions);
+      serializer.serializeTile(tile, poDriver, extension, command->creationOptions);
       delete tile;
     }
 

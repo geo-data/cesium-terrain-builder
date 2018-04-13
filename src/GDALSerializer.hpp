@@ -43,7 +43,7 @@ public:
   virtual bool mustSerializeCoordinate(const ctb::TileCoordinate *coordinate) = 0;
 
   /// Serialize a GDALTile to the store
-  virtual bool serializeTile(const ctb::GDALTile *tile, GDALDriver *driver, const char *extension, const CPLStringList *creationOptions) = 0;
+  virtual bool serializeTile(const ctb::GDALTile *tile, GDALDriver *driver, const char *extension, const CPLStringList &creationOptions) = 0;
 
   /// Serialization finished, releases any resources loaded
   virtual void endSerialization() = 0;

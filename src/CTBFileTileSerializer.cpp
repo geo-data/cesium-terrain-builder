@@ -108,13 +108,13 @@ bool ctb::CTBFileTileSerializer::mustSerializeCoordinate(const ctb::TileCoordina
  * Serialize a GDALTile to the Directory store
  */
 bool 
-ctb::CTBFileTileSerializer::serializeTile(const ctb::GDALTile *tile, GDALDriver *driver, const char *extension, const CPLStringList *creationOptions) {
+ctb::CTBFileTileSerializer::serializeTile(const ctb::GDALTile *tile, GDALDriver *driver, const char *extension, const CPLStringList &creationOptions) {
   const TileCoordinate *coordinate = tile;
   const string filename = getTileFilename(coordinate, moutputDir, extension);
   const string temp_filename = concat(filename, ".tmp");
 
   GDALDataset *poDstDS;
-  poDstDS = driver->CreateCopy(temp_filename.c_str(), tile->dataset, FALSE, creationOptions ? creationOptions->List() : NULL, NULL, NULL);
+  poDstDS = driver->CreateCopy(temp_filename.c_str(), tile->dataset, FALSE, creationOptions.List(), NULL, NULL);
 
   // Close the datasets, flushing data to destination
   if (poDstDS == NULL) {
