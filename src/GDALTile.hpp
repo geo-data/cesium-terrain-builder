@@ -57,6 +57,9 @@ public:
 
   GDALDataset *dataset;
 
+  /// Detach the underlying GDAL dataset
+  GDALDataset *detach();
+
 protected:
   friend class GDALTiler;
 

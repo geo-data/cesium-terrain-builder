@@ -59,13 +59,17 @@ public:
 
   /// Override to return a covariant data type
   TerrainTile *
-  createTile(const TileCoordinate &coord) const override;
+  createTile(GDALDataset *dataset, const TileCoordinate &coord) const override;
+
+  /// Create a tile from a tile coordinate
+  TerrainTile *
+  createTile(GDALDataset *dataset, const TileCoordinate &coord, GDALDatasetReader *reader) const;
 
 protected:
 
   /// Create a `GDALTile` representing the required terrain tile data
   virtual GDALTile *
-  createRasterTile(const TileCoordinate &coord) const override;
+  createRasterTile(GDALDataset *dataset, const TileCoordinate &coord) const override;
 
   /**
    * @brief Get terrain bounds shifted to introduce a pixel overlap
@@ -97,6 +101,9 @@ protected:
 
     return tile;
   }
+
+  /// Assigns settings of Tile just to use.
+  void prepareSettingsOfTile(TerrainTile *tile, const TileCoordinate &coord, float *rasterHeights, ctb::i_tile tileSizeX, ctb::i_tile tileSizeY) const;
 };
 
 #endif /* TERRAINTILER_HPP */
