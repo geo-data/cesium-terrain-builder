@@ -50,7 +50,7 @@ public:
   virtual bool mustSerializeCoordinate(const ctb::TileCoordinate *coordinate, const char *extension = "terrain");
 
   /// Serialize a GDALTile to the store
-  virtual bool serializeTile(const ctb::GDALTile *tile, GDALDriver *driver, const char *extension, const CPLStringList &creationOptions);
+  virtual bool serializeTile(const ctb::GDALTile *tile, GDALDriver *driver, const char *extension, CPLStringList &creationOptions);
   /// Serialize a TerrainTile to the store
   virtual bool serializeTile(const ctb::TerrainTile *tile);
   /// Serialize a MeshTile to the store
