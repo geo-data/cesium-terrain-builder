@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2014 GeoData <geodata@soton.ac.uk>
+ * Copyright 2018 GeoData <geodata@soton.ac.uk>
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License.  You may obtain a copy
@@ -15,37 +15,29 @@
  *******************************************************************************/
 
 /**
- * @file GDALTile.cpp
- * @brief This defines the `GDALTile` class
+ * @file CTBFileOutputStream.cpp
+ * @brief This defines the `CTBFileOutputStream` class
  */
 
-#include "gdalwarper.h"
-
-#include "GDALTile.hpp"
+#include "CTBFileOutputStream.hpp"
 
 using namespace ctb;
 
-GDALTile::~GDALTile() {
-  if (dataset != NULL) {
-    GDALClose(dataset);
-
-    if (transformer != NULL) {
-      GDALDestroyGenImgProjTransformer(transformer);
-    }
-  }
+/**
+ * @details 
+ * Writes a sequence of memory pointed by ptr into the FILE*.
+ */
+uint32_t
+ctb::CTBFileOutputStream::write(const void *ptr, uint32_t size) {
+  return (uint32_t)fwrite(ptr, size, 1, fp);
 }
 
-/// Detach the underlying GDAL dataset
-GDALDataset *GDALTile::detach() {
-  if (dataset != NULL) {
-    GDALDataset *poDataset = dataset;
-    dataset = NULL;
-
-    if (transformer != NULL) {
-      GDALDestroyGenImgProjTransformer(transformer);
-      transformer = NULL;
-    }
-    return poDataset;
-  }
-  return NULL;
+/**
+ * @details 
+ * Writes a sequence of memory pointed by ptr into the ostream. 
+ */
+uint32_t
+ctb::CTBStdOutputStream::write(const void *ptr, uint32_t size) {
+  mstream.write((const char *)ptr, size);
+  return size;
 }
