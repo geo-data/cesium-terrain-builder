@@ -52,6 +52,7 @@
 #include "TerrainIterator.hpp"
 #include "MeshIterator.hpp"
 #include "GDALDatasetReader.hpp"
+#include "CTBFileTileSerializer.hpp"
 
 using namespace std;
 using namespace ctb;
@@ -246,52 +247,6 @@ public:
 };
 
 /**
- * Create a filename for a tile coordinate
- *
- * This also creates the tile directory structure.
- */
-static string
-getTileFilename(const TileCoordinate *coord, const string dirname, const char *extension) {
-  static mutex mutex;
-  VSIStatBufL stat;
-  string filename = concat(dirname, coord->zoom, osDirSep, coord->x);
-
-  lock_guard<std::mutex> lock(mutex);
-
-  // Check whether the `{zoom}/{x}` directory exists or not
-  if (VSIStatExL(filename.c_str(), &stat, VSI_STAT_EXISTS_FLAG | VSI_STAT_NATURE_FLAG)) {
-    filename = concat(dirname, coord->zoom);
-
-    // Check whether the `{zoom}` directory exists or not
-    if (VSIStatExL(filename.c_str(), &stat, VSI_STAT_EXISTS_FLAG | VSI_STAT_NATURE_FLAG)) {
-      // Create the `{zoom}` directory
-      if (VSIMkdir(filename.c_str(), 0755))
-        throw CTBException("Could not create the zoom level directory");
-
-    } else if (!VSI_ISDIR(stat.st_mode)) {
-      throw CTBException("Zoom level file path is not a directory");
-    }
-
-    // Create the `{zoom}/{x}` directory
-    filename += concat(osDirSep, coord->x);
-    if (VSIMkdir(filename.c_str(), 0755))
-      throw CTBException("Could not create the x level directory");
-
-  } else if (!VSI_ISDIR(stat.st_mode)) {
-    throw CTBException("X level file path is not a directory");
-  }
-
-  // Create the filename itself, adding the extension if required
-  filename += concat(osDirSep, coord->y);
-  if (extension != NULL) {
-    filename += ".";
-    filename += extension;
-  }
-
-  return filename;
-}
-
-/**
  * Increment a TilerIterator whilst cooperating between threads
  *
  * This function maintains an global index on an iterator and when called
@@ -362,6 +317,10 @@ showProgress(int currentIndex, string filename) {
   string message = stream.str();
 
   return progressFunc(currentIndex / (double) iteratorSize, message.c_str(), NULL);
+}
+int
+showProgress(int currentIndex) {
+  return progressFunc(currentIndex / (double) iteratorSize, NULL, NULL);
 }
 
 static bool
@@ -541,7 +500,7 @@ public:
 
 /// Output GDAL tiles represented by a tiler to a directory
 static void
-buildGDAL(const RasterTiler &tiler, TerrainBuild *command, TerrainMetadata *metadata) {
+buildGDAL(GDALSerializer &serializer, const RasterTiler &tiler, TerrainBuild *command, TerrainMetadata *metadata) {
   GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName(command->outputFormat);
 
   if (poDriver == NULL) {
@@ -553,7 +512,6 @@ buildGDAL(const RasterTiler &tiler, TerrainBuild *command, TerrainMetadata *meta
   }
 
   const char *extension = poDriver->GetMetadataItem(GDAL_DMD_EXTENSION);
-  const string dirname = string(command->outputDir) + osDirSep;
   i_zoom startZoom = (command->startZoom < 0) ? tiler.maxZoomLevel() : command->startZoom,
     endZoom = (command->endZoom < 0) ? 0 : command->endZoom;
 
@@ -563,38 +521,22 @@ buildGDAL(const RasterTiler &tiler, TerrainBuild *command, TerrainMetadata *meta
 
   while (!iter.exhausted()) {
     const TileCoordinate *coordinate = iter.GridIterator::operator*();
-    GDALDataset *poDstDS;
-    const string filename = getTileFilename(coordinate, dirname, extension);
     if (metadata) metadata->add(tiler.grid(), coordinate);
 
-    if( !command->resume || !fileExists(filename) ) {
+    if (serializer.mustSerializeCoordinate(coordinate)) {
       GDALTile *tile = *iter;
-      const string temp_filename = concat(filename, ".tmp");
-      poDstDS = poDriver->CreateCopy(temp_filename.c_str(), tile->dataset, FALSE,
-                                     command->creationOptions.List(), NULL, NULL );
+      serializer.serializeTile(tile, poDriver, extension, command->creationOptions);
       delete tile;
-
-      // Close the datasets, flushing data to destination
-      if (poDstDS == NULL) {
-        throw CTBException("Could not create GDAL tile");
-      }
-
-      GDALClose(poDstDS);
-
-      if (VSIRename(temp_filename.c_str(), filename.c_str()) != 0) {
-        throw new CTBException("Could not rename temporary file");
-      }
     }
 
     currentIndex = incrementIterator(iter, currentIndex);
-    showProgress(currentIndex, filename);
+    showProgress(currentIndex);
   }
 }
 
 /// Output terrain tiles represented by a tiler to a directory
 static void
-buildTerrain(const TerrainTiler &tiler, TerrainBuild *command, TerrainMetadata *metadata) {
-  const string dirname = string(command->outputDir) + osDirSep;
+buildTerrain(TerrainSerializer &serializer, const TerrainTiler &tiler, TerrainBuild *command, TerrainMetadata *metadata) {
   i_zoom startZoom = (command->startZoom < 0) ? tiler.maxZoomLevel() : command->startZoom,
     endZoom = (command->endZoom < 0) ? 0 : command->endZoom;
 
@@ -605,35 +547,28 @@ buildTerrain(const TerrainTiler &tiler, TerrainBuild *command, TerrainMetadata *
 
   while (!iter.exhausted()) {
     const TileCoordinate *coordinate = iter.GridIterator::operator*();
-    const string filename = getTileFilename(coordinate, dirname, "terrain");
     if (metadata) metadata->add(tiler.grid(), coordinate);
 
-    if( !command->resume || !fileExists(filename) ) {
+    if (serializer.mustSerializeCoordinate(coordinate)) {
       TerrainTile *tile = iter.operator*(&reader);
-      const string temp_filename = concat(filename, ".tmp");
-
-      tile->writeFile(temp_filename.c_str());
+      serializer.serializeTile(tile);
       delete tile;
-
-      if (VSIRename(temp_filename.c_str(), filename.c_str()) != 0) {
-        throw new CTBException("Could not rename temporary file");
-      }
     }
 
     currentIndex = incrementIterator(iter, currentIndex);
-    showProgress(currentIndex, filename);
+    showProgress(currentIndex);
   }
 }
 
 /// Output mesh tiles represented by a tiler to a directory
 static void
-buildMesh(const MeshTiler &tiler, TerrainBuild *command, TerrainMetadata *metadata, bool writeVertexNormals = false) {
-  const string dirname = string(command->outputDir) + osDirSep;
+buildMesh(MeshSerializer &serializer, const MeshTiler &tiler, TerrainBuild *command, TerrainMetadata *metadata, bool writeVertexNormals = false) {
   i_zoom startZoom = (command->startZoom < 0) ? tiler.maxZoomLevel() : command->startZoom,
     endZoom = (command->endZoom < 0) ? 0 : command->endZoom;
 
   // DEBUG Chunker:
   #if 0
+  const string dirname = string(command->outputDir) + osDirSep;
   TileCoordinate coordinate(13, 8102, 6047);
   MeshTile *tile = tiler.createMesh(tiler.dataset(), coordinate);
   //
@@ -660,23 +595,16 @@ buildMesh(const MeshTiler &tiler, TerrainBuild *command, TerrainMetadata *metada
 
   while (!iter.exhausted()) {
     const TileCoordinate *coordinate = iter.GridIterator::operator*();
-    const string filename = getTileFilename(coordinate, dirname, "terrain");
     if (metadata) metadata->add(tiler.grid(), coordinate);
 
-    if( !command->resume || !fileExists(filename) ) {
+    if (serializer.mustSerializeCoordinate(coordinate)) {
       MeshTile *tile = iter.operator*(&reader);
-      const string temp_filename = concat(filename, ".tmp");
-
-      tile->writeFile(temp_filename.c_str(), writeVertexNormals);
+      serializer.serializeTile(tile, writeVertexNormals);
       delete tile;
-
-      if (VSIRename(temp_filename.c_str(), filename.c_str()) != 0) {
-        throw new CTBException("Could not rename temporary file");
-      }
     }
 
     currentIndex = incrementIterator(iter, currentIndex);
-    showProgress(currentIndex, filename);
+    showProgress(currentIndex);
   }
 }
 
@@ -717,24 +645,30 @@ runTiler(TerrainBuild *command, Grid *grid, TerrainMetadata *metadata) {
   // Metadata of only this thread, it will be joined to global later
   TerrainMetadata *threadMetadata = metadata ? new TerrainMetadata() : NULL;
 
+  // Choose serializer of tiles (Directory of files, MBTiles store...)
+  CTBFileTileSerializer serializer(string(command->outputDir) + osDirSep, command->resume);
+
   try {
+    serializer.startSerialization();
+
     if (command->metadata) {
       const RasterTiler tiler(poDataset, *grid, command->tilerOptions);
       buildMetadata(tiler, command, threadMetadata);
     } else if (strcmp(command->outputFormat, "Terrain") == 0) {
       const TerrainTiler tiler(poDataset, *grid);
-      buildTerrain(tiler, command, threadMetadata);
+      buildTerrain(serializer, tiler, command, threadMetadata);
     } else if (strcmp(command->outputFormat, "Mesh") == 0) {
       const MeshTiler tiler(poDataset, *grid, command->tilerOptions, command->meshQualityFactor);
-      buildMesh(tiler, command, threadMetadata, command->vertexNormals);
+      buildMesh(serializer, tiler, command, threadMetadata, command->vertexNormals);
     } else {                    // it's a GDAL format
       const RasterTiler tiler(poDataset, *grid, command->tilerOptions);
-      buildGDAL(tiler, command, threadMetadata);
+      buildGDAL(serializer, tiler, command, threadMetadata);
     }
 
   } catch (CTBException &e) {
     cerr << "Error: " << e.what() << endl;
   }
+  serializer.endSerialization();
 
   GDALClose(poDataset);
 
