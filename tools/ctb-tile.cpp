@@ -778,17 +778,6 @@ main(int argc, char *argv[]) {
     }
   }
 
-  // Write Json metadata file?
-  if (metadata) {
-    std::string datasetName(command.getInputFilename());
-    datasetName = datasetName.substr(datasetName.find_last_of("/\\") + 1);
-    const size_t rfindpos = datasetName.rfind('.');
-    if (std::string::npos != rfindpos) datasetName = datasetName.erase(rfindpos);
-
-    metadata->writeJsonFile(filename, datasetName, std::string(command.outputFormat), std::string(command.profile), command.vertexNormals);
-    delete metadata;
-  }
-
   // CesiumJS friendly?
   if (command.cesiumFriendly && (strcmp(command.profile, "geodetic") == 0) && command.endZoom <= 0) {
     std::string dirName0 = string(command.outputDir) + osDirSep + "0" + osDirSep + "0";
@@ -805,6 +794,26 @@ main(int argc, char *argv[]) {
       VSIMkdir(dirName0.c_str(), 0755);
       fileCopy(tileName1, tileName0);
     }
+
+    // Fix available indexes.
+    if (metadata && metadata->levels.size() > 0) {
+      TerrainMetadata::LevelInfo &level = metadata->levels.at(0);
+      level.startX = 0;
+      level.startY = 0;
+      level.finalX = 1;
+      level.finalY = 0;
+    }
+  }
+
+  // Write Json metadata file?
+  if (metadata) {
+    std::string datasetName(command.getInputFilename());
+    datasetName = datasetName.substr(datasetName.find_last_of("/\\") + 1);
+    const size_t rfindpos = datasetName.rfind('.');
+    if (std::string::npos != rfindpos) datasetName = datasetName.erase(rfindpos);
+
+    metadata->writeJsonFile(filename, datasetName, std::string(command.outputFormat), std::string(command.profile), command.vertexNormals);
+    delete metadata;
   }
 
   return 0;
