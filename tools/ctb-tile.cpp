@@ -435,7 +435,7 @@ public:
   /// http://help.agi.com/TerrainServer/RESTAPIGuide.html
   /// Example:
   /// https://assets.agi.com/stk-terrain/v1/tilesets/world/tiles/layer.json
-  void writeJsonFile(const std::string &filename, const std::string &datasetName, const std::string &outputFormat = "Terrain", const std::string &profile = "geodetic") const {
+  void writeJsonFile(const std::string &filename, const std::string &datasetName, const std::string &outputFormat = "Terrain", const std::string &profile = "geodetic", bool writeVertexNormals = false) const {
     FILE *fp = fopen(filename.c_str(), "w");
 
     if (fp == NULL) {
@@ -459,6 +459,9 @@ public:
     }
     fprintf(fp, "  \"attribution\": \"\",\n");
     fprintf(fp, "  \"schema\": \"tms\",\n");
+    if (writeVertexNormals) {
+      fprintf(fp, "  \"extensions\": [ \"octvertexnormals\" ],\n");
+    }
     fprintf(fp, "  \"tiles\": [ \"{z}/{x}/{y}.terrain?v={version}\" ],\n");
 
     if (strcmp(profile.c_str(), "geodetic") == 0) {
@@ -782,7 +785,7 @@ main(int argc, char *argv[]) {
     const size_t rfindpos = datasetName.rfind('.');
     if (std::string::npos != rfindpos) datasetName = datasetName.erase(rfindpos);
 
-    metadata->writeJsonFile(filename, datasetName, std::string(command.outputFormat), std::string(command.profile));
+    metadata->writeJsonFile(filename, datasetName, std::string(command.outputFormat), std::string(command.profile), command.vertexNormals);
     delete metadata;
   }
 
