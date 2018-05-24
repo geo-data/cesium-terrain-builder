@@ -255,9 +255,9 @@ public:
  * to ensure all tiles are iterated over consecutively.  It assumes individual
  * tile iterators point to the same source GDAL dataset.
  */
+static int globalIteratorIndex = 0; // keep track of where we are globally
 template<typename T> int
 incrementIterator(T &iter, int currentIndex) {
-  static int globalIteratorIndex = 0; // keep track of where we are globally
   static mutex mutex;        // ensure iterations occur serially between threads
 
   lock_guard<std::mutex> lock(mutex);
@@ -501,6 +501,71 @@ public:
   }
 };
 
+/// Create an empty root temporary elevation file (GTiff)
+static std::string 
+createEmptyRootElevationFile(std::string &fileName, const Grid &grid, const TileCoordinate& coord) {
+  GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName("GTiff");
+
+  if (poDriver == NULL) {
+    throw CTBException("Could not retrieve GTiff GDAL driver");
+  }
+
+  // Create the geo transform for this temporary elevation tile.
+  // We apply an 1-degree negative offset to avoid problems in borders.
+  CRSBounds tileBounds = grid.tileBounds(coord);
+  tileBounds.setMinX(tileBounds.getMinX() + 1);
+  tileBounds.setMinY(tileBounds.getMinY() + 1);
+  tileBounds.setMaxX(tileBounds.getMaxX() - 1);
+  tileBounds.setMaxY(tileBounds.getMaxY() - 1);
+  const i_tile tileSize = grid.tileSize() - 2;
+  const double resolution = tileBounds.getWidth() / tileSize;
+  double adfGeoTransform[6] = { tileBounds.getMinX(), resolution, 0, tileBounds.getMaxY(), 0, -resolution };
+
+  // Create the spatial reference system for the file
+  OGRSpatialReference oSRS;
+  if (oSRS.importFromEPSG(4326) != OGRERR_NONE) {
+    throw CTBException("Could not create EPSG:4326 spatial reference");
+  }
+  char *pszDstWKT = NULL;
+  if (oSRS.exportToWkt(&pszDstWKT) != OGRERR_NONE) {
+    CPLFree(pszDstWKT);
+    throw CTBException("Could not create EPSG:4326 WKT string");
+  }
+
+  // Create the GTiff file
+  fileName += ".tif";
+  GDALDataset *poDataset = poDriver->Create(fileName.c_str(), tileSize, tileSize, 1, GDT_Float32, NULL);
+
+  // Set the projection
+  if (poDataset->SetProjection(pszDstWKT) != CE_None) {
+    poDataset->Release();
+    CPLFree(pszDstWKT);
+    throw CTBException("Could not set projection on temporary elevation file");
+  }
+  CPLFree(pszDstWKT);
+
+  // Apply the geo transform
+  if (poDataset->SetGeoTransform(adfGeoTransform) != CE_None) {
+    poDataset->Release();
+    throw CTBException("Could not set projection on temporary elevation file");
+  }
+
+  // Finally write the height data
+  float *rasterHeights = (float *)CPLCalloc(tileSize * tileSize, sizeof(float));
+  GDALRasterBand *heightsBand = poDataset->GetRasterBand(1);
+  if (heightsBand->RasterIO(GF_Write, 0, 0, tileSize, tileSize, 
+                            (void *)rasterHeights, tileSize, tileSize, GDT_Float32, 
+                            0, 0) != CE_None) {
+    CPLFree(rasterHeights);
+    throw CTBException("Could not write heights on temporary elevation file");
+  }
+  CPLFree(rasterHeights);
+
+  poDataset->FlushCache();
+  poDataset->Release();
+  return fileName;
+}
+
 /// Output GDAL tiles represented by a tiler to a directory
 static void
 buildGDAL(GDALSerializer &serializer, const RasterTiler &tiler, TerrainBuild *command, TerrainMetadata *metadata) {
@@ -638,8 +703,8 @@ buildMetadata(const RasterTiler &tiler, TerrainBuild *command, TerrainMetadata *
  * This function is designed to be run in a separate thread.
  */
 static int
-runTiler(TerrainBuild *command, Grid *grid, TerrainMetadata *metadata) {
-  GDALDataset  *poDataset = (GDALDataset *) GDALOpen(command->getInputFilename(), GA_ReadOnly);
+runTiler(const char *inputFilename, TerrainBuild *command, Grid *grid, TerrainMetadata *metadata) {
+  GDALDataset  *poDataset = (GDALDataset *) GDALOpen(inputFilename, GA_ReadOnly);
   if (poDataset == NULL) {
     cerr << "Error: could not open GDAL dataset" << endl;
     return 1;
@@ -757,9 +822,9 @@ main(int argc, char *argv[]) {
 
   // Instantiate the threads using futures from a packaged_task
   for (int i = 0; i < threadCount ; ++i) {
-    packaged_task<int(TerrainBuild *, Grid *, TerrainMetadata *)> task(runTiler); // wrap the function
-    tasks.push_back(task.get_future());                        // get a future
-    thread(move(task), &command, &grid, metadata).detach(); // launch on a thread
+    packaged_task<int(const char *, TerrainBuild *, Grid *, TerrainMetadata *)> task(runTiler); // wrap the function
+    tasks.push_back(task.get_future()); // get a future
+    thread(move(task), command.getInputFilename(), &command, &grid, metadata).detach(); // launch on a thread
   }
 
   // Synchronise the completion of the threads
@@ -780,19 +845,37 @@ main(int argc, char *argv[]) {
 
   // CesiumJS friendly?
   if (command.cesiumFriendly && (strcmp(command.profile, "geodetic") == 0) && command.endZoom <= 0) {
-    std::string dirName0 = string(command.outputDir) + osDirSep + "0" + osDirSep + "0";
-    std::string dirName1 = string(command.outputDir) + osDirSep + "0" + osDirSep + "1";
-    std::string tileName0 = dirName0 + osDirSep + "0.terrain";
-    std::string tileName1 = dirName1 + osDirSep + "0.terrain";
 
-    if (fileExists(tileName0) && !fileExists(tileName1)) {
-      VSIMkdir(dirName1.c_str(), 0755);
-      fileCopy(tileName0, tileName1);
-    }
-    else
-    if (!fileExists(tileName0) && fileExists(tileName1)) {
-      VSIMkdir(dirName0.c_str(), 0755);
-      fileCopy(tileName1, tileName0);
+    // Create missing root tiles if it is necessary
+    if (!command.metadata) {
+      std::string dirName0 = string(command.outputDir) + osDirSep + "0" + osDirSep + "0";
+      std::string dirName1 = string(command.outputDir) + osDirSep + "0" + osDirSep + "1";
+      std::string tileName0 = dirName0 + osDirSep + "0.terrain";
+      std::string tileName1 = dirName1 + osDirSep + "0.terrain";
+
+      i_zoom missingZoom = 65535;
+      ctb::TileCoordinate missingTileCoord(missingZoom, 0, 0);
+      std::string missingTileName;
+
+      if (fileExists(tileName0) && !fileExists(tileName1)) {
+        VSIMkdir(dirName1.c_str(), 0755);
+        missingTileCoord = ctb::TileCoordinate(0, 1, 0);
+        missingTileName = tileName1;
+      }
+      else
+      if (!fileExists(tileName0) && fileExists(tileName1)) {
+        VSIMkdir(dirName0.c_str(), 0755);
+        missingTileCoord = ctb::TileCoordinate(0, 0, 0);
+        missingTileName = tileName0;
+      }
+      if (missingTileCoord.zoom != missingZoom) {
+        globalIteratorIndex = 0; // reset global iterator index
+        command.startZoom = 0;
+        command.endZoom = 0;
+        missingTileName = createEmptyRootElevationFile(missingTileName, grid, missingTileCoord);
+        runTiler (missingTileName.c_str(), &command, &grid, NULL);
+        VSIUnlink(missingTileName.c_str());
+      }
     }
 
     // Fix available indexes.
