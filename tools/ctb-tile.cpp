@@ -640,7 +640,7 @@ buildMesh(MeshSerializer &serializer, const MeshTiler &tiler, TerrainBuild *comm
   TileCoordinate coordinate(13, 8102, 6047);
   MeshTile *tile = tiler.createMesh(tiler.dataset(), coordinate);
   //
-  const string txtname = getTileFilename(&coordinate, dirname, "wkt");
+  const string txtname = CTBFileTileSerializer::getTileFilename(&coordinate, dirname, "wkt");
   const Mesh &mesh = tile->getMesh();
   mesh.writeWktFile(txtname.c_str());
   //
@@ -650,7 +650,7 @@ buildMesh(MeshSerializer &serializer, const MeshTiler &tiler, TerrainBuild *comm
   CRSPoint point(x,y);
   TileCoordinate c = tiler.grid().crsToTile(point, coordinate.zoom);
   //
-  const string filename = getTileFilename(&coordinate, dirname, "terrain");
+  const string filename = CTBFileTileSerializer::getTileFilename(&coordinate, dirname, "terrain");
   tile->writeFile(filename.c_str(), writeVertexNormals);
   delete tile;
   return;

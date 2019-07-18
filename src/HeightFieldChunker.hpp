@@ -131,6 +131,61 @@ public:
     }
   }
 
+  /// Returns the Coordinate of the Neighbor of the specified border (Left=0, Top=1, Right=2, Botton=3).
+  static ctb::TileCoordinate neighborCoord(const ctb::TileCoordinate &coord, int borderIndex) {
+    switch (borderIndex)
+    {
+    case 0: return ctb::TileCoordinate(coord.zoom, coord.x - 1, coord.y);
+    case 1: return ctb::TileCoordinate(coord.zoom, coord.x, coord.y + 1);
+    case 2: return ctb::TileCoordinate(coord.zoom, coord.x + 1, coord.y);
+    case 3: return ctb::TileCoordinate(coord.zoom, coord.x, coord.y - 1);
+    default:
+      throw CTBException("Bad Neighbor border index");
+    }
+  }
+
+  /// Apply the activation state of the border of the specified Neighbor.
+  void applyBorderActivationState(const ctb::chunk::heightfield &hf, int borderIndex) {
+    int level = -1;
+
+    switch (borderIndex) //-> (Left=0, Top=1, Right=2, Botton=3)
+    {
+    case 0:
+      for (int x = m_size - 1, y = 0; y < m_size; y++) {
+        level = hf.get_level(x, y);
+        if (level != -1) activate(0, y, level);
+      }
+      break;
+    case 1:
+      for (int x = 0, y = m_size - 1; x < m_size; x++) {
+        level = hf.get_level(x, y);
+        if (level != -1) activate(x, 0, level);
+      }
+      break;
+    case 2:
+      for (int x = 0, y = 0; y < m_size; y++) {
+        level = hf.get_level(x, y);
+        if (level != -1) activate(m_size - 1, y, level);
+      }
+      break;
+    case 3:
+      for (int x = 0, y = 0; x < m_size; x++) {
+        level = hf.get_level(x, y);
+        if (level != -1) activate(x, m_size - 1, level);
+      }
+      break;
+    default:
+      throw CTBException("Bad Neighbor border index");
+    }
+
+    // Propagate the activation_level values of verts to their parent verts,
+    // quadtree LOD style. Gives same result as L-K.
+    for (int i = 0; i < m_log_size; i++) {
+      propagate_activation_level(m_size >> 1, m_size >> 1, m_log_size - 1, i);
+      propagate_activation_level(m_size >> 1, m_size >> 1, m_log_size - 1, i);
+    }
+  }
+
   /// Clear all object data
   void clear() {
     m_heights = NULL;

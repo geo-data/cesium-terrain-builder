@@ -81,7 +81,7 @@ protected:
     int numberOfTilesAtLevelZero);
 
   /// Assigns settings of Tile just to use.
-  void prepareSettingsOfTile(MeshTile *tile, const TileCoordinate &coord, float *rasterHeights, ctb::i_tile tileSizeX, ctb::i_tile tileSizeY) const;
+  void prepareSettingsOfTile(MeshTile *tile, GDALDataset *dataset, const TileCoordinate &coord, float *rasterHeights, ctb::i_tile tileSizeX, ctb::i_tile tileSizeY) const;
 };
 
 #endif /* MESHTILER_HPP */
