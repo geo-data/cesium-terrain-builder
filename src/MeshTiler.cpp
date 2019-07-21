@@ -143,7 +143,11 @@ ctb::MeshTiler::prepareSettingsOfTile(MeshTile *terrainTile, GDALDataset *datase
     ctb::CRSBounds datasetBounds = bounds();
 
     for (int borderIndex = 0; borderIndex < 4; borderIndex++) {
-      ctb::TileCoordinate neighborCoord = ctb::chunk::heightfield::neighborCoord(coord, borderIndex);
+      bool okNeighborCoord = true;
+      ctb::TileCoordinate neighborCoord = ctb::chunk::heightfield::neighborCoord(mGrid, coord, borderIndex, okNeighborCoord);
+      if (!okNeighborCoord)
+        continue;
+
       ctb::CRSBounds neighborBounds = mGrid.tileBounds(neighborCoord);
 
       if (datasetBounds.overlaps(neighborBounds)) {

@@ -132,13 +132,39 @@ public:
   }
 
   /// Returns the Coordinate of the Neighbor of the specified border (Left=0, Top=1, Right=2, Botton=3).
-  static ctb::TileCoordinate neighborCoord(const ctb::TileCoordinate &coord, int borderIndex) {
+  static ctb::TileCoordinate neighborCoord(const Grid& grid, const ctb::TileCoordinate &coord, int borderIndex, bool& okNeighborCoord) {
+    okNeighborCoord = true;
+
     switch (borderIndex)
     {
-    case 0: return ctb::TileCoordinate(coord.zoom, coord.x - 1, coord.y);
-    case 1: return ctb::TileCoordinate(coord.zoom, coord.x, coord.y + 1);
-    case 2: return ctb::TileCoordinate(coord.zoom, coord.x + 1, coord.y);
-    case 3: return ctb::TileCoordinate(coord.zoom, coord.x, coord.y - 1);
+    case 0:
+      if (coord.x <= 0) {
+        okNeighborCoord = false;
+        return TileCoordinate();
+      }
+      return ctb::TileCoordinate(coord.zoom, coord.x - 1, coord.y);
+
+    case 1:
+      if (coord.y >= grid.getTileExtent(coord.zoom).getMaxY()) {
+        okNeighborCoord = false;
+        return TileCoordinate();
+      }
+      return ctb::TileCoordinate(coord.zoom, coord.x, coord.y + 1);
+
+    case 2: 
+      if (coord.x >= grid.getTileExtent(coord.zoom).getMaxX()) {
+        okNeighborCoord = false;
+        return TileCoordinate();
+      }
+      return ctb::TileCoordinate(coord.zoom, coord.x + 1, coord.y);
+
+    case 3: 
+      if (coord.y <= 0) {
+        okNeighborCoord = false;
+        return TileCoordinate();
+      }
+      return ctb::TileCoordinate(coord.zoom, coord.x, coord.y - 1);
+
     default:
       throw CTBException("Bad Neighbor border index");
     }
