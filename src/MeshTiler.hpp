@@ -25,6 +25,7 @@
 
 #include "MeshTile.hpp"
 #include "TerrainTiler.hpp"
+#include "RasterHeightsCache.hpp"
 
 namespace ctb {
   class MeshTiler;
@@ -62,11 +63,11 @@ public:
 
   /// Create a mesh from a tile coordinate
   MeshTile *
-  createMesh(GDALDataset *dataset, const TileCoordinate &coord) const;
+  createMesh(GDALDataset *dataset, const TileCoordinate &coord);
 
   /// Create a mesh from a tile coordinate
   MeshTile *
-  createMesh(GDALDataset *dataset, const TileCoordinate &coord, GDALDatasetReader *reader) const;
+  createMesh(GDALDataset *dataset, const TileCoordinate &coord, GDALDatasetReader *reader);
 
 protected:
 
@@ -81,7 +82,12 @@ protected:
     int numberOfTilesAtLevelZero);
 
   /// Assigns settings of Tile just to use.
-  void prepareSettingsOfTile(MeshTile *tile, GDALDataset *dataset, const TileCoordinate &coord, float *rasterHeights, ctb::i_tile tileSizeX, ctb::i_tile tileSizeY) const;
+  void prepareSettingsOfTile(MeshTile *tile, GDALDataset *dataset, const TileCoordinate &coord, ctb::RasterHeightsBuff *rasterHeights, ctb::i_tile tileSizeX, ctb::i_tile tileSizeY);
+
+private:
+
+  /// Cache of Heights to speed up the tile reading this `MeshTiler`.
+  ctb::RasterHeightsCache mHeightsCache;
 };
 
 #endif /* MESHTILER_HPP */

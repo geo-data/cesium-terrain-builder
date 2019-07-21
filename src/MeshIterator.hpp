@@ -44,11 +44,11 @@ class ctb::MeshIterator :
 public:
 
   /// Instantiate an iterator with a tiler
-  MeshIterator(const MeshTiler &tiler) :
+  MeshIterator(MeshTiler &tiler) :
     MeshIterator(tiler, tiler.maxZoomLevel(), 0)
   {}
 
-  MeshIterator(const MeshTiler &tiler, i_zoom startZoom, i_zoom endZoom = 0) :
+  MeshIterator(MeshTiler &tiler, i_zoom startZoom, i_zoom endZoom = 0) :
     GridIterator(tiler.grid(), tiler.bounds(), startZoom, endZoom),
     tiler(tiler)
   {}
@@ -66,7 +66,7 @@ public:
 
 protected:
 
-  const MeshTiler &tiler;              ///< The tiler we are iterating over
+  MeshTiler &tiler;              ///< The tiler we are iterating over
 };
 
 #endif /* MESHITERATOR_HPP */

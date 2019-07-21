@@ -112,7 +112,7 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 
 void 
-ctb::MeshTiler::prepareSettingsOfTile(MeshTile *terrainTile, GDALDataset *dataset, const TileCoordinate &coord, float *rasterHeights, ctb::i_tile tileSizeX, ctb::i_tile tileSizeY) const {
+ctb::MeshTiler::prepareSettingsOfTile(MeshTile *terrainTile, GDALDataset *dataset, const TileCoordinate &coord, ctb::RasterHeightsBuff *rasterHeights, ctb::i_tile tileSizeX, ctb::i_tile tileSizeY) {
   const ctb::i_tile TILE_SIZE = tileSizeX;
 
   // Number of tiles in the horizontal direction at tile level zero.
@@ -135,7 +135,7 @@ ctb::MeshTiler::prepareSettingsOfTile(MeshTile *terrainTile, GDALDataset *datase
   // Convert the raster grid into an irregular mesh applying the Chunked LOD strategy by 'Thatcher Ulrich'.
   // http://tulrich.com/geekstuff/chunklod.html
   //
-  ctb::chunk::heightfield heightfield(rasterHeights, TILE_SIZE);
+  ctb::chunk::heightfield heightfield(rasterHeights->mHeights, TILE_SIZE);
   heightfield.applyGeometricError(maximumGeometricError, coord.zoom <= 6);
   //
   // Propagate the geometric error of neighbours to avoid gaps in borders.
@@ -147,13 +147,23 @@ ctb::MeshTiler::prepareSettingsOfTile(MeshTile *terrainTile, GDALDataset *datase
       ctb::CRSBounds neighborBounds = mGrid.tileBounds(neighborCoord);
 
       if (datasetBounds.overlaps(neighborBounds)) {
-        float *neighborHeights = ctb::GDALDatasetReader::readRasterHeights(*this, dataset, neighborCoord, mGrid.tileSize(), mGrid.tileSize());
+        bool neighborAtY = (borderIndex % 2) != 0;
+        ctb::RasterHeightsBuff *neighborHeights = neighborAtY ? mHeightsCache.get(neighborCoord) : NULL;
+        bool updateCache = !neighborHeights;
 
-        ctb::chunk::heightfield neighborHeightfield(neighborHeights, TILE_SIZE);
+        if (!neighborHeights) {
+          float *nheights = ctb::GDALDatasetReader::readRasterHeights(*this, dataset, neighborCoord, mGrid.tileSize(), mGrid.tileSize());
+          neighborHeights = new ctb::RasterHeightsBuff(neighborCoord, nheights);
+        }
+
+        ctb::chunk::heightfield neighborHeightfield(neighborHeights->mHeights, TILE_SIZE);
         neighborHeightfield.applyGeometricError(maximumGeometricError);
         heightfield.applyBorderActivationState(neighborHeightfield, borderIndex);
 
-        CPLFree(neighborHeights);
+        if (updateCache) {
+          if (neighborAtY) mHeightsCache.push(neighborHeights);
+          else delete neighborHeights;
+        }
       }
     }
   }
@@ -188,27 +198,41 @@ ctb::MeshTiler::prepareSettingsOfTile(MeshTile *terrainTile, GDALDataset *datase
 }
 
 MeshTile *
-ctb::MeshTiler::createMesh(GDALDataset *dataset, const TileCoordinate &coord) const {
-  // Copy the raster data into an array
-  float *rasterHeights = ctb::GDALDatasetReader::readRasterHeights(*this, dataset, coord, mGrid.tileSize(), mGrid.tileSize());
+ctb::MeshTiler::createMesh(GDALDataset *dataset, const TileCoordinate &coord) {
+  // Get the raster data into an array
+  ctb::RasterHeightsBuff *rasterHeights = mHeightsCache.get(coord);
+  bool updateCache = !rasterHeights;
+  if (!rasterHeights) {
+    float *heights = ctb::GDALDatasetReader::readRasterHeights(*this, dataset, coord, mGrid.tileSize(), mGrid.tileSize());
+    rasterHeights = new ctb::RasterHeightsBuff(coord, heights);
+  }
 
   // Get a mesh tile represented by the tile coordinate
   MeshTile *terrainTile = new MeshTile(coord);
   prepareSettingsOfTile(terrainTile, dataset, coord, rasterHeights, mGrid.tileSize(), mGrid.tileSize());
-  CPLFree(rasterHeights);
+  if (updateCache) {
+    mHeightsCache.push(rasterHeights);
+  }
 
   return terrainTile;
 }
 
 MeshTile *
-ctb::MeshTiler::createMesh(GDALDataset *dataset, const TileCoordinate &coord, ctb::GDALDatasetReader *reader) const {
-  // Copy the raster data into an array
-  float *rasterHeights = reader->readRasterHeights(dataset, coord, mGrid.tileSize(), mGrid.tileSize());
+ctb::MeshTiler::createMesh(GDALDataset *dataset, const TileCoordinate &coord, ctb::GDALDatasetReader *reader) {
+  // Get the raster data into an array
+  ctb::RasterHeightsBuff *rasterHeights = mHeightsCache.get(coord);
+  bool updateCache = !rasterHeights;
+  if (!rasterHeights) {
+    float *heights = reader->readRasterHeights(dataset, coord, mGrid.tileSize(), mGrid.tileSize());
+    rasterHeights = new ctb::RasterHeightsBuff(coord, heights);
+  }
 
   // Get a mesh tile represented by the tile coordinate
   MeshTile *terrainTile = new MeshTile(coord);
   prepareSettingsOfTile(terrainTile, dataset, coord, rasterHeights, mGrid.tileSize(), mGrid.tileSize());
-  CPLFree(rasterHeights);
+  if (updateCache) {
+    mHeightsCache.push(rasterHeights);
+  }
 
   return terrainTile;
 }

@@ -630,7 +630,7 @@ buildTerrain(TerrainSerializer &serializer, const TerrainTiler &tiler, TerrainBu
 
 /// Output mesh tiles represented by a tiler to a directory
 static void
-buildMesh(MeshSerializer &serializer, const MeshTiler &tiler, TerrainBuild *command, TerrainMetadata *metadata, bool writeVertexNormals = false) {
+buildMesh(MeshSerializer &serializer, MeshTiler &tiler, TerrainBuild *command, TerrainMetadata *metadata, bool writeVertexNormals = false) {
   i_zoom startZoom = (command->startZoom < 0) ? tiler.maxZoomLevel() : command->startZoom,
     endZoom = (command->endZoom < 0) ? 0 : command->endZoom;
 
@@ -726,7 +726,7 @@ runTiler(const char *inputFilename, TerrainBuild *command, Grid *grid, TerrainMe
       const TerrainTiler tiler(poDataset, *grid);
       buildTerrain(serializer, tiler, command, threadMetadata);
     } else if (strcmp(command->outputFormat, "Mesh") == 0) {
-      const MeshTiler tiler(poDataset, *grid, command->tilerOptions, command->meshQualityFactor);
+      MeshTiler tiler(poDataset, *grid, command->tilerOptions, command->meshQualityFactor);
       buildMesh(serializer, tiler, command, threadMetadata, command->vertexNormals);
     } else {                    // it's a GDAL format
       const RasterTiler tiler(poDataset, *grid, command->tilerOptions);
