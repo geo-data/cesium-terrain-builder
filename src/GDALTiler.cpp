@@ -379,11 +379,6 @@ GDALTiler::createRasterTile(GDALDataset *dataset, double (&adfGeoTransform)[6]) 
     psWarpOptions->pfnTransformer = GDALGenImgProjTransform;
   }
 
-  // Specify a multi threaded warp operation using all CPU cores
-  CPLStringList warpOptions(psWarpOptions->papszWarpOptions, false);
-  warpOptions.SetNameValue("NUM_THREADS", "ALL_CPUS");
-  psWarpOptions->papszWarpOptions = warpOptions.StealList();
-
   // The raster tile is represented as a VRT dataset
   hDstDS = GDALCreateWarpedVRT(hWrkSrcDS, mGrid.tileSize(), mGrid.tileSize(), adfGeoTransform, psWarpOptions);
 
