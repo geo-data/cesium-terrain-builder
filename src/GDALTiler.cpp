@@ -341,23 +341,29 @@ GDALTiler::createRasterTile(GDALDataset *dataset, double (&adfGeoTransform)[6]) 
     throw CTBException("Could not create image to image transformer");
   }
 
+  // Specify the destination geotransform
+  GDALSetGenImgProjTransformerDstGeoTransform(transformerArg, adfGeoTransform );
+
   // Try and get an overview from the source dataset that corresponds more
   // closely to the resolution of this tile.
   GDALDatasetH hWrkSrcDS = getOverviewDataset(hSrcDS, GDALGenImgProjTransform, transformerArg);
   if (hWrkSrcDS == NULL) {
     hWrkSrcDS = psWarpOptions->hSrcDS = hSrcDS;
   } else {
+    psWarpOptions->hSrcDS = hWrkSrcDS;
+
     // We need to recreate the transform when operating on an overview.
     GDALDestroyGenImgProjTransformer( transformerArg );
+
     transformerArg = GDALCreateGenImgProjTransformer2( hWrkSrcDS, NULL, transformOptions.List() );
     if(transformerArg == NULL) {
       GDALDestroyWarpOptions(psWarpOptions);
       throw CTBException("Could not create overview image to image transformer");
     }
-  }
 
-  // Specify the destination geotransform
-  GDALSetGenImgProjTransformerDstGeoTransform(transformerArg, adfGeoTransform );
+    // Specify the destination geotransform
+    GDALSetGenImgProjTransformerDstGeoTransform(transformerArg, adfGeoTransform );
+  }
 
   // Decide if we are doing an approximate or exact transformation
   if (options.errorThreshold) {
