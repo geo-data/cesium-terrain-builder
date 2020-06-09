@@ -70,6 +70,11 @@ GDALTiler::GDALTiler(GDALDataset *poDataset, const Grid &grid, const TilerOption
     OGRSpatialReference srcSRS = OGRSpatialReference(srcWKT);
     OGRSpatialReference gridSRS = mGrid.getSRS();
 
+    #if ( GDAL_VERSION_MAJOR >= 3 )
+    srcSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+    gridSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+    #endif
+
     if (!srcSRS.IsSame(&gridSRS)) { // it doesn't match
       // Check the srs is valid
       switch(srcSRS.Validate()) {
