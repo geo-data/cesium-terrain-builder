@@ -20,8 +20,14 @@ include_directories(${ZLIB_INCLUDE_DIRS})
 add_library(ctb SHARED
   GDALTile.cpp
   GDALTiler.cpp
+  GDALDatasetReader.cpp
+  CTBFileTileSerializer.cpp
+  CTBFileOutputStream.cpp
+  CTBZOutputStream.cpp
   TerrainTiler.cpp
   TerrainTile.cpp
+  MeshTiler.cpp
+  MeshTile.cpp
   GlobalMercator.cpp
   GlobalGeodetic.cpp)
 target_link_libraries(ctb ${GDAL_LIBRARIES} ${ZLIB_LIBRARIES})
@@ -29,17 +35,32 @@ target_link_libraries(ctb ${GDAL_LIBRARIES} ${ZLIB_LIBRARIES})
 # Install libctb
 set(HEADERS
   Bounds.hpp
+  BoundingSphere.hpp
   Coordinate.hpp
+  Coordinate3D.hpp
+  GDALSerializer.hpp
   GDALTile.hpp
   GDALTiler.hpp
+  GDALDatasetReader.hpp
+  CTBFileTileSerializer.hpp
+  CTBFileOutputStream.hpp
+  CTBOutputStream.hpp
+  CTBZOutputStream.hpp
   GlobalGeodetic.hpp
   GlobalMercator.hpp
   Grid.hpp
   GridIterator.hpp
+  HeightFieldChunker.hpp
+  Mesh.hpp
+  MeshIterator.hpp
+  MeshSerializer.hpp
+  MeshTile.hpp
+  MeshTiler.hpp
   RasterIterator.hpp
   RasterTiler.hpp
   CTBException.hpp
   TerrainIterator.hpp
+  TerrainSerializer.hpp
   TerrainTile.hpp
   TerrainTiler.hpp
   Tile.hpp

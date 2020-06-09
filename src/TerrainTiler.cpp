@@ -21,32 +21,20 @@
 
 #include "CTBException.hpp"
 #include "TerrainTiler.hpp"
+#include "GDALDatasetReader.hpp"
 
 using namespace ctb;
 
-TerrainTile *
-ctb::TerrainTiler::createTile(const TileCoordinate &coord) const {
-  // Get a terrain tile represented by the tile coordinate
-  TerrainTile *terrainTile = new TerrainTile(coord);
-  GDALTile *rasterTile = createRasterTile(coord); // the raster associated with this tile coordinate
-  GDALRasterBand *heightsBand = rasterTile->dataset->GetRasterBand(1);
-
-  // Copy the raster data into an array
-  float rasterHeights[TerrainTile::TILE_CELL_SIZE];
-  if (heightsBand->RasterIO(GF_Read, 0, 0, TILE_SIZE, TILE_SIZE,
-                            (void *) rasterHeights, TILE_SIZE, TILE_SIZE, GDT_Float32,
-                            0, 0) != CE_None) {
-    throw CTBException("Could not read heights from raster");
-  }
-
-  delete rasterTile;
+void 
+ctb::TerrainTiler::prepareSettingsOfTile(TerrainTile *terrainTile, const TileCoordinate &coord, float *rasterHeights, ctb::i_tile tileSizeX, ctb::i_tile tileSizeY) const {
+  const ctb::i_tile TILE_CELL_SIZE = tileSizeX * tileSizeY;
 
   // Convert the raster data into the terrain tile heights.  This assumes the
   // input raster data represents meters above sea level. Each terrain height
   // value is the number of 1/5 meter units above -1000 meters.
   // TODO: try doing this using a VRT derived band:
   // (http://www.gdal.org/gdal_vrttut.html)
-  for (unsigned short int i = 0; i < TerrainTile::TILE_CELL_SIZE; i++) {
+  for (unsigned short int i = 0; i < TILE_CELL_SIZE; i++) {
     terrainTile->mHeights[i] = (i_terrain_height) ((rasterHeights[i] + 1000) * 5);
   }
 
@@ -72,14 +60,38 @@ ctb::TerrainTiler::createTile(const TileCoordinate &coord) const {
       }
     }
   }
+}
+
+TerrainTile *
+ctb::TerrainTiler::createTile(GDALDataset *dataset, const TileCoordinate &coord) const {
+  // Copy the raster data into an array
+  float *rasterHeights = ctb::GDALDatasetReader::readRasterHeights(*this, dataset, coord, TILE_SIZE, TILE_SIZE);
+
+  // Get a terrain tile represented by the tile coordinate
+  TerrainTile *terrainTile = new TerrainTile(coord);
+  prepareSettingsOfTile(terrainTile, coord, rasterHeights, TILE_SIZE, TILE_SIZE);
+  CPLFree(rasterHeights);
+
+  return terrainTile;
+}
+
+TerrainTile *
+ctb::TerrainTiler::createTile(GDALDataset *dataset, const TileCoordinate &coord, ctb::GDALDatasetReader *reader) const {
+  // Copy the raster data into an array
+  float *rasterHeights = reader->readRasterHeights(dataset, coord, TILE_SIZE, TILE_SIZE);
+
+  // Get a mesh tile represented by the tile coordinate
+  TerrainTile *terrainTile = new TerrainTile(coord);
+  prepareSettingsOfTile(terrainTile, coord, rasterHeights, TILE_SIZE, TILE_SIZE);
+  CPLFree(rasterHeights);
 
   return terrainTile;
 }
 
 GDALTile *
-ctb::TerrainTiler::createRasterTile(const TileCoordinate &coord) const {
+ctb::TerrainTiler::createRasterTile(GDALDataset *dataset, const TileCoordinate &coord) const {
   // Ensure we have some data from which to create a tile
-  if (poDataset && poDataset->GetRasterCount() < 1) {
+  if (dataset && dataset->GetRasterCount() < 1) {
     throw CTBException("At least one band must be present in the GDAL dataset");
   }
 
@@ -97,7 +109,7 @@ ctb::TerrainTiler::createRasterTile(const TileCoordinate &coord) const {
   adfGeoTransform[4] = 0;
   adfGeoTransform[5] = -resolution;
 
-  GDALTile *tile = GDALTiler::createRasterTile(adfGeoTransform);
+  GDALTile *tile = GDALTiler::createRasterTile(dataset, adfGeoTransform);
 
   // The previous geotransform represented the data with an overlap as required
   // by the terrain specification.  This now needs to be overwritten so that

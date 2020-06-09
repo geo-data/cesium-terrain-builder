@@ -33,6 +33,7 @@
 namespace ctb {
   struct TilerOptions;
   class GDALTiler;
+  class GDALDatasetReader; // forward declaration
 }
 
 /// Options passed to a `GDALTiler`
@@ -91,7 +92,7 @@ public:
 
   /// Create a tile from a tile coordinate
   virtual Tile *
-  createTile(const TileCoordinate &coord) const = 0;
+  createTile(GDALDataset *dataset, const TileCoordinate &coord) const = 0;
 
   /// Get the maximum zoom level for the dataset
   inline i_zoom
@@ -151,16 +152,18 @@ public:
   }
 
 protected:
+  friend class GDALDatasetReader;
+
   /// Close the underlying dataset
   void closeDataset();
 
   /// Create a raster tile from a tile coordinate
   virtual GDALTile *
-  createRasterTile(const TileCoordinate &coord) const;
+  createRasterTile(GDALDataset *dataset, const TileCoordinate &coord) const;
 
   /// Create a raster tile from a geo transform
   virtual GDALTile *
-  createRasterTile(double (&adfGeoTransform)[6]) const;
+  createRasterTile(GDALDataset *dataset, double (&adfGeoTransform)[6]) const;
 
   /// The grid used for generating tiles
   Grid mGrid;

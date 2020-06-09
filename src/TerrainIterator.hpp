@@ -56,6 +56,10 @@ public:
   operator*() const override {
     return static_cast<TerrainTile *>(TilerIterator::operator*());
   }
+  virtual TerrainTile *
+  operator*(ctb::GDALDatasetReader *reader) const {
+    return (static_cast<const TerrainTiler &>(tiler)).createTile(tiler.dataset(), *(GridIterator::operator*()), reader);
+  }
 };
 
 #endif /* TERRAINITERATOR_HPP */

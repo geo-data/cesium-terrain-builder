@@ -70,6 +70,11 @@ GDALTiler::GDALTiler(GDALDataset *poDataset, const Grid &grid, const TilerOption
     OGRSpatialReference srcSRS = OGRSpatialReference(srcWKT);
     OGRSpatialReference gridSRS = mGrid.getSRS();
 
+    #if ( GDAL_VERSION_MAJOR >= 3 )
+    srcSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+    gridSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+    #endif
+
     if (!srcSRS.IsSame(&gridSRS)) { // it doesn't match
       // Check the srs is valid
       switch(srcSRS.Validate()) {
@@ -173,7 +178,7 @@ GDALTiler::~GDALTiler() {
 }
 
 GDALTile *
-GDALTiler::createRasterTile(const TileCoordinate &coord) const {
+GDALTiler::createRasterTile(GDALDataset *dataset, const TileCoordinate &coord) const {
   // Convert the tile bounds into a geo transform
   double adfGeoTransform[6],
     resolution = mGrid.resolution(coord.zoom);
@@ -186,7 +191,7 @@ GDALTiler::createRasterTile(const TileCoordinate &coord) const {
   adfGeoTransform[4] = 0;
   adfGeoTransform[5] = -resolution;
 
-  GDALTile *tile = createRasterTile(adfGeoTransform);
+  GDALTile *tile = createRasterTile(dataset, adfGeoTransform);
   static_cast<TileCoordinate &>(*tile) = coord;
 
   // Set the shifted geo transform to the VRT
@@ -209,6 +214,12 @@ GDALTiler::createRasterTile(const TileCoordinate &coord) const {
  * This code is adapted from that found in `gdalwarp.cpp` implementing the
  * `gdalwarp -ovr` option.
  */
+#if ( GDAL_VERSION_MAJOR >= 3 )
+#include "gdaloverviewdataset.cpp"
+#elif ( GDAL_VERSION_MAJOR >= 2 && GDAL_VERSION_MINOR >= 2 )
+#include "gdaloverviewdataset-gdal2x.cpp"
+#endif
+
 static
 GDALDatasetH
 getOverviewDataset(GDALDatasetH hSrcDS, GDALTransformerFunc pfnTransformer, void *hTransformerArg) {
@@ -246,7 +257,11 @@ getOverviewDataset(GDALDatasetH hSrcDS, GDALTransformerFunc pfnTransformer, void
               if( iOvr >= 0 )
                 {
                   //std::cout << "CTB WARPING: Selecting overview level " << iOvr << " for output dataset " << nPixels << "x" << nLines << std::endl;
-                  poSrcOvrDS = GDALCreateOverviewDataset( poSrcDS, iOvr, FALSE);
+                #if ( GDAL_VERSION_MAJOR >= 3 || ( GDAL_VERSION_MAJOR >= 2 && GDAL_VERSION_MINOR >= 2 ) )
+                  poSrcOvrDS = GDALCreateOverviewDataset( poSrcDS, iOvr, FALSE );
+                #else
+                  poSrcOvrDS = GDALCreateOverviewDataset( poSrcDS, iOvr, FALSE, FALSE );
+                #endif
                 }
             }
         }
@@ -267,13 +282,13 @@ getOverviewDataset(GDALDatasetH hSrcDS, GDALTransformerFunc pfnTransformer, void
  * dataset.
  */
 GDALTile *
-GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
-  if (poDataset == NULL) {
+GDALTiler::createRasterTile(GDALDataset *dataset, double (&adfGeoTransform)[6]) const {
+  if (dataset == NULL) {
     throw CTBException("No GDAL dataset is set");
   }
 
   // The source and sink datasets
-  GDALDatasetH hSrcDS = (GDALDatasetH) dataset();
+  GDALDatasetH hSrcDS = (GDALDatasetH) dataset;
   GDALDatasetH hDstDS;
 
   // The transformation option list
@@ -304,7 +319,25 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
   psWarpOptions->panDstBands =
     (int *) CPLMalloc(sizeof(int) * psWarpOptions->nBandCount );
 
+  psWarpOptions->padfSrcNoDataReal =
+    (double *)CPLCalloc(psWarpOptions->nBandCount, sizeof(double));
+  psWarpOptions->padfSrcNoDataImag =
+    (double *)CPLCalloc(psWarpOptions->nBandCount, sizeof(double));
+  psWarpOptions->padfDstNoDataReal =
+    (double *)CPLCalloc(psWarpOptions->nBandCount, sizeof(double));
+  psWarpOptions->padfDstNoDataImag =
+    (double *)CPLCalloc(psWarpOptions->nBandCount, sizeof(double));
+
   for (short unsigned int i = 0; i < psWarpOptions->nBandCount; ++i) {
+    int bGotNoData = FALSE;
+    double noDataValue = poDataset->GetRasterBand(i + 1)->GetNoDataValue(&bGotNoData);
+    if (!bGotNoData) noDataValue = -32768;
+
+    psWarpOptions->padfSrcNoDataReal[i] = noDataValue;
+    psWarpOptions->padfSrcNoDataImag[i] = 0;
+    psWarpOptions->padfDstNoDataReal[i] = noDataValue;
+    psWarpOptions->padfDstNoDataImag[i] = 0;
+
     psWarpOptions->panDstBands[i] = psWarpOptions->panSrcBands[i] = i + 1;
   }
 
@@ -315,23 +348,29 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
     throw CTBException("Could not create image to image transformer");
   }
 
+  // Specify the destination geotransform
+  GDALSetGenImgProjTransformerDstGeoTransform(transformerArg, adfGeoTransform );
+
   // Try and get an overview from the source dataset that corresponds more
   // closely to the resolution of this tile.
   GDALDatasetH hWrkSrcDS = getOverviewDataset(hSrcDS, GDALGenImgProjTransform, transformerArg);
   if (hWrkSrcDS == NULL) {
     hWrkSrcDS = psWarpOptions->hSrcDS = hSrcDS;
   } else {
+    psWarpOptions->hSrcDS = hWrkSrcDS;
+
     // We need to recreate the transform when operating on an overview.
     GDALDestroyGenImgProjTransformer( transformerArg );
+
     transformerArg = GDALCreateGenImgProjTransformer2( hWrkSrcDS, NULL, transformOptions.List() );
     if(transformerArg == NULL) {
       GDALDestroyWarpOptions(psWarpOptions);
       throw CTBException("Could not create overview image to image transformer");
     }
-  }
 
-  // Specify the destination geotransform
-  GDALSetGenImgProjTransformerDstGeoTransform(transformerArg, adfGeoTransform );
+    // Specify the destination geotransform
+    GDALSetGenImgProjTransformerDstGeoTransform(transformerArg, adfGeoTransform );
+  }
 
   // Decide if we are doing an approximate or exact transformation
   if (options.errorThreshold) {
@@ -352,11 +391,6 @@ GDALTiler::createRasterTile(double (&adfGeoTransform)[6]) const {
     psWarpOptions->pTransformerArg = transformerArg;
     psWarpOptions->pfnTransformer = GDALGenImgProjTransform;
   }
-
-  // Specify a multi threaded warp operation using all CPU cores
-  CPLStringList warpOptions(psWarpOptions->papszWarpOptions, false);
-  warpOptions.SetNameValue("NUM_THREADS", "ALL_CPUS");
-  psWarpOptions->papszWarpOptions = warpOptions.StealList();
 
   // The raster tile is represented as a VRT dataset
   hDstDS = GDALCreateWarpedVRT(hWrkSrcDS, mGrid.tileSize(), mGrid.tileSize(), adfGeoTransform, psWarpOptions);

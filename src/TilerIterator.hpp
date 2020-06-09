@@ -55,7 +55,7 @@ public:
   /// Override the dereference operator to return a Tile
   virtual Tile *
   operator*() const {
-    return tiler.createTile(*(GridIterator::operator*()));
+    return tiler.createTile(tiler.dataset(), *(GridIterator::operator*()));
   }
 
 protected:
