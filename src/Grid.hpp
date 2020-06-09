@@ -67,7 +67,9 @@ public:
     mXOriginShift(extent.getWidth() / 2),
     mYOriginShift(extent.getHeight() / 2),
     mZoomFactor(zoomFactor)
-  {}
+  {
+    mSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+  }
 
   /// Overload the assignment operator
   Grid &

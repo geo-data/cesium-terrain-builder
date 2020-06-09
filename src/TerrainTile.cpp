@@ -324,6 +324,7 @@ TerrainTile::heightsToRaster() const {
 
   // Create the spatial reference system for the raster
   OGRSpatialReference oSRS;
+  oSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
   if (oSRS.importFromEPSG(4326) != OGRERR_NONE) {
     throw CTBException("Could not create EPSG:4326 spatial reference");
   }

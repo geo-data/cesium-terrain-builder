@@ -27,6 +27,7 @@ using namespace ctb;
 static OGRSpatialReference
 setSRS(void) {
   OGRSpatialReference srs;
+  srs.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
   srs.importFromEPSG(4326);
   return srs;
 }

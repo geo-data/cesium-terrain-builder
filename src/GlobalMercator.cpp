@@ -34,6 +34,7 @@ const double GlobalMercator::cOriginShift = GlobalMercator::cEarthCircumference 
 static OGRSpatialReference
 setSRS(void) {
   OGRSpatialReference srs;
+  srs.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
   srs.importFromEPSG(3857);
   return srs;
 }
