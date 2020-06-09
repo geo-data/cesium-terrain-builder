@@ -68,9 +68,12 @@ GDALTiler::GDALTiler(GDALDataset *poDataset, const Grid &grid, const TilerOption
       throw CTBException("The source dataset does not have a spatial reference system assigned");
 
     OGRSpatialReference srcSRS = OGRSpatialReference(srcWKT);
-    srcSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
     OGRSpatialReference gridSRS = mGrid.getSRS();
+
+    #if ( GDAL_VERSION_MAJOR >= 3 )
+    srcSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
     gridSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+    #endif
 
     if (!srcSRS.IsSame(&gridSRS)) { // it doesn't match
       // Check the srs is valid
