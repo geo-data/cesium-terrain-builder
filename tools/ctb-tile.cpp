@@ -394,9 +394,7 @@ public:
     i_zoom zoom = coordinate->zoom;
 
     if ((1 + zoom) > levels.size()) {
-      for (size_t i = 0; i <= zoom; i++) {
-        levels.push_back(LevelInfo());
-      }
+      levels.resize(1 + zoom, LevelInfo());
     }
     LevelInfo &level = levels[zoom];
     level.add(coordinate);
@@ -417,10 +415,11 @@ public:
     if (otherMetadata.levels.size() > 0) {
       const CRSBounds &otherBounds = otherMetadata.bounds;
 
-      for (size_t i = 0, icount = (otherMetadata.levels.size() - levels.size()); i < icount; i++) {
-        levels.push_back(LevelInfo());
+      if(otherMetadata.levels.size() > levels.size())
+      {
+        levels.resize(otherMetadata.levels.size(), LevelInfo());
       }
-      for (size_t i = 0; i < levels.size(); i++) {
+      for (size_t i = 0; i < otherMetadata.levels.size(); i++) {
         levels[i].add(otherMetadata.levels[i]);
       }
 
