@@ -123,7 +123,7 @@ ctb::CTBFileTileSerializer::serializeTile(const ctb::GDALTile *tile, GDALDriver 
   GDALClose(poDstDS);
 
   if (VSIRename(temp_filename.c_str(), filename.c_str()) != 0) {
-    throw new CTBException("Could not rename temporary file");
+    throw CTBException("Could not rename temporary file");
   }
   return true;
 }
@@ -143,7 +143,7 @@ ctb::CTBFileTileSerializer::serializeTile(const ctb::TerrainTile *tile) {
   ostream.close();
 
   if (VSIRename(temp_filename.c_str(), filename.c_str()) != 0) {
-    throw new CTBException("Could not rename temporary file");
+    throw CTBException("Could not rename temporary file");
   }
   return true;
 }
@@ -163,7 +163,7 @@ ctb::CTBFileTileSerializer::serializeTile(const ctb::MeshTile *tile, bool writeV
   ostream.close();
 
   if (VSIRename(temp_filename.c_str(), filename.c_str()) != 0) {
-    throw new CTBException("Could not rename temporary file");
+    throw CTBException("Could not rename temporary file");
   }
   return true;
 }
