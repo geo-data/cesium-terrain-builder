@@ -1,5 +1,8 @@
+#ifndef CTBOUTPUTSTREAM_HPP
+#define CTBOUTPUTSTREAM_HPP
+
 /*******************************************************************************
- * Copyright 2014 GeoData <geodata@soton.ac.uk>
+ * Copyright 2018 GeoData <geodata@soton.ac.uk>
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License.  You may obtain a copy
@@ -15,37 +18,23 @@
  *******************************************************************************/
 
 /**
- * @file GDALTile.cpp
- * @brief This defines the `GDALTile` class
+ * @file CTBOutputStream.hpp
+ * @brief This declares and defines the `CTBOutputStream` class
  */
 
-#include "gdalwarper.h"
+#include "config.hpp"
+#include "types.hpp"
 
-#include "GDALTile.hpp"
-
-using namespace ctb;
-
-GDALTile::~GDALTile() {
-  if (dataset != NULL) {
-    GDALClose(dataset);
-
-    if (transformer != NULL) {
-      GDALDestroyGenImgProjTransformer(transformer);
-    }
-  }
+namespace ctb {
+  class CTBOutputStream;
 }
 
-/// Detach the underlying GDAL dataset
-GDALDataset *GDALTile::detach() {
-  if (dataset != NULL) {
-    GDALDataset *poDataset = dataset;
-    dataset = NULL;
+/// This represents a generic CTB output stream to write raw data
+class CTB_DLL ctb::CTBOutputStream {
+public:
 
-    if (transformer != NULL) {
-      GDALDestroyGenImgProjTransformer(transformer);
-      transformer = NULL;
-    }
-    return poDataset;
-  }
-  return NULL;
-}
+  /// Writes a sequence of memory pointed by ptr into the stream
+  virtual uint32_t write(const void *ptr, uint32_t size) = 0;
+};
+
+#endif /* CTBOUTPUTSTREAM_HPP */

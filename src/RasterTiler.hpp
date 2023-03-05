@@ -54,8 +54,8 @@ public:
 
   /// Override to return a covariant data type
   virtual GDALTile *
-  createTile(const TileCoordinate &coord) const override {
-    return createRasterTile(coord);
+  createTile(GDALDataset *dataset, const TileCoordinate &coord) const override {
+    return createRasterTile(dataset, coord);
   }
 };
 

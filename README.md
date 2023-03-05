@@ -61,22 +61,26 @@ Usage: ctb-tile [options] GDAL_DATASOURCE
 
 Options:
 
-  -V, --version                 output program version
-  -h, --help                    output help information
-  -o, --output-dir <dir>        specify the output directory for the tiles (defaults to working directory)
-  -f, --output-format <format>  specify the output format for the tiles. This is either `Terrain` (the default) or any format listed by `gdalinfo --formats`
-  -p, --profile <profile>       specify the TMS profile for the tiles. This is either `geodetic` (the default) or `mercator`
-  -c, --thread-count <count>    specify the number of threads to use for tile generation. On multicore machines this defaults to the number of CPUs
-  -t, --tile-size <size>        specify the size of the tiles in pixels. This defaults to 65 for terrain tiles and 256 for other GDAL formats
-  -s, --start-zoom <zoom>       specify the zoom level to start at. This should be greater than the end zoom level
-  -e, --end-zoom <zoom>         specify the zoom level to end at. This should be less than the start zoom level and >= 0
-  -r, --resampling-method <algorithm> specify the raster resampling algorithm.  One of: nearest; bilinear; cubic; cubicspline; lanczos; average; mode; max; min; med; q1; q3. Defaults to average.
-  -n, --creation-option <option> specify a GDAL creation option for the output dataset in the form NAME=VALUE. Can be specified multiple times. Not valid for Terrain tiles.
-  -z, --error-threshold <threshold> specify the error threshold in pixel units for transformation approximation. Larger values should mean faster transforms. Defaults to 0.125
-  -m, --warp-memory <bytes>     The memory limit in bytes used for warp operations. Higher settings should be faster. Defaults to a conservative GDAL internal setting.
-  -R, --resume                  Do not overwrite existing files
-  -q, --quiet                   only output errors
-  -v, --verbose                 be more noisy
+  -V, --version                       output program version
+  -h, --help                          output help information
+  -o --output-dir <dir>               specify the output directory for the tiles (defaults to working directory)
+  -f --output-format <format>         specify the output format for the tiles. This is either `Terrain` (the default), `Mesh` (Chunked LOD mesh), or any format listed by `gdalinfo --formats`
+  -p --profile <profile>              specify the TMS profile for the tiles. This is either `geodetic` (the default) or `mercator`
+  -c --thread-count <count>           specify the number of threads to use for tile generation. On multicore machines this defaults to the number of CPUs
+  -t --tile-size <size>               specify the size of the tiles in pixels. This defaults to 65 for terrain tiles and 256 for other GDAL formats
+  -s --start-zoom <zoom>              specify the zoom level to start at. This should be greater than the end zoom level
+  -e --end-zoom <zoom>                specify the zoom level to end at. This should be less than the start zoom level and >= 0
+  -r --resampling-method <algorithm>  specify the raster resampling algorithm.  One of: nearest; bilinear; cubic; cubicspline; lanczos; average; mode; max; min; med; q1; q3. Defaults to average.
+  -n --creation-option <option>       specify a GDAL creation option for the output dataset in the form NAME=VALUE. Can be specified multiple times. Not valid for Terrain tiles.
+  -z --error-threshold <threshold>    specify the error threshold in pixel units for transformation approximation. Larger values should mean faster transforms. Defaults to 0.125
+  -m --warp-memory <bytes>            specify the memory limit in bytes used for warp operations. Higher settings should be faster. Defaults to a conservative GDAL internal setting.
+  -R --resume                         flag do not overwrite existing files
+  -g --mesh-qfactor <factor>          specify the factor to multiply the estimated geometric error to convert heightmaps to irregular meshes. Larger values should mean minor quality. Defaults to 1.0
+  -l --layer                          flag only outputs the layer.json metadata file
+  -C --cesium-friendly                flag forces the creation of missing root tiles to be CesiumJS-friendly
+  -N --vertex-normals                 flag writes 'Oct-Encoded Per-Vertex Normals' for Terrain Lighting, only for `Mesh` format
+  -q --quiet                          flag outputs only errors
+  -v --verbose                        flag outputs more noisy
 ```
 
 #### Recommendations

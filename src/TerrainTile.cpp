@@ -28,6 +28,8 @@
 #include "TerrainTile.hpp"
 #include "GlobalGeodetic.hpp"
 #include "Bounds.hpp"
+#include "CTBFileOutputStream.hpp"
+#include "CTBZOutputStream.hpp"
 
 using namespace ctb;
 
@@ -136,9 +138,8 @@ Terrain::readFile(const char *fileName) {
  */
 void
 Terrain::writeFile(FILE *fp) const {
-  fwrite(mHeights.data(), TILE_CELL_SIZE * 2, 1, fp);
-  fwrite(&mChildren, 1, 1, fp);
-  fwrite(mMask, mMaskLength, 1, fp);
+  CTBFileOutputStream ostream(fp);
+  writeFile(ostream);
 }
 
 /**
@@ -146,40 +147,29 @@ Terrain::writeFile(FILE *fp) const {
  */
 void 
 Terrain::writeFile(const char *fileName) const {
-  gzFile terrainFile = gzopen(fileName, "wb");
+  CTBZFileOutputStream ostream(fileName);
+  writeFile(ostream);
+}
 
-  if (terrainFile == NULL) {
-    throw CTBException("Failed to open file");
-  }
+/**
+ * @details This writes raw terrain data to an output stream.
+ */
+void
+Terrain::writeFile(CTBOutputStream &ostream) const {
 
   // Write the height data
-  if (gzwrite(terrainFile, mHeights.data(), TILE_CELL_SIZE * 2) == 0) {
-    gzclose(terrainFile);
+  if (ostream.write((const void *)mHeights.data(), TILE_CELL_SIZE * 2) != TILE_CELL_SIZE * 2) {
     throw CTBException("Failed to write height data");
   }
 
   // Write the child flags
-  if (gzputc(terrainFile, mChildren) == -1) {
-    gzclose(terrainFile);
+  if (ostream.write(&mChildren, 1) != 1) {
     throw CTBException("Failed to write child flags");
   }
 
   // Write the water mask
-  if (gzwrite(terrainFile, mMask, mMaskLength) == 0) {
-    gzclose(terrainFile);
+  if (ostream.write(&mMask, mMaskLength) != mMaskLength) {
     throw CTBException("Failed to write water mask");
-  }
-
-  // Try and close the file
-  switch (gzclose(terrainFile)) {
-  case Z_OK:
-    break;
-  case Z_STREAM_ERROR:
-  case Z_ERRNO:
-  case Z_MEM_ERROR:
-  case Z_BUF_ERROR:
-  default:
-    throw CTBException("Failed to close file");
   }
 }
 
@@ -334,6 +324,11 @@ TerrainTile::heightsToRaster() const {
 
   // Create the spatial reference system for the raster
   OGRSpatialReference oSRS;
+
+  #if ( GDAL_VERSION_MAJOR >= 3 )
+  oSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+  #endif
+
   if (oSRS.importFromEPSG(4326) != OGRERR_NONE) {
     throw CTBException("Could not create EPSG:4326 spatial reference");
   }
